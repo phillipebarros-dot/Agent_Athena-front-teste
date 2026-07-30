@@ -327,16 +327,16 @@ function AdminPageInner() {
                 }>
                   <div style={css('overflow-x:auto')}>
                     <table style={css('width:100%; border-collapse:collapse')}>
-                      <thead><tr>{['Conversa', 'Usuário', 'Msgs', 'Criada', 'Atualizada'].map((h, i) => <th key={i} style={css(`text-align:${i >= 2 ? 'right' : 'left'}; padding:8px 12px 8px 0; font-family:${DISP}; font-size:9.5px; color:var(--fg-3); letter-spacing:.1em; text-transform:uppercase; font-weight:600; white-space:nowrap; border-bottom:1px dashed var(--dash)`)}>{h}</th>)}</tr></thead>
+                      <thead><tr>{['Conversa', 'Usuário', 'Msgs', 'Criada', 'Atualizada'].map((h, i) => <th key={i} style={css(`text-align:${i >= 2 ? 'right' : 'left'}; padding:10px 12px 10px 0; font-family:${DISP}; font-size:10px; color:var(--fg-3); letter-spacing:.1em; text-transform:uppercase; font-weight:600; white-space:nowrap; border-bottom:1px solid var(--border)`)}>{h}</th>)}</tr></thead>
                       <tbody>
-                        {filteredConvs.length === 0 && !loading && <tr><td colSpan={5} style={css('padding:16px 0; font-size:12px; color:var(--fg-3)')}>Nenhuma conversa.</td></tr>}
+                        {filteredConvs.length === 0 && !loading && <tr><td colSpan={5} style={css('padding:16px 0; font-size:13px; color:var(--fg-3)')}>Nenhuma conversa.</td></tr>}
                         {filteredConvs.map((c, i) => (
-                          <B key={i} t="tr" onClick={() => openConv(c)} c="cursor:pointer" h="background:var(--sunk)">
-                            <td style={css('padding:11px 12px 11px 0; font-size:12.5px; font-weight:600; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-bottom:1px dashed var(--dash)')}>{c.title || 'Sem título'}</td>
-                            <td style={css('padding:11px 12px 11px 0; font-size:12.5px; color:var(--fg-2); white-space:nowrap; border-bottom:1px dashed var(--dash)')}>{shortName(c.user_id)}</td>
-                            <td style={css('padding:11px 12px 11px 0; text-align:right; font-family:' + DISP + '; font-size:12px; border-bottom:1px dashed var(--dash)')}>{fmtNum(c.message_count)}</td>
-                            <td style={css('padding:11px 12px 11px 0; text-align:right; font-family:' + DISP + '; font-size:11px; color:var(--fg-3); white-space:nowrap; border-bottom:1px dashed var(--dash)')}>{relativeTime(c.created_at)}</td>
-                            <td style={css('padding:11px 0; text-align:right; font-family:' + DISP + '; font-size:11px; color:var(--fg-3); white-space:nowrap; border-bottom:1px dashed var(--dash)')}>{relativeTime(c.updated_at)}</td>
+                          <B key={i} t="tr" onClick={() => openConv(c)} c="cursor:pointer; border-bottom:1px solid var(--border-faint);" h="background:var(--sunk)">
+                            <td style={css('padding:12px 12px 12px 0; font-size:13px; font-weight:500; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;')}>{c.title || 'Sem título'}</td>
+                            <td style={css('padding:12px 12px 12px 0; font-size:13px; color:var(--fg-2); white-space:nowrap;')}>{shortName(c.user_id)}</td>
+                            <td style={css('padding:12px 12px 12px 0; text-align:right; font-family:' + DISP + '; font-size:13px;')}>{fmtNum(c.message_count)}</td>
+                            <td style={css('padding:12px 12px 12px 0; text-align:right; font-family:' + DISP + '; font-size:12px; color:var(--fg-3); white-space:nowrap;')}>{relativeTime(c.created_at)}</td>
+                            <td style={css('padding:12px 0; text-align:right; font-family:' + DISP + '; font-size:12px; color:var(--fg-3); white-space:nowrap;')}>{relativeTime(c.updated_at)}</td>
                           </B>
                         ))}
                       </tbody>

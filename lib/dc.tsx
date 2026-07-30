@@ -1,6 +1,13 @@
 'use client';
 import React, { useState } from 'react';
 
+/**
+ * Fator global de escala de font-size.
+ * Altere aqui para aumentar/diminuir TODAS as fontes do projeto de uma vez.
+ * 1.0 = tamanho original, 1.15 = +15%, 1.25 = +25%
+ */
+const FONT_SCALE = 1.15;
+
 /** Converte "prop:val; prop2:val2" em React.CSSProperties. */
 export function css(str: string): React.CSSProperties {
   const o: Record<string, string> = {};
@@ -9,9 +16,14 @@ export function css(str: string): React.CSSProperties {
     const i = decl.indexOf(':');
     if (i < 0) continue;
     let k = decl.slice(0, i).trim();
-    const v = decl.slice(i + 1).trim();
+    let v = decl.slice(i + 1).trim();
     if (!k) continue;
     if (!k.startsWith('--')) k = k.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    // Escala font-size automaticamente
+    if (k === 'fontSize' || k === 'font-size') {
+      const m = v.match(/^([\d.]+)(px)$/);
+      if (m) v = `${Math.round(parseFloat(m[1]) * FONT_SCALE * 10) / 10}px`;
+    }
     o[k] = v;
   }
   return o;

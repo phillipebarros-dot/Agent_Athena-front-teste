@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import { Raleway, Oswald, JetBrains_Mono } from 'next/font/google';
+import { Inter, Oswald, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const raleway = Raleway({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400', '500', '600', '700', '800'],
+const inter = Inter({
+  subsets: ['latin'],
   display: 'swap',
   variable: '--font-body',
 });
@@ -37,7 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isLight = theme === 'light';
 
   return (
-    <html lang="pt-BR" className={`${raleway.variable} ${oswald.variable} ${jetbrainsMono.variable} ${theme}`}>
+    <html lang="pt-BR" className={`${inter.variable} ${oswald.variable} ${jetbrainsMono.variable} ${theme}`}>
       <body>
         <ThemeProvider defaultLight={isLight}>
           {children}
