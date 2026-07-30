@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, auth, isBackendError } from '@/lib/api';
 import { B, IC, css } from '@/lib/dc';
+import { useTheme } from '@/lib/theme';
 
 import { Sidebar } from '@/components/chat/Sidebar';
 import { MessageList } from '@/components/chat/MessageList';
@@ -20,7 +21,7 @@ export default function ChatPage() {
   const router = useRouter();
   const [me, setMe] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true);
-  const [light, setLight] = useState(false);
+  const { light, toggle } = useTheme();
   const [client, setClient] = useState('O Boticário');
   const [clients, setClients] = useState<string[]>([]);
   const [backendDown, setBackendDown] = useState(false);
@@ -35,7 +36,9 @@ export default function ChatPage() {
   const [chartView, setChartView] = useState<Record<string, boolean>>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => { document.documentElement.classList.toggle('light', light); }, [light]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Auth gate
 
   // Auth gate
   useEffect(() => {
@@ -164,7 +167,7 @@ export default function ChatPage() {
         onLogout={logout}
         backendDown={backendDown}
         light={light}
-        onToggleTheme={() => setLight((v) => !v)}
+        onToggleTheme={toggle}
         onRenameConversation={(id, title) => {
           setConversations((cur) => cur.map((c) => (c.conversation_id === id ? { ...c, title } : c)));
           api.renameConversation(id, title).catch(() => {});

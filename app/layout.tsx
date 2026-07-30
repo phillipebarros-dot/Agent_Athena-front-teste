@@ -28,10 +28,21 @@ export const metadata: Metadata = {
   description: 'Assistente de mídia da OpusMúltipla',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+import { cookies } from 'next/headers';
+import { ThemeProvider } from '@/lib/theme';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const theme = cookieStore.get('athena_theme')?.value === 'light' ? 'light' : '';
+  const isLight = theme === 'light';
+
   return (
-    <html lang="pt-BR" className={`${raleway.variable} ${oswald.variable} ${jetbrainsMono.variable}`}>
-      <body>{children}</body>
+    <html lang="pt-BR" className={`${raleway.variable} ${oswald.variable} ${jetbrainsMono.variable} ${theme}`}>
+      <body>
+        <ThemeProvider defaultLight={isLight}>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

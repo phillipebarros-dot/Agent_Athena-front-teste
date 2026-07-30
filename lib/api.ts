@@ -62,7 +62,7 @@ export const api = {
   // users / RBAC (gestão de permissões)
   listUsers: () => call<{ users: AthenaUser[] }>('users', { action: 'list' }),
   checkUser: (email: string) => call<{ exists: boolean; role: string; nome: string }>('users', { action: 'check', email }),
-  updateRole: (target_email: string, role: 'admin' | 'user') => call('users', { action: 'update_role', target_email, role }),
+  updateRole: (target_email: string, role: string) => call('users', { action: 'update_role', target_email, role }),
 };
 
 // sessão

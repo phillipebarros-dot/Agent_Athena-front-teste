@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { api, auth, isBackendError } from '@/lib/api';
 import type { AthenaUser } from '@/lib/types';
 import { B, IC, css } from '@/lib/dc';
+import { useTheme } from '@/lib/theme';
 import { Sidebar } from '@/components/chat/Sidebar';
 import { relativeTime, fmtNum, initials, shortName } from '@/lib/format';
 
@@ -32,7 +33,7 @@ function AdminPageInner() {
   const router = useRouter();
   const [me, setMe] = useState<any>(null);
   const [checking, setChecking] = useState(true);
-  const [light, setLight] = useState(false);
+  const { light, toggle } = useTheme();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState(() => searchParams.get('tab') || 'visao');
   const [backendDown, setBackendDown] = useState(false);
@@ -51,7 +52,7 @@ function AdminPageInner() {
   const [roleView, setRoleView] = useState('Administrador');
   const [roleSaved, setRoleSaved] = useState(false);
 
-  useEffect(() => { document.documentElement.classList.toggle('light', light); }, [light]);
+  const [roleSaved, setRoleSaved] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -69,14 +70,20 @@ function AdminPageInner() {
     setLoading(true);
     const r = await Promise.allSettled([
       api.audit('kpis'), api.audit('top_users'), api.audit('recent_activity'),
-      api.audit('recent_feedback'), api.audit('all_conversations'),
+      api.audit('recent_feedback'), api.audit('all_conversations'), api.listUsers()
     ]);
-    const [k, tu, act, fb, cv] = r;
+    const [k, tu, act, fb, cv, usr] = r;
     if (k.status === 'fulfilled') setKpis(k.value.data);
     if (tu.status === 'fulfilled') setTopUsers(tu.value.data || []);
     if (act.status === 'fulfilled') setActivity(act.value.data || []);
     if (fb.status === 'fulfilled') setFeedback(fb.value.data || []);
     if (cv.status === 'fulfilled') setConvs(cv.value.data || []);
+    if (usr.status === 'fulfilled') {
+      const usersData = usr.value.users || [];
+      const newRoleMap: Record<string, string> = {};
+      usersData.forEach((u) => { newRoleMap[u.email] = u.role || 'Mídia'; });
+      setRoleMap(newRoleMap);
+    }
     if (r.every((x) => x.status === 'rejected')) {
       setBackendDown(r.some((x: any) => isBackendError(x.reason)));
     } else setBackendDown(false);
@@ -175,7 +182,7 @@ function AdminPageInner() {
         onLogout={logout}
         backendDown={false}
         light={light}
-        onToggleTheme={() => setLight((v) => !v)}
+        onToggleTheme={toggle}
       />
 
       {/* MAIN */}
@@ -375,8 +382,7 @@ function AdminPageInner() {
                     <div style={css('display:flex; align-items:center; gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border)')}>
                       <B t="button" onClick={async () => {
                         for (const [email, role] of Object.entries(roleMap)) {
-                          const apiRole = role === 'Administrador' ? 'admin' : 'user';
-                          try { await api.updateRole(email, apiRole); } catch { /* segue */ }
+                          try { await api.updateRole(email, role); } catch { /* segue */ }
                         }
                         setRoleSaved(true);
                       }} c="padding:8px 16px; border:none; border-radius:9px; background:var(--red); color:#fff; font-family:var(--font-body); font-size:12.5px; font-weight:700; cursor:pointer" h="background:var(--brand-hot)">Salvar papéis</B>

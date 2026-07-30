@@ -15,7 +15,22 @@ function getOrigin(req: NextRequest): string {
   return req.nextUrl.origin;
 }
 
+const rateLimit = new Map<string, { count: number, resetAt: number }>();
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const rec = rateLimit.get(ip);
+  if (!rec || now > rec.resetAt) { rateLimit.set(ip, { count: 1, resetAt: now + 60000 }); return true; }
+  if (rec.count >= 10) return false;
+  rec.count++;
+  return true;
+}
+
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return new NextResponse('Too Many Requests', { status: 429 });
+  }
+
   const origin = getOrigin(req);
   const url = req.nextUrl;
   const code = url.searchParams.get('code');
@@ -52,7 +67,20 @@ export async function GET(req: NextRequest) {
     if (!domainAllowed(email)) return fail('dominio_nao_permitido');
 
     const name = info.name || email.split('@')[0];
-    const picture = info.picture || '';
+    let picture = info.picture || '';
+
+    if (!picture) {
+      try {
+        const pRes = await fetch('https://people.googleapis.com/v1/people/me?personFields=photos', {
+          headers: { Authorization: `Bearer ${tokens.access_token}` },
+        });
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          picture = pData.photos?.[0]?.url || '';
+        }
+      } catch { /* ignore fallback error */ }
+    }
+
     const res = NextResponse.redirect(new URL('/chat', origin));
     res.cookies.set(COOKIE_NAME, sign({ email, name, picture }), cookieOptions);
     res.cookies.set('oauth_state', '', { httpOnly: true, path: '/', maxAge: 0 });
@@ -67,7 +95,7 @@ export async function GET(req: NextRequest) {
           google_sub: info.sub || '',
           email,
           nome: name,
-          avatar_url: info.picture || '',
+          avatar_url: picture,
         }),
       }).catch(() => {}); // silencioso — não bloqueia o login
     }

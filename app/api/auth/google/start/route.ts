@@ -18,7 +18,22 @@ function getOrigin(req: NextRequest): string {
   return req.nextUrl.origin;
 }
 
+const rateLimit = new Map<string, { count: number, resetAt: number }>();
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const rec = rateLimit.get(ip);
+  if (!rec || now > rec.resetAt) { rateLimit.set(ip, { count: 1, resetAt: now + 60000 }); return true; }
+  if (rec.count >= 10) return false;
+  rec.count++;
+  return true;
+}
+
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return new NextResponse('Too Many Requests', { status: 429 });
+  }
+
   if (!googleConfigured) {
     return NextResponse.redirect(new URL('/login?error=oauth_indisponivel', getOrigin(req)));
   }
@@ -33,8 +48,12 @@ export async function GET(req: NextRequest) {
     prompt: 'select_account',
     access_type: 'online',
   });
-  // dica de domínio (não é garantia; o callback revalida)
-  if (ALLOWED_DOMAINS[0]) params.set('hd', ALLOWED_DOMAINS[0]);
+  
+  if (ALLOWED_DOMAINS.length > 1) {
+    params.set('hd', '*');
+  } else if (ALLOWED_DOMAINS.length === 1) {
+    params.set('hd', ALLOWED_DOMAINS[0]);
+  }
 
   const res = NextResponse.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + params.toString());
   res.cookies.set('oauth_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 600 });
