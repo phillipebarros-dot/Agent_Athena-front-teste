@@ -52,8 +52,6 @@ function AdminPageInner() {
   const [roleView, setRoleView] = useState('Administrador');
   const [roleSaved, setRoleSaved] = useState(false);
 
-  const [roleSaved, setRoleSaved] = useState(false);
-
   useEffect(() => {
     (async () => {
       try {

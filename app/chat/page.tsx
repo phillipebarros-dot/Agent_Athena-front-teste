@@ -36,10 +36,6 @@ export default function ChatPage() {
   const [chartView, setChartView] = useState<Record<string, boolean>>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Auth gate
-
   // Auth gate
   useEffect(() => {
     (async () => {
