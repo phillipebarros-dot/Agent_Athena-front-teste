@@ -8,6 +8,7 @@ export interface AuthUser {
   authenticated: boolean;
   email: string;
   name: string;
+  picture?: string;
   admin?: boolean;
 }
 

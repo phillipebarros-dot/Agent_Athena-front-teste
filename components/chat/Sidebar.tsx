@@ -77,14 +77,14 @@ const s = {
     marginBottom: '20px',
   },
   logoImg: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     objectFit: 'contain' as const,
     flexShrink: 0,
   },
   logoText: {
     fontFamily: 'var(--font-display)',
-    fontSize: '15px',
+    fontSize: '17px',
     fontWeight: 700,
     letterSpacing: '2.5px',
     color: 'var(--white)',
@@ -555,7 +555,12 @@ export function Sidebar({
       {/* ═══ User footer ═══ */}
       <div style={s.footer}>
         <div style={s.userRow}>
-          <div style={s.avatar}>{initials(me?.name || me?.email)}</div>
+          {me?.picture ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={me.picture} alt="" referrerPolicy="no-referrer" style={{ ...s.avatar, objectFit: 'cover' as const }} />
+          ) : (
+            <div style={s.avatar}>{initials(me?.name || me?.email)}</div>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={s.userName}>{me?.name || 'Usuário'}</div>
             <div style={s.userEmail}>{me?.email}</div>
