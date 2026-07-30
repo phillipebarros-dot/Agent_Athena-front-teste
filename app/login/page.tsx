@@ -40,16 +40,7 @@ export default function LoginPage() {
 
   // Login real via Google OAuth (redireciona para o consentimento).
   const signIn = () => { setBusy(true); setErr(''); window.location.href = '/api/auth/google/start'; };
-  // Atalho de desenvolvimento (só funciona com ATHENA_DEV_LOGIN=true).
-  const devSignIn = async () => {
-    setBusy(true); setErr('');
-    try {
-      const r: any = await auth.login();
-      if (r.ok) { router.push('/chat'); return; }
-      setErr('Modo dev desativado. Em produção use o botão do Google.');
-    } catch { setErr('Falha de conexão com o servidor.'); }
-    setBusy(false);
-  };
+
 
   // Malha reativa: pontos dispersos se conectam em torno do medalhão e o
   // olhar da Athena varre o campo em órbita.
@@ -216,7 +207,7 @@ export default function LoginPage() {
         {err && (
           <div style={{ marginTop: 12, fontSize: '0.75rem', color: '#ff6b6b', maxWidth: 320 }}>{err}</div>
         )}
-        <button onClick={devSignIn} disabled={busy} style={{ marginTop: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,.28)', fontFamily: "'Raleway',sans-serif", fontSize: '0.7rem', letterSpacing: '.04em', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>entrar em modo desenvolvimento</button>
+
 
         <div style={{ fontSize: '0.8rem', fontStyle: 'italic', fontWeight: 300, lineHeight: 1.5, color: 'rgba(255,255,255,.3)', margin: '1.2rem 0 0', minHeight: 36, opacity: fading ? 0 : 1, transform: fading ? 'translateY(-4px)' : 'translateY(0)', transition: 'opacity .5s ease, transform .3s ease', animation: 'fade-up .6s ease .8s both' }}>{QUOTES[qi]}</div>
 
