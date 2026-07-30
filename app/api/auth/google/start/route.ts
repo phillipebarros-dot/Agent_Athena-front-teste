@@ -1,0 +1,33 @@
+/**
+ * Início do login Google (OAuth 2.0 / OpenID Connect).
+ * Reusa a MESMA sessão httpOnly assinada do resto do app (lib/session).
+ * Sem dependência externa: fala direto com os endpoints do Google.
+ */
+import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
+import { GOOGLE_CLIENT_ID, googleConfigured, ALLOWED_DOMAINS } from '@/lib/config';
+
+export const runtime = 'nodejs';
+
+export async function GET(req: NextRequest) {
+  if (!googleConfigured) {
+    return NextResponse.redirect(new URL('/login?error=oauth_indisponivel', req.nextUrl.origin));
+  }
+  const state = crypto.randomBytes(16).toString('base64url');
+  const redirectUri = `${req.nextUrl.origin}/api/auth/google/callback`;
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    prompt: 'select_account',
+    access_type: 'online',
+  });
+  // dica de domínio (não é garantia; o callback revalida)
+  if (ALLOWED_DOMAINS[0]) params.set('hd', ALLOWED_DOMAINS[0]);
+
+  const res = NextResponse.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + params.toString());
+  res.cookies.set('oauth_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 600 });
+  return res;
+}

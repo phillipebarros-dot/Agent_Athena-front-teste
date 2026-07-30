@@ -1,0 +1,59 @@
+/* Tokens da marca OpusMúltipla (extraídos do site oficial):
+   vermelho #dd0004, grafite #2c2a29, vinho #791f23, Raleway + Oswald.
+   Os nomes --* são mantidos para o chat/login não quebrarem; só os valores mudam. */
+:root {
+  /* superfícies (grafite quente sobre quase-preto) */
+  --page:#0d0c0c; --bg-deep:#0d0c0c; --bg-surface:#141312; --bg-panel:#1a1918;
+  --bg-card:#000000; --bg-input:#201e1d; --sunk:#211f1e; --rail:#0f0e0e;
+  /* linhas */
+  --border:#2c2a29; --border-subtle:#332f2e; --border-faint:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.08); --dash:rgba(255,255,255,.14);
+  /* marca */
+  --red:#dd0004; --red-dim:#b2232a; --red-glow:rgba(221,0,4,.16); --brand:#dd0004;
+  --brand-dim:#b2232a; --brand-hot:#ff2b2f; --red-dot:#dd0004; --wine:#791f23;
+  /* texto */
+  --white:#f4f2f0; --fg:#ffffff; --muted:#7a7472; --muted-light:#a29b98; --muted-dim:#615b59;
+  --fg-2:#948d8a; --fg-3:#615b59;
+  /* sinal */
+  --green:#3fb950; --green-2:#00b929; --gold:#d9a441; --cyan:#3fb4c4; --violet:#8a5cd0;
+  --magenta:#c4147a; --danger:#dd0004; --grey:#4a4645;
+  --user-bubble:#242221; --athena-bubble:#161514; --scrollbar-thumb:#2c2a29;
+  --green-dim:#2f7d3a;
+  --bg-quiet:#141312; --bg-raised:#1a1918; --bg-code:#0c0b0b; --border-ghost:rgba(255,255,255,.04);
+  --shadow: 10.67px 21.33px 3.38px rgba(0,0,0,.0626), 13.48px 26.97px 7.01px rgba(0,0,0,.102);
+  --sidebar-w:260px;
+  --font-body:'Raleway', -apple-system, sans-serif;
+  --font-display:'Oswald', 'Raleway', sans-serif;
+}
+:root.light {
+  --page:#eeeae7; --bg-deep:#f4f1ee; --bg-surface:#ffffff; --bg-panel:#f7f4f1;
+  --bg-card:#ffffff; --bg-input:#efeae6; --sunk:#efeae6; --rail:#ffffff;
+  --border:#ddd6d1; --border-subtle:#ddd6d1; --border-faint:rgba(0,0,0,.06);
+  --line:rgba(0,0,0,.1); --dash:rgba(0,0,0,.16);
+  --red:#dd0004; --red-dim:#b2232a; --red-glow:rgba(221,0,4,.1); --brand:#dd0004;
+  --brand-dim:#b2232a; --brand-hot:#b2232a; --red-dot:#dd0004; --wine:#791f23;
+  --white:#2c2a29; --fg:#161514; --muted:#7a7472; --muted-light:#5a5350; --muted-dim:#948d8a;
+  --fg-2:#5a5350; --fg-3:#948d8a;
+  --green:#1a8f2e; --cyan:#0e8394; --violet:#6d3fc4; --magenta:#b2126e; --danger:#dd0004; --grey:#c4beba;
+  --user-bubble:#efeae6; --athena-bubble:#f7f4f1;
+  --green-dim:#1a8f2e; --bg-quiet:#f4f1ee; --bg-raised:#f7f4f1; --bg-code:#f0ebe7; --border-ghost:rgba(0,0,0,.05);
+  --shadow: 10.67px 21.33px 3.38px rgba(0,0,0,.06), 13.48px 26.97px 7.01px rgba(0,0,0,.08);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--page); color: var(--white);
+  font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+a { color: var(--red); text-decoration: none; }
+a:hover { color: var(--brand-hot); }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes auraGlow { 0%,100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes logoFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+@keyframes thinkDot { 0%,75%,100% { opacity: .3; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { [data-think-dot] { animation: none !important; opacity: .75 !important; } }
