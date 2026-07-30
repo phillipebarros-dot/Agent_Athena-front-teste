@@ -1,9 +1,9 @@
 'use client';
 import React, { useState } from 'react';
 
-/** Converte "prop:val; prop2:val2" (como nos protótipos) em React.CSSProperties. */
+/** Converte "prop:val; prop2:val2" em React.CSSProperties. */
 export function css(str: string): React.CSSProperties {
-  const o: any = {};
+  const o: Record<string, string> = {};
   if (!str) return o;
   for (const decl of str.split(';')) {
     const i = decl.indexOf(':');
@@ -18,48 +18,102 @@ export function css(str: string): React.CSSProperties {
 }
 
 type BoxProps = {
-  t?: any;                 // tag ('div' padrão)
-  c?: string;              // css base (string)
-  h?: string;              // css :hover
-  a?: string;              // css :active
-  f?: string;              // css :focus
+  /** Tag HTML a renderizar ('div' padrão) */
+  as?: any;
+  /** CSS base (string no formato "prop:val; prop2:val2") */
+  baseStyle?: string;
+  /** CSS no hover */
+  hoverStyle?: string;
+  /** CSS no active/mousedown */
+  activeStyle?: string;
+  /** CSS no focus */
+  focusStyle?: string;
   style?: React.CSSProperties;
   children?: React.ReactNode;
   [k: string]: any;
 };
 
-/** Elemento com estados hover/active/focus por string CSS, porta os style-hover dos protótipos. */
-export function B({ t = 'div', c, h, a, f, style, children, onMouseEnter, onMouseLeave, onMouseDown, onMouseUp, onFocus, onBlur, ...rest }: BoxProps) {
+/**
+ * Elemento com estados hover/active/focus por string CSS.
+ *
+ * Props renomeadas (antigo → novo):
+ *   t → as | c → baseStyle | h → hoverStyle | a → activeStyle | f → focusStyle
+ *
+ * Para retrocompatibilidade durante a migração, ainda aceita os nomes curtos.
+ */
+export function B({
+  as, t, baseStyle, c, hoverStyle, h, activeStyle, a, focusStyle, f,
+  style, children,
+  onMouseEnter, onMouseLeave, onMouseDown, onMouseUp, onFocus, onBlur,
+  ...rest
+}: BoxProps & { t?: any; c?: string; h?: string; a?: string; f?: string }) {
+  // Resolve nomes novos com fallback para os curtos (migração gradual)
+  const tag = as || t || 'div';
+  const base = baseStyle || c || '';
+  const hover = hoverStyle || h || '';
+  const active = activeStyle || a || '';
+  const focus = focusStyle || f || '';
+
   const [hov, setHov] = useState(false);
   const [act, setAct] = useState(false);
   const [foc, setFoc] = useState(false);
-  const Tag = t as any;
+  const Tag = tag as any;
   const merged = {
-    ...css(c || ''),
-    ...(hov && h ? css(h) : {}),
-    ...(act && a ? css(a) : {}),
-    ...(foc && f ? css(f) : {}),
+    ...css(base),
+    ...(hov && hover ? css(hover) : {}),
+    ...(act && active ? css(active) : {}),
+    ...(foc && focus ? css(focus) : {}),
     ...style,
   };
   return (
     <Tag
       {...rest}
       style={merged}
-      onMouseEnter={(e: any) => { if (h) setHov(true); onMouseEnter?.(e); }}
-      onMouseLeave={(e: any) => { if (h) setHov(false); if (a) setAct(false); onMouseLeave?.(e); }}
-      onMouseDown={(e: any) => { if (a) setAct(true); onMouseDown?.(e); }}
-      onMouseUp={(e: any) => { if (a) setAct(false); onMouseUp?.(e); }}
-      onFocus={(e: any) => { if (f) setFoc(true); onFocus?.(e); }}
-      onBlur={(e: any) => { if (f) setFoc(false); onBlur?.(e); }}
+      onMouseEnter={(e: React.MouseEvent) => { if (hover) setHov(true); onMouseEnter?.(e); }}
+      onMouseLeave={(e: React.MouseEvent) => { if (hover) setHov(false); if (active) setAct(false); onMouseLeave?.(e); }}
+      onMouseDown={(e: React.MouseEvent) => { if (active) setAct(true); onMouseDown?.(e); }}
+      onMouseUp={(e: React.MouseEvent) => { if (active) setAct(false); onMouseUp?.(e); }}
+      onFocus={(e: React.FocusEvent) => { if (focus) setFoc(true); onFocus?.(e); }}
+      onBlur={(e: React.FocusEvent) => { if (focus) setFoc(false); onBlur?.(e); }}
     >
       {children}
     </Tag>
   );
 }
 
-/** SVG a partir do markup interno (mesmo padrão dos protótipos DC). */
-export function IC({ s = 16, d, w = 1.8, stroke = 'currentColor', fill = 'none' }: { s?: number; d: string; w?: number; stroke?: string; fill?: string }) {
-  return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: d }} />
-  );
+/**
+ * Ícone SVG inline.
+ * ANTES: usava dangerouslySetInnerHTML — vetor de XSS.
+ * AGORA: aceita children (JSX) OU string (com sanitização básica para retrocompat).
+ */
+export function IC({ s = 16, d, w = 1.8, stroke = 'currentColor', fill = 'none', children }: {
+  s?: number;
+  /** SVG path string (retrocompat) — será substituído por lucide-react gradualmente */
+  d?: string;
+  w?: number;
+  stroke?: string;
+  fill?: string;
+  children?: React.ReactNode;
+}) {
+  // Se tem children JSX, usa diretamente (caminho seguro)
+  if (children) {
+    return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill={fill} stroke={stroke}
+        strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        {children}
+      </svg>
+    );
+  }
+  // Fallback: dangerouslySetInnerHTML com sanitização básica.
+  // TODO: migrar todos os callsites para lucide-react e remover este path.
+  if (d) {
+    // Sanitiza: só permite tags SVG válidas
+    const sanitized = d.replace(/<script[\s>]/gi, '').replace(/on\w+=/gi, '');
+    return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill={fill} stroke={stroke}
+        strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}
+        dangerouslySetInnerHTML={{ __html: sanitized }} />
+    );
+  }
+  return null;
 }

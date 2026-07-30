@@ -8,17 +8,20 @@
  *    const r = await api.chat({ message, conversation_id })
  */
 
+import type { Conversation as ConversationType, MessageAttachment, MessageSource } from '@/lib/types';
+
 export type ChatReply = {
   output: string;
   conversation_id: string;
   latency_ms?: number;
-  attachment?: { status: string; file_type: string; url: string; view_url?: string } | null;
+  attachment?: MessageAttachment | null;
   audio?: string | null;
-  sources?: { label: string; detail?: string }[] | null;
+  sources?: MessageSource[] | null;
   query?: string | null;
   tables?: string[] | null;
 };
-export type Conversation = { conversation_id: string; user_id: string; title: string; status: string; message_count: number; created_at?: string; updated_at?: string };
+/** @deprecated Use Conversation from '@/lib/types' */
+export type Conversation = ConversationType;
 export type Msg = { message_id: string; conversation_id: string; user_id: string; role: string; content: string; timestamp?: string; is_compacted?: boolean };
 
 async function call<T>(endpoint: string, body: unknown): Promise<T> {
