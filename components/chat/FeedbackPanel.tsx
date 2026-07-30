@@ -8,8 +8,9 @@ interface FeedbackPanelProps {
   onSendFeedback: (m: ChatMessage, rating: 'positive' | 'negative', comment?: string) => void;
 }
 
-export function FeedbackActions({ message, onSendFeedback, onToggleFb }: FeedbackPanelProps & { fbOpen: boolean; onToggleFb: () => void }) {
+export function FeedbackActions({ message, onSendFeedback, onToggleFb, onRegenerate }: FeedbackPanelProps & { fbOpen: boolean; onToggleFb: () => void; onRegenerate?: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [ttsLoading, setTtsLoading] = useState(false);
   const doCopy = () => {
     navigator.clipboard?.writeText(message.content);
     setCopied(true);
@@ -17,8 +18,13 @@ export function FeedbackActions({ message, onSendFeedback, onToggleFb }: Feedbac
   };
   return (
     <div style={css('display:flex; align-items:center; gap:4px; margin-top:8px')}>
-      <B t="button" title="Ouvir" onClick={() => playTts(message.content)} c="padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:var(--font-body); font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px" h="border-color:var(--red-dim); color:var(--white)">
-        <IC s={12} d='<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>' w={2} />Ouvir
+      {onRegenerate && (
+        <B t="button" title="Regenerar" onClick={onRegenerate} c="padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:var(--font-body); font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px" h="border-color:var(--red-dim); color:var(--white)">
+          <IC s={12} d='<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>' w={2} />Regenerar
+        </B>
+      )}
+      <B t="button" title="Ouvir" onClick={async () => { if (ttsLoading) return; setTtsLoading(true); await playTts(message.content); setTtsLoading(false); }} c="padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:var(--font-body); font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px" h="border-color:var(--red-dim); color:var(--white)">
+        <IC s={12} d='<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>' w={2} />{ttsLoading ? 'Gerando…' : 'Ouvir'}
       </B>
       <B t="button" title="Copiar" onClick={doCopy} c={`padding:4px 9px; border-radius:6px; border:1px solid ${copied ? 'var(--green-dim)' : 'var(--border)'}; background:transparent; color:${copied ? 'var(--green)' : 'var(--muted)'}; font-family:var(--font-body); font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all .2s`} h="border-color:var(--red-dim); color:var(--white)">
         {copied
@@ -56,6 +62,9 @@ async function playTts(text: string) {
   try {
     const { api } = await import('@/lib/api');
     const r = await api.tts(text.slice(0, 4000));
-    if (r?.audio) new Audio(`data:audio/mp3;base64,${r.audio}`).play().catch(() => {});
+    if (r?.audio) {
+      const audio = new Audio(`data:audio/mp3;base64,${r.audio}`);
+      await audio.play().catch(() => {});
+    }
   } catch { /* silencioso */ }
 }

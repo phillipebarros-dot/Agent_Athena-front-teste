@@ -1,15 +1,17 @@
 'use client';
 import React, { useState } from 'react';
 import {
-  MessageSquare, Plus, Search, ChevronDown, Shield, LogOut,
-  BarChart3, Settings, Sparkles, Clock, CalendarDays, Archive,
-  Moon, Sun, Pencil, Check, X, Trash2,
-} from 'lucide-react';
+  ChatCircle, Plus, MagnifyingGlass, CaretDown, ShieldCheck, SignOut,
+  ChartBar, GearSix, Sparkle, Clock, CalendarDots, Archive,
+  Moon, Sun, PencilSimple, Check, X, Trash,
+} from '@phosphor-icons/react';
 import type { Conversation } from '@/lib/types';
 import { relativeTime, initials } from '@/lib/format';
+import { SidebarSkeleton } from './SkeletonLoaders';
 
 /* ─── Types ─── */
 interface SidebarProps {
+  loading?: boolean;
   me: { name?: string; email?: string; admin?: boolean; picture?: string } | null;
   conversations: Conversation[];
   activeId: string | null;
@@ -36,9 +38,9 @@ function groupByTime(conversations: Conversation[]) {
   const weekAgo = today - 7 * 86400000;
 
   const groups: { label: string; icon: React.ReactNode; items: Conversation[] }[] = [
-    { label: 'Hoje', icon: <Sparkles size={12} />, items: [] },
+    { label: 'Hoje', icon: <Sparkle size={12} />, items: [] },
     { label: 'Ontem', icon: <Clock size={12} />, items: [] },
-    { label: 'Esta semana', icon: <CalendarDays size={12} />, items: [] },
+    { label: 'Esta semana', icon: <CalendarDots size={12} />, items: [] },
     { label: 'Anteriores', icon: <Archive size={12} />, items: [] },
   ];
 
@@ -325,7 +327,7 @@ const s = {
 export function Sidebar({
   me, conversations, activeId, search, onSearchChange,
   client, clients, onClientChange, onSelectConversation, onNewConversation,
-  onLogout, backendDown, light, onToggleTheme, onRenameConversation, onDeleteConversation,
+  onLogout, backendDown, light, onToggleTheme, onRenameConversation, onDeleteConversation, loading,
 }: SidebarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -361,8 +363,8 @@ export function Sidebar({
 
         {/* Search */}
         <div style={s.searchWrap}>
-          <Search size={14} color="var(--muted-dim)" />
-          <input value={search} onChange={(e) => onSearchChange(e.target.value)} placeholder="Buscar conversas…" style={s.searchInput} />
+          <MagnifyingGlass size={14} color="var(--muted-dim)" />
+          <input data-search-input value={search} onChange={(e) => onSearchChange(e.target.value)} placeholder="Buscar conversas… (Ctrl+K)" style={s.searchInput} />
         </div>
       </div>
 
@@ -375,7 +377,7 @@ export function Sidebar({
               <option key={c} style={{ background: '#1a1918' }}>{c}</option>
             ))}
           </select>
-          <ChevronDown size={12} color="var(--muted-dim)" />
+          <CaretDown size={12} color="var(--muted-dim)" />
         </div>
       </div>
 
@@ -383,10 +385,12 @@ export function Sidebar({
 
       {/* ═══ Conversation list ═══ */}
       <div style={s.convList}>
-        {backendDown ? (
+        {loading ? (
+          <SidebarSkeleton count={6} />
+        ) : backendDown ? (
           <div style={{ padding: '28px 12px', textAlign: 'center' }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-              <MessageSquare size={18} color="var(--muted-dim)" />
+              <ChatCircle size={18} color="var(--muted-dim)" />
             </div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted-light)', marginBottom: 4 }}>Sem conexão</div>
             <div style={{ fontSize: '12px', color: 'var(--muted-dim)', lineHeight: 1.6 }}>Configure o backend para ver suas conversas aqui.</div>
@@ -398,7 +402,7 @@ export function Sidebar({
         ) : groups.length === 0 ? (
           <div style={{ padding: '28px 12px', textAlign: 'center' }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-              <MessageSquare size={18} color="var(--muted-dim)" />
+              <ChatCircle size={18} color="var(--muted-dim)" />
             </div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted-light)', marginBottom: 4 }}>
               {search ? 'Nenhum resultado' : 'Nenhuma conversa'}
@@ -437,7 +441,7 @@ export function Sidebar({
                     }}
                   >
                     <div style={s.convIcon(on)}>
-                      <MessageSquare size={13} color={on ? 'var(--red)' : 'var(--muted)'} strokeWidth={on ? 2 : 1.5} />
+                      <ChatCircle size={13} color={on ? 'var(--red)' : 'var(--muted)'} weight={on ? 'fill' : 'regular'} />
                     </div>
                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                       {editingId === c.conversation_id ? (
@@ -478,7 +482,7 @@ export function Sidebar({
                           }}
                           style={{ color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
                         >
-                          <Pencil size={11} />
+                          <PencilSimple size={11} />
                         </span>
                         {onDeleteConversation && (
                           <span
@@ -488,7 +492,7 @@ export function Sidebar({
                             }}
                             style={{ color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
                           >
-                            <Trash2 size={11} />
+                            <Trash size={11} />
                           </span>
                         )}
                       </span>
@@ -529,7 +533,7 @@ export function Sidebar({
           <div style={s.divider} />
           <div style={{ padding: '4px 8px' }}>
             <a href="/admin" style={{ ...s.navItem(false), textDecoration: 'none' }}>
-              <Shield size={16} color="var(--muted)" />
+              <ShieldCheck size={16} color="var(--muted)" />
               Painel de Auditoria
               <span style={{ ...s.badge('var(--green)'), marginLeft: 'auto' }}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)' }} />
@@ -537,11 +541,11 @@ export function Sidebar({
               </span>
             </a>
             <a href="/admin" style={{ ...s.navItem(false), textDecoration: 'none' }}>
-              <BarChart3 size={16} color="var(--muted)" />
+              <ChartBar size={16} color="var(--muted)" />
               Relatórios
             </a>
             <a href="/admin?tab=config" style={{ ...s.navItem(false), textDecoration: 'none' }}>
-              <Settings size={16} color="var(--muted)" />
+              <GearSix size={16} color="var(--muted)" />
               Configurações
             </a>
           </div>
@@ -585,7 +589,7 @@ export function Sidebar({
             onMouseEnter={(e) => { (e.currentTarget.style.color = 'var(--red)'); (e.currentTarget.style.borderColor = 'rgba(221,0,4,0.2)'); }}
             onMouseLeave={(e) => { (e.currentTarget.style.color = 'var(--muted-dim)'); (e.currentTarget.style.borderColor = 'var(--border-faint)'); }}
           >
-            <LogOut size={14} />
+            <SignOut size={14} />
           </button>
         </div>
       </div>

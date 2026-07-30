@@ -4,6 +4,7 @@ import { css } from '@/lib/dc';
 import { MessageBubble } from './MessageBubble';
 import type { ChatMessage } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { HistorySkeleton, ThinkingIndicator } from './SkeletonLoaders';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -11,11 +12,12 @@ interface MessageListProps {
   sending: boolean;
   loadingHist: boolean;
   onSendFeedback: (m: ChatMessage, rating: 'positive' | 'negative', comment?: string) => void;
+  onRegenerate: (m: ChatMessage) => void;
   chartView: Record<string, boolean>;
   onToggleChart: (messageId: string) => void;
 }
 
-export function MessageList({ messages, me, sending, loadingHist, onSendFeedback, chartView, onToggleChart }: MessageListProps) {
+export function MessageList({ messages, me, sending, loadingHist, onSendFeedback, onRegenerate, chartView, onToggleChart }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,12 +31,12 @@ export function MessageList({ messages, me, sending, loadingHist, onSendFeedback
         <AnimatePresence initial={false}>
           {loadingHist && (
             <motion.div 
-              initial={{ opacity: 0, height: 0 }} 
-              animate={{ opacity: 1, height: 'auto' }} 
-              exit={{ opacity: 0, height: 0 }}
-              style={css('text-align:center; font-size:12px; color:var(--muted); padding:20px')}
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              Carregando histórico…
+              <HistorySkeleton count={4} />
             </motion.div>
           )}
 
@@ -50,60 +52,23 @@ export function MessageList({ messages, me, sending, loadingHist, onSendFeedback
                 message={m}
                 me={me}
                 onSendFeedback={onSendFeedback}
+                onRegenerate={() => onRegenerate(m)}
                 chartOpen={!!chartView[m.message_id]}
                 onToggleChart={() => onToggleChart(m.message_id)}
               />
             </motion.div>
           ))}
 
-          {/* Premium Thinking indicator (Framer Motion Staggered Dots) */}
+          {/* Premium Thinking indicator — shimmer skeleton */}
           {sending && (
             <motion.div 
               layout
-              initial={{ opacity: 0, y: 15 }} 
+              initial={{ opacity: 0, y: 12 }} 
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
-              style={css('display:flex; gap:14px; align-items:flex-start')}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/athena-logo.png" alt="Athena" style={css('width:38px; height:38px; object-fit:contain; flex-shrink:0; margin-top:1px')} />
-              
-              <div style={css('display:flex; align-items:center; gap:8px; padding:14px 16px; background:transparent; border:none;')}>
-                <motion.div
-                  style={css('display:flex; gap:6px; align-items:center;')}
-                  variants={{
-                    start: { transition: { staggerChildren: 0.15 } }
-                  }}
-                  initial="start"
-                  animate="start"
-                >
-                  {[0, 1, 2].map((i) => (
-                    <motion.span
-                      key={i}
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: 'var(--red)',
-                      }}
-                      variants={{
-                        start: {
-                          y: [0, -6, 0],
-                          opacity: [0.4, 1, 0.4],
-                          scale: [0.85, 1.1, 0.85],
-                        }
-                      }}
-                      transition={{
-                        duration: 1.2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  ))}
-                </motion.div>
-                <span style={css('font-size:12px; color:var(--muted); margin-left:8px; font-weight:500')}>Pensando…</span>
-              </div>
+              <ThinkingIndicator label="Analisando dados…" />
             </motion.div>
           )}
         </AnimatePresence>

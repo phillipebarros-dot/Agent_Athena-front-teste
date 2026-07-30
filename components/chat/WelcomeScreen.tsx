@@ -37,21 +37,25 @@ export function WelcomeScreen({ userName, onSend, suggestions, backendDown }: We
         />
       </div>
 
-      <div style={css("font-family:var(--font-display); font-size:28px; font-weight:700; letter-spacing:2px; text-align:center")}>
-        Olá, {userName || 'bem-vindo'}
+      <div style={css("font-family:var(--font-display); font-size:28px; font-weight:700; letter-spacing:2px; text-align:center; animation: slideUp 0.5s ease both")}>
+        {(() => {
+          const h = new Date().getHours();
+          const period = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+          return `${period}, ${userName || 'bem-vindo'}`;
+        })()}
       </div>
-      <div style={css('font-size:14px; color:var(--muted-light); margin-top:12px; text-align:center; max-width:460px; line-height:1.7; text-wrap:pretty')}>
+      <div style={css('font-size:14px; color:var(--muted-light); margin-top:12px; text-align:center; max-width:460px; line-height:1.7; text-wrap:pretty; animation: slideUp 0.5s ease 0.1s both')}>
         Pergunte sobre investimento, inserções, PIs, audiência ou tabelas de preço. Consulto o Publi e as bases Kantar, nunca a web aberta.
       </div>
 
-      <div style={css("font-family:var(--font-display); font-size:22px; font-weight:700; letter-spacing:1.5px; text-align:center; margin-top:28px; color:var(--white)")}>
+      <div style={css("font-family:var(--font-display); font-size:22px; font-weight:700; letter-spacing:1.5px; text-align:center; margin-top:28px; color:var(--white); animation: slideUp 0.5s ease 0.2s both")}>
         Como posso ajudar hoje?
       </div>
-      <div style={css('font-size:13px; color:var(--red); margin-top:6px; text-align:center; letter-spacing:0.5px')}>
+      <div style={css('font-size:13px; color:var(--red); margin-top:6px; text-align:center; letter-spacing:0.5px; animation: slideUp 0.5s ease 0.3s both')}>
         Digite uma pergunta ou escolha um atalho
       </div>
 
-      <div style={css('width:100%; margin-top:24px')}>
+      <div style={css('width:100%; margin-top:24px; animation: slideUp 0.5s ease 0.4s both')}>
         <AnimatedComposer onSend={onSend} prompts={suggestions} disabled={backendDown} />
       </div>
     </div>

@@ -7,6 +7,7 @@ import { B, IC, css } from '@/lib/dc';
 import { useTheme } from '@/lib/theme';
 import { Sidebar } from '@/components/chat/Sidebar';
 import { relativeTime, fmtNum, initials, shortName } from '@/lib/format';
+import { KpiSkeleton } from '@/components/chat/SkeletonLoaders';
 
 const ic = (d: string, s = 15, w = 1.7) => <IC s={s} d={d} w={w} />;
 const num = (v: any) => { const n = Number(v || 0); return Number.isNaN(n) ? 0 : n; };
@@ -26,7 +27,7 @@ const PERMS: { label: string; roles: string[] }[] = [
 ];
 
 export default function AdminPage() {
-  return <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--page)', color: 'var(--fg-3)', fontFamily: 'var(--font-body)', fontSize: 14 }}>Carregando...</div>}><AdminPageInner /></Suspense>;
+  return <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--page)', color: 'var(--fg-3)', fontFamily: 'var(--font-body)', fontSize: 14 }}><KpiSkeleton count={5} /></div>}><AdminPageInner /></Suspense>;
 }
 
 function AdminPageInner() {
@@ -134,7 +135,7 @@ function AdminPageInner() {
 
   const filteredConvs = search ? convs.filter((c) => (c.title || '').toLowerCase().includes(search.toLowerCase()) || (c.user_id || '').toLowerCase().includes(search.toLowerCase())) : convs;
   const themeIcon = light ? ic('<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>', 13, 2) : ic('<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/>', 13, 2);
-  if (checking) return <div style={css('display:flex; height:100vh; align-items:center; justify-content:center; background:var(--page); color:var(--fg-3); font-family:var(--font-body); font-size:14px')}>Carregando...</div>;
+  if (checking) return <div style={css('display:flex; height:100vh; align-items:center; justify-content:center; background:var(--page); color:var(--fg-3); font-family:var(--font-body); font-size:14px')}><KpiSkeleton count={5} /></div>;
 
   const kpiCards = kpis ? [
     { label: 'Mensagens', value: fmtNum(kpis.total_messages), sub: 'total registrado' },
@@ -207,13 +208,13 @@ function AdminPageInner() {
             </div>
           ) : (
             <div style={css('display:flex; flex-direction:column; gap:16px')}>
-              {loading && <div style={css('font-size:12px; color:var(--fg-3)')}>Carregando dados reais...</div>}
+              {loading && <KpiSkeleton count={5} />}
 
               {tab === 'visao' && (
                 <>
                   <div style={css('display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:14px')}>
                     {kpiCards.map((k, i) => (
-                      <div key={i} style={{ ...css('background:var(--bg-surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; box-shadow:var(--shadow); min-width:0'), animation: 'rise .4s ease both' }}>
+                      <div key={i} style={{ ...css('background:var(--bg-surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; box-shadow:var(--shadow); min-width:0'), animation: `rise .4s ease ${i * 0.08}s both` }}>
                         <div style={css('font-family:' + DISP + '; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--fg-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{k.label}</div>
                         <div style={css('font-family:' + DISP + '; font-size:30px; font-weight:600; letter-spacing:.01em; margin-top:6px; color:var(--fg)')}>{k.value}</div>
                         <div style={css('font-size:10.5px; color:var(--fg-3); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{k.sub}</div>
@@ -331,13 +332,19 @@ function AdminPageInner() {
                       <tbody>
                         {filteredConvs.length === 0 && !loading && <tr><td colSpan={5} style={css('padding:16px 0; font-size:13px; color:var(--fg-3)')}>Nenhuma conversa.</td></tr>}
                         {filteredConvs.map((c, i) => (
-                          <B key={i} t="tr" onClick={() => openConv(c)} c="cursor:pointer; border-bottom:1px solid var(--border-faint);" h="background:var(--sunk)">
+                          <tr
+                            key={i}
+                            onClick={() => openConv(c)}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-input)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            style={{ transition: 'background 0.15s ease', cursor: 'pointer', borderBottom: '1px solid var(--border-faint)' }}
+                          >
                             <td style={css('padding:12px 12px 12px 0; font-size:13px; font-weight:500; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;')}>{c.title || 'Sem título'}</td>
                             <td style={css('padding:12px 12px 12px 0; font-size:13px; color:var(--fg-2); white-space:nowrap;')}>{shortName(c.user_id)}</td>
                             <td style={css('padding:12px 12px 12px 0; text-align:right; font-family:' + DISP + '; font-size:13px;')}>{fmtNum(c.message_count)}</td>
                             <td style={css('padding:12px 12px 12px 0; text-align:right; font-family:' + DISP + '; font-size:12px; color:var(--fg-3); white-space:nowrap;')}>{relativeTime(c.created_at)}</td>
                             <td style={css('padding:12px 0; text-align:right; font-family:' + DISP + '; font-size:12px; color:var(--fg-3); white-space:nowrap;')}>{relativeTime(c.updated_at)}</td>
-                          </B>
+                          </tr>
                         ))}
                       </tbody>
                     </table>

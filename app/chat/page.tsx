@@ -8,6 +8,8 @@ import { useTheme } from '@/lib/theme';
 import { Sidebar } from '@/components/chat/Sidebar';
 import { MessageList } from '@/components/chat/MessageList';
 import { WelcomeScreen } from '@/components/chat/WelcomeScreen';
+import { SidebarSkeleton, HistorySkeleton } from '@/components/chat/SkeletonLoaders';
+import { useKeyboardShortcuts } from '@/lib/shortcuts';
 import type { ChatMessage, Conversation, AuthUser } from '@/lib/types';
 
 const SUGGESTIONS = [
@@ -35,6 +37,7 @@ export default function ChatPage() {
   const [search, setSearch] = useState('');
   const [chartView, setChartView] = useState<Record<string, boolean>>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loadingConvs, setLoadingConvs] = useState(true);
 
   // Auth gate
   useEffect(() => {
@@ -56,6 +59,7 @@ export default function ChatPage() {
     } catch (e) {
       if (isBackendError(e)) setBackendDown(true);
     }
+    setLoadingConvs(false);
   }, []);
 
   useEffect(() => { if (me) loadConversations(); }, [me, loadConversations]);
@@ -131,11 +135,44 @@ export default function ChatPage() {
     } catch { /* silencioso */ }
   }
 
+  async function regenerate(assistantMsg: ChatMessage) {
+    if (sending) return;
+    // Find the user message that preceded this assistant response
+    const idx = messages.findIndex(x => x.message_id === assistantMsg.message_id);
+    const prevUser = [...messages].slice(0, idx).reverse().find(m => m.role === 'user');
+    if (!prevUser) return;
+    // Remove the old assistant response
+    setMessages(cur => cur.filter(m => m.message_id !== assistantMsg.message_id));
+    // Re-send the original question
+    await send(prevUser.content);
+  }
+
 
   async function logout() { try { await auth.logout(); } catch {} router.replace('/login'); }
 
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onNewConversation: () => { newConversation(); setSidebarOpen(false); },
+    onToggleSidebar: () => setSidebarOpen((v) => !v),
+    onFocusSearch: () => {
+      const el = document.querySelector<HTMLInputElement>('[data-search-input]');
+      el?.focus();
+    },
+  });
+
   if (checking) {
-    return <div style={css('display:flex; height:100vh; align-items:center; justify-content:center; background:var(--bg-deep); color:var(--muted); font-family:var(--font-body); font-size:14px')}>Carregando…</div>;
+    return (
+      <div style={css('display:flex; height:100vh; background:var(--bg-deep); overflow:hidden')}>
+        {/* Sidebar skeleton */}
+        <div style={css('width:var(--sidebar-w); flex-shrink:0; padding:20px 16px; border-right:1px solid var(--border-faint); background:rgba(24,24,27,0.65)')}>  
+          <SidebarSkeleton count={6} />
+        </div>
+        {/* Main area skeleton */}
+        <div style={css('flex:1; padding:28px 24px; display:flex; flex-direction:column; gap:28px; max-width:760px; margin:0 auto')}>
+          <HistorySkeleton count={3} />
+        </div>
+      </div>
+    );
   }
 
   const active = conversations.find((c) => c.conversation_id === activeId);
@@ -155,6 +192,7 @@ export default function ChatPage() {
         activeId={activeId}
         search={search}
         onSearchChange={setSearch}
+        loading={loadingConvs}
         client={client}
         clients={clients}
         onClientChange={setClient}
@@ -207,6 +245,7 @@ export default function ChatPage() {
             sending={sending}
             loadingHist={loadingHist}
             onSendFeedback={sendFeedback}
+            onRegenerate={regenerate}
             chartView={chartView}
             onToggleChart={(id) => setChartView((s) => ({ ...s, [id]: !s[id] }))}
           />

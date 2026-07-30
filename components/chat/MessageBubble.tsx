@@ -12,6 +12,7 @@ interface MessageBubbleProps {
   message: ChatMessage;
   me: { name?: string; email?: string } | null;
   onSendFeedback: (m: ChatMessage, rating: 'positive' | 'negative', comment?: string) => void;
+  onRegenerate?: () => void;
   chartOpen: boolean;
   onToggleChart: () => void;
 }
@@ -30,7 +31,7 @@ function UserBubble({ message, me }: { message: ChatMessage; me: MessageBubblePr
 }
 
 /** Bubble de resposta da Athena. */
-function AssistantBubble({ message, onSendFeedback, chartOpen, onToggleChart }: Omit<MessageBubbleProps, 'me'>) {
+function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onToggleChart }: Omit<MessageBubbleProps, 'me'>) {
   const [fbOpen, setFbOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const table = !message.error ? parseTable(message.content) : null;
@@ -108,7 +109,7 @@ function AssistantBubble({ message, onSendFeedback, chartOpen, onToggleChart }: 
                 exit={{ opacity: 0, y: 5 }} 
                 style={css('position:absolute; bottom:-16px; left:-8px;')}
               >
-                <FeedbackActions message={message} onSendFeedback={onSendFeedback} fbOpen={fbOpen} onToggleFb={() => setFbOpen(!fbOpen)} />
+                <FeedbackActions message={message} onSendFeedback={onSendFeedback} fbOpen={fbOpen} onToggleFb={() => setFbOpen(!fbOpen)} onRegenerate={onRegenerate} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -133,9 +134,17 @@ function SparklesIcon() {
   );
 }
 
-export function MessageBubble(props: MessageBubbleProps) {
+function MessageBubbleInner(props: MessageBubbleProps) {
   if (props.message.role === 'user') {
     return <UserBubble message={props.message} me={props.me} />;
   }
   return <AssistantBubble {...props} />;
 }
+
+export const MessageBubble = React.memo(MessageBubbleInner, (prev, next) => {
+  return prev.message.message_id === next.message.message_id
+    && prev.message.content === next.message.content
+    && prev.message.fb === next.message.fb
+    && prev.chartOpen === next.chartOpen
+    && prev.onRegenerate === next.onRegenerate;
+});

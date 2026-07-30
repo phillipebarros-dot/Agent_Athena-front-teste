@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Pencil, Moon, Sun, Check, X } from 'lucide-react';
+import { PencilSimple, Moon, Sun, Check, X } from '@phosphor-icons/react';
 
 interface ChatHeaderProps {
   activeTitle: string;
@@ -147,7 +147,7 @@ export function ChatHeader({
                 onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--white)'; e.currentTarget.style.borderColor = 'var(--red-dim)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border-faint)'; }}
               >
-                <Pencil size={12} />
+                <PencilSimple size={12} />
               </button>
             )}
           </>
