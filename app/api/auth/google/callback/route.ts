@@ -8,8 +8,15 @@ import { COOKIE_NAME, sign, cookieOptions } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
+function getOrigin(req: NextRequest): string {
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+  if (host) return `${proto}://${host}`;
+  return req.nextUrl.origin;
+}
+
 export async function GET(req: NextRequest) {
-  const origin = req.nextUrl.origin;
+  const origin = getOrigin(req);
   const url = req.nextUrl;
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');

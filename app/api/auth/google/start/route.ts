@@ -9,12 +9,21 @@ import { GOOGLE_CLIENT_ID, googleConfigured, ALLOWED_DOMAINS } from '@/lib/confi
 
 export const runtime = 'nodejs';
 
+/** Cloud Run roda atrás de um LB — req.nextUrl.origin retorna 0.0.0.0:8080.
+ *  Usa x-forwarded-host/proto pra obter a URL pública real. */
+function getOrigin(req: NextRequest): string {
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+  if (host) return `${proto}://${host}`;
+  return req.nextUrl.origin;
+}
+
 export async function GET(req: NextRequest) {
   if (!googleConfigured) {
-    return NextResponse.redirect(new URL('/login?error=oauth_indisponivel', req.nextUrl.origin));
+    return NextResponse.redirect(new URL('/login?error=oauth_indisponivel', getOrigin(req)));
   }
   const state = crypto.randomBytes(16).toString('base64url');
-  const redirectUri = `${req.nextUrl.origin}/api/auth/google/callback`;
+  const redirectUri = `${getOrigin(req)}/api/auth/google/callback`;
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri,
