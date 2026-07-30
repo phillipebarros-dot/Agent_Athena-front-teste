@@ -1,0 +1,21 @@
+# deps
+node_modules
+# build
+.next
+out
+build
+# env — NUNCA comitar segredos
+.env
+.env.local
+.env*.local
+# chaves / service accounts
+*.pem
+*-service-account.json
+*-credentials.json
+# sistema
+.DS_Store
+npm-debug.log*
+yarn-error.log*
+# uploads
+uploads/
+screenshots/

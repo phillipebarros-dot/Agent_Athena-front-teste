@@ -1,0 +1,39 @@
+# deps / build
+node_modules
+.next
+out
+build
+
+# version control
+.git
+
+# secrets / env
+.env
+.env.local
+.env*.local
+*-service-account.json
+*.pem
+
+# docs (not needed in image)
+README.md
+ESPECIFICACAO.md
+INTEGRACAO.md
+SECURITY.md
+DEPLOY-GCP.md
+REVISAO-SENIOR.md
+notas-*.md
+
+# backend patch instructions (not part of frontend)
+backend-patch/
+
+# optional WebGPU component
+components/scan-effect/
+
+# media / test artifacts
+uploads/
+screenshots/
+
+# meta
+Dockerfile
+.dockerignore
+.gitignore

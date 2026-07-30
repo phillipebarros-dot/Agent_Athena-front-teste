@@ -1,0 +1,54 @@
+/* Tokens da marca Athena, fonte da verdade dos protótipos, portada 1:1.
+   Estilo inline nos componentes referencia estes var(--*). */
+:root {
+  /* superfícies */
+  --page:#0a0a0c; --bg-deep:#0a0a0a; --bg-surface:#111111; --bg-panel:#161616;
+  --bg-card:#000000; --bg-input:#1c1c1c; --sunk:#1a1a1c; --rail:#08080a;
+  /* linhas */
+  --border:#2a2a2a; --border-subtle:#2e2e2e; --border-faint:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.08); --dash:rgba(255,255,255,.14);
+  /* marca */
+  --red:#c41e1e; --red-dim:#8b1515; --red-glow:rgba(196,30,30,.15); --brand:#c41e1e;
+  /* texto */
+  --white:#f0ece6; --fg:#ffffff; --muted:#6b6b6b; --muted-light:#9a9a9a; --muted-dim:#5c5c64;
+  --fg-2:#8b8b93; --fg-3:#5c5c64;
+  /* sinal */
+  --green:#5eff5a; --green-2:#00b929; --gold:#c9a227; --cyan:#00e5ff; --violet:#7517f8;
+  --magenta:#ff2d9e; --danger:#ff3b3b; --grey:#4a4a4a;
+  --user-bubble:#1e1e1e; --athena-bubble:#141414; --scrollbar-thumb:#222;
+  --green-dim:#3a7d3a; --brand-dim:#8b1515; --brand-hot:#ff4d4d; --red-dot:#c41e1e;
+  --bg-quiet:#0e0e0e; --bg-raised:#161616; --bg-code:#0d0d0d; --border-ghost:rgba(255,255,255,.04);
+  --shadow: 10.67px 21.33px 3.38px rgba(0,0,0,.0626), 13.48px 26.97px 7.01px rgba(0,0,0,.102);
+  --sidebar-w:260px;
+}
+:root.light {
+  --page:#e9e9ec; --bg-deep:#f5f3f0; --bg-surface:#ffffff; --bg-panel:#f0ede9;
+  --bg-card:#ffffff; --bg-input:#eceae6; --sunk:#f0f0f2; --rail:#ffffff;
+  --border:#e0dbd5; --border-subtle:#e0dbd5; --border-faint:rgba(0,0,0,.06);
+  --line:rgba(0,0,0,.1); --dash:rgba(0,0,0,.16);
+  --white:#1a1714; --fg:#0a0a0c; --muted:#7a7068; --muted-light:#5a5048; --muted-dim:#8b8b93;
+  --fg-2:#5c5c64; --fg-3:#8b8b93;
+  --green:#12b30d; --cyan:#0091a8; --violet:#5a10c4; --magenta:#c4147a; --danger:#d12a2a; --grey:#c4c4c8;
+  --user-bubble:#eceae6; --athena-bubble:#f8f6f3;
+  --green-dim:#2f7d32; --brand-dim:#a01818; --brand-hot:#a01818; --red-dot:#c41e1e;
+  --bg-quiet:#f4f2ef; --bg-raised:#f0ede9; --bg-code:#f2efeb; --border-ghost:rgba(0,0,0,.05);
+  --shadow: 10.67px 21.33px 3.38px rgba(0,0,0,.06), 13.48px 26.97px 7.01px rgba(0,0,0,.08);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--page); color: var(--white);
+  font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--red); text-decoration: none; }
+a:hover { color: var(--red-dim); }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes auraGlow { 0%,100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes logoFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+@keyframes thinkDot { 0%,75%,100% { opacity: .3; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { [data-think-dot] { animation: none !important; opacity: .75 !important; } }

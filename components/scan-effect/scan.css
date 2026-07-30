@@ -1,0 +1,50 @@
+/* Animações que acompanham o snippet original (título glitch + botão explorar).
+   Cole no seu globals.css. */
+
+.fade-in {
+  animation: fadeIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(0.4em) skewX(-6deg); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0) skewX(0);        filter: blur(0); }
+}
+
+.fade-in-subtitle {
+  animation: fadeInSubtitle 0.9s ease both;
+}
+@keyframes fadeInSubtitle {
+  from { opacity: 0; transform: translateY(0.6em); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.explore-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2rem;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  animation: fadeInSubtitle 0.8s ease both;
+}
+
+.explore-arrow { display: inline-flex; }
+.arrow-svg { animation: bounce 1.6s ease-in-out infinite; }
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in, .fade-in-subtitle, .explore-btn, .arrow-svg { animation: none; }
+}
