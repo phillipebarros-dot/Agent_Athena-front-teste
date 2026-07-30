@@ -10,7 +10,7 @@ import { relativeTime, initials } from '@/lib/format';
 
 /* ─── Types ─── */
 interface SidebarProps {
-  me: { name?: string; email?: string; admin?: boolean } | null;
+  me: { name?: string; email?: string; admin?: boolean; picture?: string } | null;
   conversations: Conversation[];
   activeId: string | null;
   search: string;
