@@ -3,7 +3,7 @@
  * e cria a sessão httpOnly assinada. Restrito a ALLOWED_EMAIL_DOMAINS.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, googleConfigured, domainAllowed } from '@/lib/config';
+import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, googleConfigured, domainAllowed, BACKEND_URL, BACKEND_TOKEN } from '@/lib/config';
 import { COOKIE_NAME, sign, cookieOptions } from '@/lib/session';
 
 export const runtime = 'nodejs';
@@ -48,6 +48,22 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.redirect(new URL('/chat', origin));
     res.cookies.set(COOKIE_NAME, sign({ email, name }), cookieOptions);
     res.cookies.set('oauth_state', '', { httpOnly: true, path: '/', maxAge: 0 });
+
+    // Registra/atualiza usuário no BigQuery (athena_users)
+    if (BACKEND_URL && BACKEND_TOKEN) {
+      fetch(`${BACKEND_URL.replace(/\/$/, '')}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN}` },
+        body: JSON.stringify({
+          action: 'upsert',
+          google_sub: info.sub || '',
+          email,
+          nome: name,
+          avatar_url: info.picture || '',
+        }),
+      }).catch(() => {}); // silencioso — não bloqueia o login
+    }
+
     return res;
   } catch {
     return fail('falha');

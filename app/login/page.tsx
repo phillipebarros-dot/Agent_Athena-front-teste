@@ -10,10 +10,10 @@ const QUOTES = [
 ];
 
 const SOURCES = [
-  { label: 'Publi', dot: 'var(--red-dot)' },
-  { label: 'Kantar', dot: 'var(--red-dot)' },
-  { label: 'BOP', dot: 'var(--red-dot)' },
-  { label: 'Mídia digital', dot: 'var(--red-dot)' },
+  { label: 'Publi', dot: '#dd0004' },
+  { label: 'Kantar', dot: '#3fb4c4' },
+  { label: 'BOP', dot: '#d9a441' },
+  { label: 'Mídia digital', dot: '#3fb950' },
 ];
 
 export default function LoginPage() {
@@ -127,7 +127,7 @@ export default function LoginPage() {
         d.x += d.vx; d.y += d.vy; d.e = Math.min(1.5, energy);
       }
 
-      ctx.lineWidth = 0.8;
+      ctx.lineWidth = 1.8;
       for (let i = 0; i < dots.length; i++) {
         const d = dots[i];
         if (d.e < 0.16) continue;
@@ -135,14 +135,14 @@ export default function LoginPage() {
         if (cx + 1 < cols) {
           const n = dots[i + 1];
           if (n.e > 0.12) {
-            ctx.strokeStyle = 'rgba(220,38,38,' + Math.min(0.42, Math.min(d.e, n.e) * 0.45) + ')';
+            ctx.strokeStyle = 'rgba(220,38,38,' + Math.min(0.7, Math.min(d.e, n.e) * 0.75) + ')';
             ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(n.x, n.y); ctx.stroke();
           }
         }
         if (ry + 1 < rows) {
           const n = dots[i + cols];
           if (n && n.e > 0.12) {
-            ctx.strokeStyle = 'rgba(220,38,38,' + Math.min(0.42, Math.min(d.e, n.e) * 0.45) + ')';
+            ctx.strokeStyle = 'rgba(220,38,38,' + Math.min(0.7, Math.min(d.e, n.e) * 0.75) + ')';
             ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(n.x, n.y); ctx.stroke();
           }
         }
@@ -150,12 +150,12 @@ export default function LoginPage() {
       for (const d of dots) {
         const e = d.e;
         ctx.beginPath();
-        ctx.arc(d.x, d.y, 1.3 + e * 2.6, 0, Math.PI * 2);
+        ctx.arc(d.x, d.y, 1.8 + e * 3.2, 0, Math.PI * 2);
         if (e > 0.8) {
           const k = Math.min(1, (e - 0.8) / 0.7);
           ctx.fillStyle = 'rgba(' + Math.round(220 + 35 * k) + ',' + Math.round(38 + 150 * k) + ',' + Math.round(38 + 140 * k) + ',' + (0.5 + e * 0.32) + ')';
         } else {
-          ctx.fillStyle = 'rgba(220,38,38,' + (0.07 + e * 0.5) + ')';
+          ctx.fillStyle = 'rgba(220,38,38,' + (0.18 + e * 0.7) + ')';
         }
         ctx.fill();
       }
@@ -187,11 +187,8 @@ export default function LoginPage() {
 
       <main style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '2rem 2.5rem 1.5rem', width: 400, maxWidth: '92vw', animation: 'card-in .8s cubic-bezier(0.16,1,0.3,1) .2s both' }}>
         <div style={{ position: 'relative', width: 124, height: 124, marginBottom: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: -70, borderRadius: '50%', background: 'radial-gradient(circle, #000 0%, rgba(0,0,0,0.92) 52%, transparent 78%)', pointerEvents: 'none' }} />
-          <div className="logo-ping" style={{ position: 'absolute', width: 124, height: 124, borderRadius: '50%', border: '2px solid rgba(221,0,4,.5)', pointerEvents: 'none' }} />
-          <div className="logo-aura" style={{ position: 'absolute', inset: -30, borderRadius: '50%', background: 'radial-gradient(circle, rgba(221,0,4,.28) 0%, transparent 65%)', pointerEvents: 'none' }} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img ref={logoRef} className="logo-sway" src="/athena-logo.png" alt="Athena" style={{ width: '100%', height: '100%', objectFit: 'contain', position: 'relative', zIndex: 2, transformOrigin: '50% 88%', filter: 'drop-shadow(0 6px 20px rgba(221,0,4,.35))' }} />
+          <img ref={logoRef} className="logo-sway" src="/athena-logo.png" alt="Athena" style={{ width: '100%', height: '100%', objectFit: 'contain', position: 'relative', zIndex: 2, transformOrigin: '50% 88%' }} />
         </div>
 
         <h1 style={{ fontFamily: "'Oswald',sans-serif", fontSize: '2rem', fontWeight: 700, color: '#fff', letterSpacing: 3, lineHeight: 1.1, margin: 0, animation: 'title-in .8s ease .3s both' }}>ATHENA</h1>
@@ -235,7 +232,7 @@ export default function LoginPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginTop: '1.6rem', flexWrap: 'wrap', animation: 'fade-up .6s ease 1.1s both' }}>
           {[{ s: '/partner-google.png', a: 'Google Partner' }, { s: '/partner-meta.png', a: 'Meta Business Partner' }, { s: '/partner-iso.png', a: 'ISO Certified' }].map((b) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={b.s} className="partner-badge" src={b.s} alt={b.a} style={{ height: 26, width: 'auto', objectFit: 'contain', filter: 'grayscale(1) brightness(1.6)', opacity: 0.4, transition: 'opacity .3s ease, filter .3s ease' }} />
+            <img key={b.s} className="partner-badge" src={b.s} alt={b.a} style={{ height: 26, width: 'auto', objectFit: 'contain', opacity: 0.85, transition: 'opacity .3s ease, transform .3s ease' }} />
           ))}
         </div>
 

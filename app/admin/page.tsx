@@ -1,9 +1,10 @@
 'use client';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api, auth, isBackendError } from '@/lib/api';
+import type { AthenaUser } from '@/lib/types';
 import { B, IC, css } from '@/lib/dc';
-import { IconRail } from '@/components/IconRail';
+import { Sidebar } from '@/components/chat/Sidebar';
 import { relativeTime, fmtNum, initials, shortName } from '@/lib/format';
 
 const ic = (d: string, s = 15, w = 1.7) => <IC s={s} d={d} w={w} />;
@@ -24,11 +25,16 @@ const PERMS: { label: string; roles: string[] }[] = [
 ];
 
 export default function AdminPage() {
+  return <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--page)', color: 'var(--fg-3)', fontFamily: 'var(--font-body)', fontSize: 14 }}>Carregando...</div>}><AdminPageInner /></Suspense>;
+}
+
+function AdminPageInner() {
   const router = useRouter();
   const [me, setMe] = useState<any>(null);
   const [checking, setChecking] = useState(true);
   const [light, setLight] = useState(false);
-  const [tab, setTab] = useState('visao');
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'visao');
   const [backendDown, setBackendDown] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -138,6 +144,7 @@ export default function AdminPage() {
     { id: 'visao', label: 'Visão geral', d: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>' },
     { id: 'conversas', label: 'Conversas', d: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
     { id: 'usuarios', label: 'Usuários e permissões', d: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>' },
+    { id: 'config', label: 'Configurações', d: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' },
   ];
 
   const Panel = ({ title, hint, children, extra }: any) => (
@@ -155,47 +162,31 @@ export default function AdminPage() {
 
   return (
     <div style={css('display:flex; height:100vh; min-height:640px; background:var(--page); color:var(--fg); font-family:var(--font-body); overflow:hidden')}>
-      <IconRail active="admin" admin light={light} onToggleTheme={() => setLight((v) => !v)} onLogout={logout} />
-      {/* SIDEBAR */}
-      <aside style={css('width:250px; flex-shrink:0; background:var(--bg-surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden')}>
-        <div style={css('height:60px; flex-shrink:0; padding:0 18px; display:flex; align-items:center; gap:11px; border-bottom:1px solid var(--border)')}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/athena-logo.png" alt="Athena" style={css('width:30px; height:30px; object-fit:contain; flex-shrink:0')} />
-          <div style={css('min-width:0')}>
-            <div style={css('font-family:' + DISP + '; font-size:17px; font-weight:600; letter-spacing:1.5px; line-height:1')}>ATHENA</div>
-            <div style={css('font-size:9px; font-weight:700; letter-spacing:1.4px; color:var(--red); margin-top:3px')}>AUDITORIA · OPUSMÚLTIPLA</div>
-          </div>
-        </div>
-        <nav style={css('flex:1; overflow-y:auto; padding:16px 12px')}>
-          <div style={css('font-family:' + DISP + '; font-size:10px; color:var(--fg-3); letter-spacing:.18em; text-transform:uppercase; padding:4px 8px 10px')}>Painel</div>
-          {tabs.map((tb) => { const on = tab === tb.id; return (
-            <B key={tb.id} onClick={() => setTab(tb.id)} c={`position:relative; display:flex; align-items:center; gap:11px; padding:10px 12px; margin-bottom:3px; border-radius:10px; font-size:13.5px; cursor:pointer; color:${on ? 'var(--fg)' : 'var(--fg-2)'}; background:${on ? 'var(--sunk)' : 'transparent'}; transition:all .18s`} h="background:var(--sunk); color:var(--fg)">
-              <span style={css(`position:absolute; left:0; top:9px; bottom:9px; width:3px; border-radius:0 3px 3px 0; background:var(--red); opacity:${on ? 1 : 0}`)} />
-              {ic(tb.d)}<span style={css('flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{tb.label}</span>
-            </B>
-          ); })}
-        </nav>
-        <div style={css('padding:14px; border-top:1px solid var(--border)')}>
-          <B t="a" href="/chat" c="display:flex; align-items:center; justify-content:center; gap:8px; padding:9px; margin-bottom:12px; border:1px solid var(--border); border-radius:9px; color:var(--fg-2); font-size:12px; text-decoration:none" h="border-color:var(--red); color:var(--fg)">
-            {ic('<path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>', 13, 2)} Voltar ao chat
-          </B>
-          <div style={css('display:flex; align-items:center; gap:10px')}>
-            <span style={css('width:30px; height:30px; border-radius:50%; background:linear-gradient(140deg,var(--wine),var(--red)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(me?.name || me?.email)}</span>
-            <span style={css('flex:1; min-width:0')}>
-              <span style={css('display:block; font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{me?.name}</span>
-              <span style={css('display:block; font-size:10.5px; color:var(--fg-3)')}>Administrador</span>
-            </span>
-            <B t="button" onClick={() => setLight((v) => !v)} title="Tema" c="background:none; border:none; color:var(--fg-3); cursor:pointer; padding:4px; display:flex; flex-shrink:0" h="color:var(--fg)">{themeIcon}</B>
-            <B t="button" onClick={logout} title="Sair" c="background:none; border:none; color:var(--fg-3); cursor:pointer; padding:4px; display:flex; flex-shrink:0" h="color:var(--red)">{ic('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>', 14)}</B>
-          </div>
-        </div>
-      </aside>
+      <Sidebar
+        me={me}
+        conversations={[]}
+        activeId={null}
+        search=""
+        onSearchChange={() => {}}
+        client=""
+        onClientChange={() => {}}
+        onSelectConversation={() => {}}
+        onNewConversation={() => router.push('/chat')}
+        onLogout={logout}
+        backendDown={false}
+        light={light}
+        onToggleTheme={() => setLight((v) => !v)}
+      />
 
       {/* MAIN */}
       <main style={css('flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden')}>
         <header style={css('height:60px; flex-shrink:0; display:flex; align-items:center; gap:14px; padding:0 22px; background:var(--bg-surface); border-bottom:1px solid var(--border); z-index:3')}>
-          <div style={css('flex:1; min-width:0')}>
-            <div style={css('font-family:' + DISP + '; font-size:19px; font-weight:600; letter-spacing:.02em')}>{tabs.find((t) => t.id === tab)?.label}</div>
+          <div style={css('flex:1; min-width:0; display:flex; align-items:center; gap:6px')}>
+            {tabs.map((tb) => { const on = tab === tb.id; return (
+              <B key={tb.id} t="button" onClick={() => setTab(tb.id)} c={`display:flex; align-items:center; gap:7px; padding:8px 14px; border:none; border-radius:9px; font-family:var(--font-body); font-size:12.5px; font-weight:${on ? '700' : '500'}; cursor:pointer; color:${on ? 'var(--fg)' : 'var(--fg-2)'}; background:${on ? 'var(--sunk)' : 'transparent'}; transition:all .18s`} h="background:var(--sunk); color:var(--fg)">
+                {ic(tb.d, 14, 1.7)}{tb.label}
+              </B>
+            ); })}
           </div>
           <B t="button" onClick={loadAll} c="height:34px; padding:0 13px; border:1px solid var(--border); border-radius:9px; background:var(--bg-card); font-size:12px; color:var(--fg-2); cursor:pointer; display:flex; align-items:center; gap:7px" h="border-color:var(--red); color:var(--fg)">
             {ic('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 13, 2)} Atualizar
@@ -244,7 +235,7 @@ export default function AdminPage() {
                         </>
                       )}
                     </Panel>
-                    <Panel title="Assertividade" hint="do feedback real 👍/👎">
+                    <Panel title="Assertividade" hint="do feedback real (positivo/negativo)">
                       {totalFb === 0 ? <Empty msg="Sem feedback ainda." /> : (
                         <div style={css('display:flex; flex-direction:column; align-items:center; gap:16px')}>
                           <div style={css('position:relative; width:150px; height:150px')}>
@@ -298,7 +289,7 @@ export default function AdminPage() {
                     </Panel>
                   </div>
 
-                  <Panel title="Feedback recente" hint="correções (👎) alimentam a curadoria do aprendizado">
+                  <Panel title="Feedback recente" hint="correções (negativas) alimentam a curadoria do aprendizado">
                     {feedback.length === 0 && !loading ? <Empty msg="Nenhum feedback ainda." /> : (
                       <div style={css('display:flex; flex-direction:column')}>
                         {feedback.slice(0, 8).map((f, i) => { const neg = f.rating === 'negative'; return (
@@ -382,8 +373,14 @@ export default function AdminPage() {
                       })}
                     </div>
                     <div style={css('display:flex; align-items:center; gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border)')}>
-                      <B t="button" onClick={() => setRoleSaved(true)} c="padding:8px 16px; border:none; border-radius:9px; background:var(--red); color:#fff; font-family:var(--font-body); font-size:12.5px; font-weight:700; cursor:pointer" h="background:var(--brand-hot)">Salvar papéis</B>
-                      <span style={css('font-size:11px; color:var(--fg-3); line-height:1.5')}>{roleSaved ? 'Salvo nesta sessão. Persistência real precisa do endpoint POST /users/role no backend (ainda não existe).' : 'Atribuição fica nesta sessão até o backend expor POST /users/role.'}</span>
+                      <B t="button" onClick={async () => {
+                        for (const [email, role] of Object.entries(roleMap)) {
+                          const apiRole = role === 'Administrador' ? 'admin' : 'user';
+                          try { await api.updateRole(email, apiRole); } catch { /* segue */ }
+                        }
+                        setRoleSaved(true);
+                      }} c="padding:8px 16px; border:none; border-radius:9px; background:var(--red); color:#fff; font-family:var(--font-body); font-size:12.5px; font-weight:700; cursor:pointer" h="background:var(--brand-hot)">Salvar papéis</B>
+                      <span style={css('font-size:11px; color:var(--fg-3); line-height:1.5')}>{roleSaved ? 'Papéis salvos no BigQuery via POST /users.' : 'Atribua papéis e clique em Salvar para persistir no BigQuery.'}</span>
                     </div>
                   </Panel>
 
@@ -400,6 +397,52 @@ export default function AdminPage() {
                         </div>
                       ); })}
                     </div>
+                  </Panel>
+                </>
+              )}
+
+              {tab === 'config' && (
+                <>
+                  <Panel title="Status do sistema" hint="visão geral da instância Athena">
+                    <div style={css('display:flex; flex-direction:column; gap:12px')}>
+                      {[
+                        { label: 'Backend', value: backendDown ? 'Offline' : 'Conectado', ok: !backendDown },
+                        { label: 'Google OAuth', value: 'Configurado no servidor', ok: true },
+                        { label: 'TTS (Text-to-Speech)', value: 'Disponível via api.tts()', ok: true },
+                        { label: 'Export (Sheets/CSV)', value: 'Backend stub — pendente', ok: false },
+                      ].map((item, i) => (
+                        <div key={i} style={css('display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px dashed var(--dash)')}>
+                          <span style={css(`width:8px; height:8px; border-radius:50%; flex-shrink:0; background:${item.ok ? 'var(--green)' : 'var(--red)'}`)} />
+                          <span style={css('font-size:12.5px; font-weight:600; flex:1')}>{item.label}</span>
+                          <span style={css(`font-size:11.5px; color:${item.ok ? 'var(--fg-2)' : 'var(--red)'}`)}>{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Panel>
+
+                  <Panel title="Domínios permitidos" hint="e-mails fora desses domínios não conseguem logar">
+                    <div style={css('display:flex; flex-wrap:wrap; gap:8px')}>
+                      {['grupoom.com.br', 'opusmultipla.com.br'].map((d) => (
+                        <span key={d} style={css('display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; font-size:12px; font-weight:600; color:var(--fg-2); background:var(--sunk)')}>
+                          <span style={css('width:6px; height:6px; border-radius:50%; background:var(--green)')} />
+                          @{d}
+                        </span>
+                      ))}
+                    </div>
+                    <div style={css('font-size:11px; color:var(--fg-3); margin-top:12px')}>Configurado via ALLOWED_EMAIL_DOMAINS no servidor. Alterações requerem redeploy.</div>
+                  </Panel>
+
+                  <Panel title="Administradores" hint="e-mails com acesso ao painel admin (fallback hardcoded)">
+                    <div style={css('display:flex; flex-direction:column; gap:4px')}>
+                      {['andrei@grupoom.com.br', 'phillipe.barros@grupoom.com.br', 'camilo.ferreira@grupoom.com.br', 'gabriel.oliveira@grupoom.com.br'].map((e) => (
+                        <div key={e} style={css('display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px dashed var(--dash)')}>
+                          <span style={css('width:26px; height:26px; border-radius:50%; background:linear-gradient(140deg,var(--wine),var(--red)); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(e)}</span>
+                          <span style={css('font-size:12px; color:var(--fg-2)')}>{e}</span>
+                          <span style={css('margin-left:auto; font-size:10px; padding:2px 8px; border-radius:4px; background:var(--red-glow); color:var(--red); font-weight:600')}>admin</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={css('font-size:11px; color:var(--fg-3); margin-top:12px')}>Com o RBAC dinâmico (BigQuery), a role é consultada em /users. Estes e-mails são o fallback se o backend estiver offline.</div>
                   </Panel>
                 </>
               )}

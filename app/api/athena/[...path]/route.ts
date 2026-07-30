@@ -17,9 +17,9 @@ import { COOKIE_NAME, verify } from '@/lib/session';
 export const runtime = 'nodejs';
 
 // endpoints do backend que o front pode chamar (allowlist)
-const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export']);
+const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users']);
 // endpoints que recebem a identidade do usuário logado
-const NEEDS_USER = new Set(['chat', 'conversations', 'save-message', 'feedback', 'audit']);
+const NEEDS_USER = new Set(['chat', 'conversations', 'save-message', 'feedback', 'audit', 'users']);
 
 // rate limit simples em memória (por instância). Em produção, somar Cloud Armor / API Gateway.
 const hits = new Map<string, number[]>();
@@ -53,12 +53,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   if (endpoint === 'audit' && !isAdmin(session.email)) {
     return NextResponse.json({ error: 'acesso_negado' }, { status: 403 });
   }
+  // users: ações admin (list, update_role) só admin; check/upsert qualquer autenticado
+  // (guard movido pra depois do parse do body)
 
   let body: any = {};
   try { body = await req.json(); } catch { body = {}; }
   if (body && typeof body === 'object' && NEEDS_USER.has(endpoint)) {
     if (!body.user_id) body.user_id = session.email;
     if (!body.user_email) body.user_email = session.email;
+  }
+
+  if (endpoint === 'users') {
+    const action = body?.action;
+    if (['list', 'update_role'].includes(action) && !isAdmin(session.email)) {
+      return NextResponse.json({ error: 'acesso_negado' }, { status: 403 });
+    }
   }
 
   const controller = new AbortController();

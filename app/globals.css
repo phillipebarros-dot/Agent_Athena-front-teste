@@ -58,3 +58,25 @@ a:hover { color: var(--brand-hot); }
 @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
 @keyframes thinkDot { 0%,75%,100% { opacity: .3; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-2px); } }
 @media (prefers-reduced-motion: reduce) { [data-think-dot] { animation: none !important; opacity: .75 !important; } }
+
+/* ─── Mobile responsive sidebar ─── */
+@media (max-width: 768px) {
+  .sidebar-mobile-hidden { display: none !important; }
+  .sidebar-mobile-open {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100 !important;
+    width: 100% !important;
+    max-width: 300px !important;
+  }
+  .hamburger-btn { display: flex !important; }
+  .sidebar-backdrop {
+    position: fixed; inset: 0; z-index: 99;
+    background: rgba(0,0,0,.6); display: block !important;
+  }
+}
+@media (min-width: 769px) {
+  .hamburger-btn { display: none !important; }
+  .sidebar-backdrop { display: none !important; }
+}

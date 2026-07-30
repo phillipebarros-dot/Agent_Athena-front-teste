@@ -8,7 +8,7 @@
  *    const r = await api.chat({ message, conversation_id })
  */
 
-import type { Conversation as ConversationType, MessageAttachment, MessageSource } from '@/lib/types';
+import type { Conversation as ConversationType, MessageAttachment, MessageSource, AthenaUser } from '@/lib/types';
 
 export type ChatReply = {
   output: string;
@@ -43,6 +43,7 @@ export const api = {
   listConversations: () => call<{ conversations: Conversation[] }>('conversations', { action: 'list' }),
   createConversation: (conversation_id: string, title?: string) => call('conversations', { action: 'create', conversation_id, title }),
   renameConversation: (conversation_id: string, title: string) => call('conversations', { action: 'updateTitle', conversation_id, title }),
+  deleteConversation: (conversation_id: string) => call('conversations', { action: 'delete', conversation_id }),
   // histórico
   history: (conversation_id: string, limit = 200) => call<{ messages: Msg[] }>('history', { conversation_id, limit }),
   saveMessage: (p: { conversation_id: string; role: string; content: string }) => call('save-message', p),
@@ -56,6 +57,12 @@ export const api = {
   tts: (text: string) => call<{ audio: string }>('tts', { text }),
   // export
   export: (p: { data: any[]; title?: string; format?: 'sheets' | 'csv' }) => call('export', p),
+  // clientes (lista dinâmica dos anunciantes)
+  listClients: () => call<{ clients: string[] }>('chat', { action: 'list_clients' }).catch((): { clients: string[] } => ({ clients: [] })),
+  // users / RBAC (gestão de permissões)
+  listUsers: () => call<{ users: AthenaUser[] }>('users', { action: 'list' }),
+  checkUser: (email: string) => call<{ exists: boolean; role: string; nome: string }>('users', { action: 'check', email }),
+  updateRole: (target_email: string, role: 'admin' | 'user') => call('users', { action: 'update_role', target_email, role }),
 };
 
 // sessão

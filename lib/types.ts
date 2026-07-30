@@ -53,6 +53,15 @@ export interface Conversation {
 }
 
 /* ─── Admin / Auditoria ─── */
+export interface AthenaUser {
+  email: string;
+  nome: string;
+  departamento?: string;
+  role: 'admin' | 'user';
+  created_at?: string;
+  last_login?: string;
+}
+
 export interface KpiData {
   total_messages: number;
   active_conversations: number;

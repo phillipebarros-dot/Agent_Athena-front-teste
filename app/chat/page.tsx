@@ -5,7 +5,6 @@ import { api, auth, isBackendError } from '@/lib/api';
 import { B, IC, css } from '@/lib/dc';
 
 import { Sidebar } from '@/components/chat/Sidebar';
-import { ChatHeader } from '@/components/chat/ChatHeader';
 import { MessageList } from '@/components/chat/MessageList';
 import { WelcomeScreen } from '@/components/chat/WelcomeScreen';
 import type { ChatMessage, Conversation, AuthUser } from '@/lib/types';
@@ -23,6 +22,7 @@ export default function ChatPage() {
   const [checking, setChecking] = useState(true);
   const [light, setLight] = useState(false);
   const [client, setClient] = useState('O Boticário');
+  const [clients, setClients] = useState<string[]>([]);
   const [backendDown, setBackendDown] = useState(false);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -32,9 +32,8 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState('');
-  const [renaming, setRenaming] = useState(false);
-  const [renameVal, setRenameVal] = useState('');
   const [chartView, setChartView] = useState<Record<string, boolean>>({});
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => { document.documentElement.classList.toggle('light', light); }, [light]);
 
@@ -62,8 +61,20 @@ export default function ChatPage() {
 
   useEffect(() => { if (me) loadConversations(); }, [me, loadConversations]);
 
+  // Buscar clientes do backend
+  useEffect(() => {
+    if (!me) return;
+    api.listClients().then((r) => {
+      if (r.clients && r.clients.length > 0) {
+        setClients(r.clients);
+        if (!r.clients.includes(client)) setClient(r.clients[0]);
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me]);
+
   async function selectConversation(id: string) {
-    setActiveId(id); setMessages([]); setLoadingHist(true); setRenaming(false);
+    setActiveId(id); setMessages([]); setLoadingHist(true);
     try {
       const r = await api.history(id);
       setMessages((r.messages || []).filter((m) => m.role !== 'system_summary') as ChatMessage[]);
@@ -74,7 +85,7 @@ export default function ChatPage() {
   }
 
   function newConversation() {
-    setActiveId(null); setMessages([]); setInput(''); setRenaming(false);
+    setActiveId(null); setMessages([]); setInput('');
   }
 
   async function send(text: string) {
@@ -102,6 +113,10 @@ export default function ChatPage() {
       setMessages((cur) => [...cur, bot]);
       api.saveMessage({ conversation_id: convId!, role: 'assistant', content: r.output || '' }).catch(() => {});
       if (isNew) loadConversations();
+      // Compactação automática — evita perda de contexto (bug Victor)
+      if (messages.length > 20) {
+        api.compact(convId!).catch(() => {});
+      }
     } catch (e: unknown) {
       if (isBackendError(e)) setBackendDown(true);
       setMessages((cur) => [...cur, { message_id: `err_${Date.now()}`, conversation_id: convId!, user_id: 'athena', role: 'assistant', content: isBackendError(e) ? 'Backend não conectado. Configure ATHENA_BACKEND_URL para conversar com dados reais.' : 'Não consegui consultar agora. Tente novamente.', timestamp: new Date().toISOString(), error: true }]);
@@ -117,13 +132,6 @@ export default function ChatPage() {
     } catch { /* silencioso */ }
   }
 
-  async function doRename() {
-    if (!activeId || !renameVal.trim()) { setRenaming(false); return; }
-    const title = renameVal.trim();
-    setConversations((cur) => cur.map((c) => (c.conversation_id === activeId ? { ...c, title } : c)));
-    setRenaming(false);
-    try { await api.renameConversation(activeId, title); } catch { /* segue */ }
-  }
 
   async function logout() { try { await auth.logout(); } catch {} router.replace('/login'); }
 
@@ -138,6 +146,10 @@ export default function ChatPage() {
   return (
     <div style={css('display:flex; height:100vh; min-height:640px; background:var(--bg-deep); color:var(--white); font-family:var(--font-body); overflow:hidden')}>
 
+      {/* Backdrop for mobile sidebar */}
+      {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
+
+      <div className={sidebarOpen ? 'sidebar-mobile-open' : 'sidebar-mobile-hidden'}>
       <Sidebar
         me={me}
         conversations={conversations}
@@ -145,28 +157,32 @@ export default function ChatPage() {
         search={search}
         onSearchChange={setSearch}
         client={client}
+        clients={clients}
         onClientChange={setClient}
-        onSelectConversation={selectConversation}
-        onNewConversation={newConversation}
+        onSelectConversation={(id) => { selectConversation(id); setSidebarOpen(false); }}
+        onNewConversation={() => { newConversation(); setSidebarOpen(false); }}
         onLogout={logout}
         backendDown={backendDown}
         light={light}
         onToggleTheme={() => setLight((v) => !v)}
+        onRenameConversation={(id, title) => {
+          setConversations((cur) => cur.map((c) => (c.conversation_id === id ? { ...c, title } : c)));
+          api.renameConversation(id, title).catch(() => {});
+        }}
+        onDeleteConversation={(id) => {
+          setConversations((cur) => cur.filter((c) => c.conversation_id !== id));
+          if (activeId === id) { setActiveId(null); setMessages([]); }
+          api.deleteConversation(id).catch(() => {});
+        }}
       />
+      </div>
 
       <main style={css('flex:1; display:flex; flex-direction:column; min-width:0; background:var(--bg-deep); position:relative')}>
-        <ChatHeader
-          activeTitle={activeTitle}
-          activeId={activeId}
-          renaming={renaming}
-          renameVal={renameVal}
-          onRenameValChange={setRenameVal}
-          onStartRename={() => { setRenameVal(active?.title || ''); setRenaming(true); }}
-          onDoRename={doRename}
-          onCancelRename={() => setRenaming(false)}
-          light={light}
-          onToggleTheme={() => setLight((v) => !v)}
-        />
+
+        {/* Hamburger (mobile only) */}
+        <button className="hamburger-btn" onClick={() => setSidebarOpen(true)} style={{ position: 'absolute', top: 14, left: 14, zIndex: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 8px', color: 'var(--muted-light)', cursor: 'pointer', display: 'none', alignItems: 'center' }}>
+          <IC s={18} d='<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>' w={2} />
+        </button>
 
         {backendDown && (
           <div style={css('flex-shrink:0; display:flex; align-items:center; gap:11px; padding:10px 24px; background:rgba(201,162,39,.08); border-bottom:1px solid rgba(201,162,39,.25)')}>

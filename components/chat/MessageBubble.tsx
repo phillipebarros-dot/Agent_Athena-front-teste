@@ -66,6 +66,14 @@ function AssistantBubble({ message, onSendFeedback, chartOpen, onToggleChart }: 
               )}
             </details>
           )}
+
+          {/* Aviso de truncamento — detecta respostas possivelmente incompletas */}
+          {!message.error && table && table.rows.length >= 2 && table.rows.length <= 5 && (
+            <div style={css('display:flex; align-items:center; gap:8px; margin-top:10px; padding:8px 12px; background:rgba(201,162,39,.08); border:1px solid rgba(201,162,39,.18); border-radius:8px; font-size:11.5px; color:var(--gold)')}>
+              <IC s={14} d='<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' stroke="var(--gold)" />
+              <span>Resultados podem estar incompletos. Tente refinar sua pergunta para um período ou veículo específico.</span>
+            </div>
+          )}
         </div>
 
         {/* Chart */}

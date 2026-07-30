@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import {
   MessageSquare, Plus, Search, ChevronDown, Shield, LogOut,
   BarChart3, Settings, Sparkles, Clock, CalendarDays, Archive,
-  Moon, Sun,
+  Moon, Sun, Pencil, Check, X, Trash2,
 } from 'lucide-react';
 import type { Conversation } from '@/lib/types';
 import { relativeTime, initials } from '@/lib/format';
@@ -16,6 +16,7 @@ interface SidebarProps {
   search: string;
   onSearchChange: (v: string) => void;
   client: string;
+  clients?: string[];
   onClientChange: (v: string) => void;
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
@@ -23,6 +24,8 @@ interface SidebarProps {
   backendDown: boolean;
   light?: boolean;
   onToggleTheme?: () => void;
+  onRenameConversation?: (id: string, title: string) => void;
+  onDeleteConversation?: (id: string) => void;
 }
 
 /* ─── Group conversations by time ─── */
@@ -50,6 +53,8 @@ function groupByTime(conversations: Conversation[]) {
 }
 
 /* ─── Styles (module-like, no inline strings) ─── */
+const FALLBACK_CLIENTS = ['O Boticário', 'Eudora', 'Quem disse, Berenice?', 'Todos'];
+
 const s = {
   root: {
     width: 'var(--sidebar-w)',
@@ -317,10 +322,12 @@ const s = {
 /* ─── Component ─── */
 export function Sidebar({
   me, conversations, activeId, search, onSearchChange,
-  client, onClientChange, onSelectConversation, onNewConversation,
-  onLogout, backendDown, light, onToggleTheme,
+  client, clients, onClientChange, onSelectConversation, onNewConversation,
+  onLogout, backendDown, light, onToggleTheme, onRenameConversation, onDeleteConversation,
 }: SidebarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState('');
   const filtered = search
     ? conversations.filter((c) => (c.title || '').toLowerCase().includes(search.toLowerCase()))
     : conversations;
@@ -362,10 +369,9 @@ export function Sidebar({
         <div style={s.clientWrap}>
           <span style={s.clientLabel}>Cliente</span>
           <select value={client} onChange={(e) => onClientChange(e.target.value)} style={s.clientSelect}>
-            <option style={{ background: '#1a1918' }}>O Boticário</option>
-            <option style={{ background: '#1a1918' }}>Eudora</option>
-            <option style={{ background: '#1a1918' }}>Quem disse, Berenice?</option>
-            <option style={{ background: '#1a1918' }}>Todos</option>
+            {(clients && clients.length > 0 ? clients : FALLBACK_CLIENTS).map((c) => (
+              <option key={c} style={{ background: '#1a1918' }}>{c}</option>
+            ))}
           </select>
           <ChevronDown size={12} color="var(--muted-dim)" />
         </div>
@@ -414,7 +420,13 @@ export function Sidebar({
                 return (
                   <button
                     key={c.conversation_id}
-                    onClick={() => onSelectConversation(c.conversation_id)}
+                    onClick={() => editingId !== c.conversation_id && onSelectConversation(c.conversation_id)}
+                    onDoubleClick={() => {
+                      if (onRenameConversation) {
+                        setEditingId(c.conversation_id);
+                        setEditVal(c.title || '');
+                      }
+                    }}
                     onMouseEnter={() => setHovered(c.conversation_id)}
                     onMouseLeave={() => setHovered(null)}
                     style={{
@@ -426,12 +438,79 @@ export function Sidebar({
                       <MessageSquare size={13} color={on ? 'var(--red)' : 'var(--muted)'} strokeWidth={on ? 2 : 1.5} />
                     </div>
                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                      <span style={s.convTitle(on)}>{c.title || 'Sem título'}</span>
+                      {editingId === c.conversation_id ? (
+                        <input
+                          autoFocus
+                          value={editVal}
+                          onChange={(e) => setEditVal(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && editVal.trim()) {
+                              onRenameConversation?.(c.conversation_id, editVal.trim());
+                              setEditingId(null);
+                            }
+                            if (e.key === 'Escape') setEditingId(null);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            width: '100%', background: 'var(--bg-input)', border: '1px solid var(--red-dim)',
+                            borderRadius: 4, padding: '2px 6px', color: 'var(--white)', fontFamily: 'var(--font-body)',
+                            fontSize: '12px', fontWeight: 600, outline: 'none',
+                          }}
+                        />
+                      ) : (
+                        <span style={s.convTitle(on)}>{c.title || 'Sem título'}</span>
+                      )}
                       <span style={s.convMeta}>
                         <span>{relativeTime(c.updated_at)}</span>
                         {c.message_count > 0 && <span>· {c.message_count} msg</span>}
                       </span>
                     </span>
+                    {/* Pencil icon on hover */}
+                    {isHov && !editingId && onRenameConversation && (
+                      <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingId(c.conversation_id);
+                            setEditVal(c.title || '');
+                          }}
+                          style={{ color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
+                        >
+                          <Pencil size={11} />
+                        </span>
+                        {onDeleteConversation && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteConversation(c.conversation_id);
+                            }}
+                            style={{ color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
+                          >
+                            <Trash2 size={11} />
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {editingId === c.conversation_id && (
+                      <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (editVal.trim()) onRenameConversation?.(c.conversation_id, editVal.trim());
+                            setEditingId(null);
+                          }}
+                          style={{ color: 'var(--red)', cursor: 'pointer', padding: 2, display: 'flex' }}
+                        >
+                          <Check size={13} strokeWidth={2.5} />
+                        </span>
+                        <span
+                          onClick={(e) => { e.stopPropagation(); setEditingId(null); }}
+                          style={{ color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
+                        >
+                          <X size={13} />
+                        </span>
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -459,7 +538,7 @@ export function Sidebar({
               <BarChart3 size={16} color="var(--muted)" />
               Relatórios
             </a>
-            <a href="#" style={{ ...s.navItem(false), textDecoration: 'none' }}>
+            <a href="/admin?tab=config" style={{ ...s.navItem(false), textDecoration: 'none' }}>
               <Settings size={16} color="var(--muted)" />
               Configurações
             </a>
