@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, auth, isBackendError } from '@/lib/api';
 import { B, IC, css } from '@/lib/dc';
-import { IconRail } from '@/components/IconRail';
+
 import { Sidebar } from '@/components/chat/Sidebar';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { MessageList } from '@/components/chat/MessageList';
@@ -137,7 +137,6 @@ export default function ChatPage() {
 
   return (
     <div style={css('display:flex; height:100vh; min-height:640px; background:var(--bg-deep); color:var(--white); font-family:var(--font-body); overflow:hidden')}>
-      <IconRail active="chat" admin={me?.admin} light={light} onToggleTheme={() => setLight((v) => !v)} onLogout={logout} />
 
       <Sidebar
         me={me}
@@ -151,6 +150,8 @@ export default function ChatPage() {
         onNewConversation={newConversation}
         onLogout={logout}
         backendDown={backendDown}
+        light={light}
+        onToggleTheme={() => setLight((v) => !v)}
       />
 
       <main style={css('flex:1; display:flex; flex-direction:column; min-width:0; background:var(--bg-deep); position:relative')}>

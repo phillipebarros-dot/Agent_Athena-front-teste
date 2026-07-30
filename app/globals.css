@@ -22,9 +22,9 @@
   --bg-quiet:#141312; --bg-raised:#1a1918; --bg-code:#0c0b0b; --border-ghost:rgba(255,255,255,.04);
   --shadow: 10.67px 21.33px 3.38px rgba(0,0,0,.0626), 13.48px 26.97px 7.01px rgba(0,0,0,.102);
   --sidebar-w:260px;
-  --font-body: var(--font-body), 'Raleway', -apple-system, sans-serif;
-  --font-display: var(--font-display), 'Oswald', 'Raleway', sans-serif;
-  --font-mono: var(--font-mono), 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  --font-body: 'Raleway', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Oswald', 'Raleway', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 }
 :root.light {
   --page:#eeeae7; --bg-deep:#f4f1ee; --bg-surface:#ffffff; --bg-panel:#f7f4f1;

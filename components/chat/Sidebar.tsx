@@ -1,9 +1,14 @@
 'use client';
-import React from 'react';
-import { B, IC, css } from '@/lib/dc';
+import React, { useState } from 'react';
+import {
+  MessageSquare, Plus, Search, ChevronDown, Shield, LogOut,
+  BarChart3, Settings, Sparkles, Clock, CalendarDays, Archive,
+  Moon, Sun,
+} from 'lucide-react';
 import type { Conversation } from '@/lib/types';
 import { relativeTime, initials } from '@/lib/format';
 
+/* ─── Types ─── */
 interface SidebarProps {
   me: { name?: string; email?: string; admin?: boolean } | null;
   conversations: Conversation[];
@@ -16,103 +21,487 @@ interface SidebarProps {
   onNewConversation: () => void;
   onLogout: () => void;
   backendDown: boolean;
+  light?: boolean;
+  onToggleTheme?: () => void;
 }
 
+/* ─── Group conversations by time ─── */
+function groupByTime(conversations: Conversation[]) {
+  const now = Date.now();
+  const today = new Date().setHours(0, 0, 0, 0);
+  const yesterday = today - 86400000;
+  const weekAgo = today - 7 * 86400000;
+
+  const groups: { label: string; icon: React.ReactNode; items: Conversation[] }[] = [
+    { label: 'Hoje', icon: <Sparkles size={12} />, items: [] },
+    { label: 'Ontem', icon: <Clock size={12} />, items: [] },
+    { label: 'Esta semana', icon: <CalendarDays size={12} />, items: [] },
+    { label: 'Anteriores', icon: <Archive size={12} />, items: [] },
+  ];
+
+  for (const c of conversations) {
+    const t = c.updated_at ? new Date(c.updated_at).getTime() : 0;
+    if (t >= today) groups[0].items.push(c);
+    else if (t >= yesterday) groups[1].items.push(c);
+    else if (t >= weekAgo) groups[2].items.push(c);
+    else groups[3].items.push(c);
+  }
+  return groups.filter((g) => g.items.length > 0);
+}
+
+/* ─── Styles (module-like, no inline strings) ─── */
+const s = {
+  root: {
+    width: 'var(--sidebar-w)',
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    background: 'var(--bg-surface)',
+    borderRight: '1px solid var(--border-faint)',
+    height: '100%',
+    overflow: 'hidden',
+  },
+  header: {
+    padding: '20px 16px 0',
+    flexShrink: 0,
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '20px',
+  },
+  logoImg: {
+    width: 32,
+    height: 32,
+    objectFit: 'contain' as const,
+    flexShrink: 0,
+  },
+  logoText: {
+    fontFamily: 'var(--font-display)',
+    fontSize: '15px',
+    fontWeight: 700,
+    letterSpacing: '2.5px',
+    color: 'var(--white)',
+    lineHeight: 1,
+  },
+  logoSub: {
+    fontSize: '8px',
+    letterSpacing: '1.8px',
+    color: 'var(--red)',
+    fontWeight: 600,
+    marginTop: '3px',
+    textTransform: 'uppercase' as const,
+  },
+  newBtn: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '10px 16px',
+    border: 'none',
+    borderRadius: '8px',
+    fontFamily: 'var(--font-body)',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    color: '#fff',
+    background: 'var(--red)',
+    transition: 'all .15s ease',
+    marginBottom: '12px',
+  },
+  searchWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 10px',
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border-faint)',
+    borderRadius: '8px',
+    transition: 'border-color .15s ease',
+    marginBottom: '8px',
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    background: 'transparent',
+    border: 'none',
+    outline: 'none',
+    color: 'var(--white)',
+    fontFamily: 'var(--font-body)',
+    fontSize: '13px',
+  },
+  divider: {
+    height: '1px',
+    background: 'var(--border-faint)',
+    margin: '4px 16px',
+    flexShrink: 0,
+  },
+  nav: {
+    padding: '8px 16px 4px',
+    flexShrink: 0,
+  },
+  navItem: (active: boolean) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '8px 10px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: active ? 600 : 400,
+    color: active ? 'var(--white)' : 'var(--muted-light)',
+    background: active ? 'var(--bg-panel)' : 'transparent',
+    cursor: 'pointer',
+    border: 'none',
+    fontFamily: 'var(--font-body)',
+    width: '100%',
+    textAlign: 'left' as const,
+    textDecoration: 'none',
+    transition: 'all .12s ease',
+    marginBottom: '2px',
+  }),
+  clientWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 10px',
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border-faint)',
+    borderRadius: '8px',
+  },
+  clientLabel: {
+    fontSize: '9px',
+    letterSpacing: '1.2px',
+    textTransform: 'uppercase' as const,
+    color: 'var(--muted-dim)',
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  clientSelect: {
+    flex: 1,
+    minWidth: 0,
+    background: 'transparent',
+    border: 'none',
+    outline: 'none',
+    color: 'var(--white)',
+    fontFamily: 'var(--font-body)',
+    fontSize: '12px',
+    fontWeight: 500,
+    cursor: 'pointer',
+  },
+  sectionLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 10px 4px',
+    fontSize: '11px',
+    fontWeight: 600,
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase' as const,
+    color: 'var(--muted-dim)',
+  },
+  convList: {
+    flex: 1,
+    overflowY: 'auto' as const,
+    overflowX: 'hidden' as const,
+    padding: '4px 8px',
+  },
+  convItem: (active: boolean) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '8px 10px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    border: 'none',
+    fontFamily: 'var(--font-body)',
+    width: '100%',
+    textAlign: 'left' as const,
+    background: active ? 'var(--bg-panel)' : 'transparent',
+    transition: 'background .12s ease',
+    marginBottom: '1px',
+  }),
+  convIcon: (active: boolean) => ({
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    flexShrink: 0,
+    background: active ? 'rgba(221,0,4,0.08)' : 'var(--bg-input)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }),
+  convTitle: (active: boolean) => ({
+    display: 'block',
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    fontSize: '13px',
+    fontWeight: active ? 600 : 400,
+    color: active ? 'var(--white)' : 'var(--muted-light)',
+    lineHeight: '1.3',
+  }),
+  convMeta: {
+    display: 'flex',
+    gap: '6px',
+    marginTop: '1px',
+    fontSize: '11px',
+    color: 'var(--muted-dim)',
+  },
+  badge: (color: string) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '2px 8px',
+    borderRadius: '10px',
+    fontSize: '11px',
+    fontWeight: 500,
+    background: `${color}14`,
+    color: color,
+    border: `1px solid ${color}22`,
+  }),
+  footer: {
+    flexShrink: 0,
+    padding: '12px 16px 16px',
+    borderTop: '1px solid var(--border-faint)',
+  },
+  userRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: '50%',
+    flexShrink: 0,
+    background: 'linear-gradient(135deg, var(--red-dim), var(--red))',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: 'var(--font-display)',
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#fff',
+  },
+  userName: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'var(--white)',
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  userEmail: {
+    fontSize: '11px',
+    color: 'var(--muted-dim)',
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    marginTop: '1px',
+  },
+  logoutBtn: {
+    background: 'none',
+    border: '1px solid var(--border-faint)',
+    borderRadius: '6px',
+    color: 'var(--muted-dim)',
+    cursor: 'pointer',
+    padding: '6px',
+    display: 'flex',
+    flexShrink: 0,
+    transition: 'all .15s ease',
+  },
+} as const;
+
+/* ─── Component ─── */
 export function Sidebar({
   me, conversations, activeId, search, onSearchChange,
   client, onClientChange, onSelectConversation, onNewConversation,
-  onLogout, backendDown,
+  onLogout, backendDown, light, onToggleTheme,
 }: SidebarProps) {
+  const [hovered, setHovered] = useState<string | null>(null);
   const filtered = search
     ? conversations.filter((c) => (c.title || '').toLowerCase().includes(search.toLowerCase()))
     : conversations;
+  const groups = groupByTime(filtered);
 
   return (
-    <aside style={css('width:var(--sidebar-w); flex-shrink:0; background:var(--bg-surface); display:flex; flex-direction:column')}>
-      {/* Logo */}
-      <div style={css('height:60px; flex-shrink:0; padding:0 16px; display:flex; align-items:center; gap:11px')}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/athena-logo.png" alt="Athena" style={css('width:40px; height:40px; object-fit:contain; flex-shrink:0')} />
-        <div style={css('min-width:0')}>
-          <div style={css("font-family:var(--font-display); font-size:17px; font-weight:700; letter-spacing:2.5px; line-height:1.05")}>ATHENA</div>
-          <div style={css('font-size:9px; letter-spacing:1.8px; color:var(--red); font-weight:700; margin-top:2px')}>OPUSMÚLTIPLA</div>
+    <aside style={s.root}>
+      {/* ═══ Header ═══ */}
+      <div style={s.header}>
+        {/* Logo */}
+        <div style={s.logo}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/athena-logo.png" alt="Athena" style={s.logoImg} />
+          <div>
+            <div style={s.logoText}>ATHENA</div>
+            <div style={s.logoSub}>OpusMúltipla</div>
+          </div>
+        </div>
+
+        {/* New conversation */}
+        <button
+          onClick={onNewConversation}
+          style={s.newBtn}
+          onMouseEnter={(e) => { (e.currentTarget.style.background = 'var(--red-dim)'); (e.currentTarget.style.boxShadow = '0 4px 12px rgba(221,0,4,0.25)'); }}
+          onMouseLeave={(e) => { (e.currentTarget.style.background = 'var(--red)'); (e.currentTarget.style.boxShadow = 'none'); }}
+        >
+          <Plus size={15} strokeWidth={2.5} /> Nova conversa
+        </button>
+
+        {/* Search */}
+        <div style={s.searchWrap}>
+          <Search size={14} color="var(--muted-dim)" />
+          <input value={search} onChange={(e) => onSearchChange(e.target.value)} placeholder="Buscar conversas…" style={s.searchInput} />
         </div>
       </div>
 
-      {/* Controles */}
-      <div style={css('padding:12px 16px 10px; display:flex; flex-direction:column; gap:10px')}>
-        {/* Cliente */}
-        <div style={css('display:flex; align-items:center; gap:8px; padding:8px 11px; background:var(--bg-panel); border:1px solid var(--border); border-radius:8px')}>
-          <span style={css('font-size:9px; letter-spacing:1.3px; text-transform:uppercase; color:var(--muted); font-weight:600; flex-shrink:0')}>Cliente</span>
-          <select value={client} onChange={(e) => onClientChange(e.target.value)} style={css('flex:1; min-width:0; background:transparent; border:none; outline:none; color:var(--white); font-family:var(--font-body); font-size:12.5px; cursor:pointer')}>
-            <option style={{ color: '#000' }}>O Boticário</option>
-            <option style={{ color: '#000' }}>Eudora</option>
-            <option style={{ color: '#000' }}>Quem disse, Berenice?</option>
-            <option style={{ color: '#000' }}>Todos</option>
+      {/* ═══ Nav items ═══ */}
+      <div style={s.nav}>
+        <div style={s.clientWrap}>
+          <span style={s.clientLabel}>Cliente</span>
+          <select value={client} onChange={(e) => onClientChange(e.target.value)} style={s.clientSelect}>
+            <option style={{ background: '#1a1918' }}>O Boticário</option>
+            <option style={{ background: '#1a1918' }}>Eudora</option>
+            <option style={{ background: '#1a1918' }}>Quem disse, Berenice?</option>
+            <option style={{ background: '#1a1918' }}>Todos</option>
           </select>
-        </div>
-
-        {/* Nova conversa */}
-        <B t="button" onClick={onNewConversation} c="padding:10px 14px; background:rgba(196,30,30,.1); border:1px solid var(--red-dim); border-radius:8px; color:var(--white); font-family:var(--font-body); font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:8px" h="background:rgba(196,30,30,.18); border-color:var(--red)">
-          <span style={css('font-size:15px; line-height:1')}>+</span> Nova conversa
-        </B>
-
-        {/* Busca */}
-        <div style={css('display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px')}>
-          <IC s={13} d='<circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/>' stroke="var(--muted)" />
-          <input value={search} onChange={(e) => onSearchChange(e.target.value)} placeholder="Buscar conversas" style={css('flex:1; min-width:0; background:transparent; border:none; outline:none; color:var(--white); font-family:var(--font-body); font-size:12.5px')} />
+          <ChevronDown size={12} color="var(--muted-dim)" />
         </div>
       </div>
 
-      {/* Lista de conversas */}
-      <div style={css('flex:1; overflow-y:auto; padding:4px 8px 12px')}>
+      <div style={s.divider} />
+
+      {/* ═══ Conversation list ═══ */}
+      <div style={s.convList}>
         {backendDown ? (
-          <div style={css('padding:14px 12px; font-size:12px; color:var(--muted); line-height:1.6')}>Sem conexão com o backend. As conversas reais aparecem aqui quando <code style={{ fontFamily: 'monospace' }}>ATHENA_BACKEND_URL</code> estiver configurada.</div>
-        ) : filtered.length === 0 ? (
-          <div style={css('padding:14px 12px; font-size:12px; color:var(--muted); line-height:1.6')}>{search ? 'Nenhuma conversa encontrada.' : 'Nenhuma conversa ainda. Clique em "Nova conversa".'}</div>
+          <div style={{ padding: '28px 12px', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <MessageSquare size={18} color="var(--muted-dim)" />
+            </div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted-light)', marginBottom: 4 }}>Sem conexão</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted-dim)', lineHeight: 1.6 }}>Configure o backend para ver suas conversas aqui.</div>
+            <div style={s.badge('var(--gold)')}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--gold)' }} />
+              offline
+            </div>
+          </div>
+        ) : groups.length === 0 ? (
+          <div style={{ padding: '28px 12px', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <MessageSquare size={18} color="var(--muted-dim)" />
+            </div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted-light)', marginBottom: 4 }}>
+              {search ? 'Nenhum resultado' : 'Nenhuma conversa'}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--muted-dim)', lineHeight: 1.6 }}>
+              {search ? 'Tente outra busca.' : 'Clique em "Nova conversa" para começar.'}
+            </div>
+          </div>
         ) : (
-          filtered.map((c) => {
-            const on = c.conversation_id === activeId;
-            return (
-              <B key={c.conversation_id} onClick={() => onSelectConversation(c.conversation_id)} c={`padding:9px 11px; border-radius:7px; font-size:13px; cursor:pointer; margin-bottom:2px; border:1px solid ${on ? 'var(--border)' : 'transparent'}; background:${on ? 'var(--bg-panel)' : 'transparent'}; display:flex; align-items:center; gap:9px`} h="background:var(--bg-panel)">
-                <span style={css('flex:1; min-width:0')}>
-                  <span style={css(`display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:${on ? 'var(--white)' : 'var(--muted-light)'}`)}>{c.title || 'Sem título'}</span>
-                  <span style={css('display:flex; gap:8px; margin-top:3px; font-size:10.5px; color:var(--muted-dim)')}>
-                    <span>{relativeTime(c.updated_at)}</span>
-                    {c.message_count > 0 && <span>· {c.message_count} msg</span>}
-                  </span>
-                </span>
-              </B>
-            );
-          })
+          groups.map((group) => (
+            <div key={group.label}>
+              <div style={s.sectionLabel}>
+                {group.icon}
+                {group.label}
+                <span style={{ ...s.badge('var(--muted)'), marginLeft: 'auto', fontSize: '10px', padding: '1px 6px' }}>{group.items.length}</span>
+              </div>
+
+              {group.items.map((c) => {
+                const on = c.conversation_id === activeId;
+                const isHov = hovered === c.conversation_id;
+                return (
+                  <button
+                    key={c.conversation_id}
+                    onClick={() => onSelectConversation(c.conversation_id)}
+                    onMouseEnter={() => setHovered(c.conversation_id)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{
+                      ...s.convItem(on),
+                      ...(isHov && !on ? { background: 'var(--bg-input)' } : {}),
+                    }}
+                  >
+                    <div style={s.convIcon(on)}>
+                      <MessageSquare size={13} color={on ? 'var(--red)' : 'var(--muted)'} strokeWidth={on ? 2 : 1.5} />
+                    </div>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <span style={s.convTitle(on)}>{c.title || 'Sem título'}</span>
+                      <span style={s.convMeta}>
+                        <span>{relativeTime(c.updated_at)}</span>
+                        {c.message_count > 0 && <span>· {c.message_count} msg</span>}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+
+              <div style={{ ...s.divider, margin: '6px 4px' }} />
+            </div>
+          ))
         )}
       </div>
 
-      {/* Admin link */}
+      {/* ═══ Bottom nav ═══ */}
       {me?.admin && (
-        <div style={css('padding:12px 16px; border-top:1px solid var(--border)')}>
-          <B t="a" href="/admin" c="padding:10px 14px; background:transparent; border:1px dashed var(--border); border-radius:8px; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.5px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px" h="border-color:var(--red-dim); color:var(--white); background:rgba(196,30,30,.06)">
-            <IC s={13} d='<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' w={2} /> Painel de Auditoria
-          </B>
-        </div>
+        <>
+          <div style={s.divider} />
+          <div style={{ padding: '4px 8px' }}>
+            <a href="/admin" style={{ ...s.navItem(false), textDecoration: 'none' }}>
+              <Shield size={16} color="var(--muted)" />
+              Painel de Auditoria
+              <span style={{ ...s.badge('var(--green)'), marginLeft: 'auto' }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)' }} />
+                admin
+              </span>
+            </a>
+            <a href="/admin" style={{ ...s.navItem(false), textDecoration: 'none' }}>
+              <BarChart3 size={16} color="var(--muted)" />
+              Relatórios
+            </a>
+            <a href="#" style={{ ...s.navItem(false), textDecoration: 'none' }}>
+              <Settings size={16} color="var(--muted)" />
+              Configurações
+            </a>
+          </div>
+        </>
       )}
 
-      {/* Logo OpusMúltipla */}
-      <div style={css('padding:10px 20px 6px; text-align:center')}>
+      {/* ═══ OpusMúltipla ═══ */}
+      <div style={{ padding: '4px 16px 2px', textAlign: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/opus-multipla-logo.png" alt="OpusMultipla" style={css('max-width:104px; height:auto; opacity:.35; filter:grayscale(.3)')} />
+        <img src="/opus-multipla-logo.png" alt="OpusMúltipla" style={{ maxWidth: 85, height: 'auto', opacity: 0.2 }} />
       </div>
 
-      {/* User footer */}
-      <div style={css('padding:12px 16px; border-top:1px solid var(--border); display:flex; align-items:center; gap:10px')}>
-        <div style={css('width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--red-dim),var(--red)); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:12px; font-weight:600; color:var(--white); flex-shrink:0')}>{initials(me?.name || me?.email)}</div>
-        <div style={css('flex:1; min-width:0')}>
-          <div style={css('font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{me?.name || 'Usuário'}</div>
-          <div style={css('font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{me?.email}</div>
+      {/* ═══ User footer ═══ */}
+      <div style={s.footer}>
+        <div style={s.userRow}>
+          <div style={s.avatar}>{initials(me?.name || me?.email)}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={s.userName}>{me?.name || 'Usuário'}</div>
+            <div style={s.userEmail}>{me?.email}</div>
+          </div>
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              title={light ? 'Tema escuro' : 'Tema claro'}
+              style={s.logoutBtn}
+              onMouseEnter={(e) => { (e.currentTarget.style.color = 'var(--white)'); (e.currentTarget.style.borderColor = 'var(--red-dim)'); }}
+              onMouseLeave={(e) => { (e.currentTarget.style.color = 'var(--muted-dim)'); (e.currentTarget.style.borderColor = 'var(--border-faint)'); }}
+            >
+              {light ? <Moon size={14} /> : <Sun size={14} />}
+            </button>
+          )}
+          <button
+            onClick={onLogout}
+            title="Sair"
+            style={s.logoutBtn}
+            onMouseEnter={(e) => { (e.currentTarget.style.color = 'var(--red)'); (e.currentTarget.style.borderColor = 'rgba(221,0,4,0.2)'); }}
+            onMouseLeave={(e) => { (e.currentTarget.style.color = 'var(--muted-dim)'); (e.currentTarget.style.borderColor = 'var(--border-faint)'); }}
+          >
+            <LogOut size={14} />
+          </button>
         </div>
-        <B t="button" onClick={onLogout} title="Sair" c="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex; flex-shrink:0" h="color:var(--red)">
-          <IC s={14} d='<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>' />
-        </B>
       </div>
     </aside>
   );

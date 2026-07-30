@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { B, IC, css } from '@/lib/dc';
+import { Pencil, Moon, Sun, Check, X } from 'lucide-react';
 
 interface ChatHeaderProps {
   activeTitle: string;
@@ -15,35 +15,154 @@ interface ChatHeaderProps {
   onToggleTheme: () => void;
 }
 
+const s = {
+  root: {
+    height: 52,
+    flexShrink: 0,
+    padding: '0 24px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    background: 'var(--bg-surface)',
+    borderBottom: '1px solid var(--border-faint)',
+    zIndex: 3,
+  },
+  titleWrap: {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  title: {
+    fontSize: '14px',
+    fontWeight: 600,
+    color: 'var(--white)',
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    paddingBottom: 2,
+    borderBottom: '2px solid var(--red)',
+  },
+  renameInput: {
+    flex: 1,
+    minWidth: 0,
+    maxWidth: 420,
+    padding: '6px 10px',
+    background: 'var(--bg-input)',
+    border: '1px solid var(--red-dim)',
+    borderRadius: 6,
+    outline: 'none',
+    color: 'var(--white)',
+    fontFamily: 'var(--font-body)',
+    fontSize: '14px',
+    fontWeight: 600,
+  },
+  iconBtn: {
+    width: 30,
+    height: 30,
+    background: 'transparent',
+    border: '1px solid var(--border-faint)',
+    borderRadius: 6,
+    color: 'var(--muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    transition: 'all .15s ease',
+    padding: 0,
+  },
+  saveBtn: {
+    padding: '5px 12px',
+    border: 'none',
+    borderRadius: 6,
+    background: 'var(--red)',
+    color: '#fff',
+    fontFamily: 'var(--font-body)',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    transition: 'background .15s ease',
+  },
+  cancelBtn: {
+    padding: '5px 10px',
+    border: '1px solid var(--border-faint)',
+    borderRadius: 6,
+    background: 'transparent',
+    color: 'var(--muted)',
+    fontFamily: 'var(--font-body)',
+    fontSize: '12px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    transition: 'all .15s ease',
+  },
+} as const;
+
 export function ChatHeader({
   activeTitle, activeId, renaming, renameVal,
   onRenameValChange, onStartRename, onDoRename, onCancelRename,
   light, onToggleTheme,
 }: ChatHeaderProps) {
-  const themeIcon = light
-    ? <IC s={14} d='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>' w={2} />
-    : <IC s={15} d='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/>' w={2} />;
-
   return (
-    <div style={css('height:60px; flex-shrink:0; padding:0 20px 0 24px; display:flex; align-items:center; gap:12px; background:var(--bg-surface); box-shadow:0 6px 18px -8px rgba(0,0,0,.75); z-index:3')}>
-      <div style={css('flex:1; min-width:0; display:flex; align-items:center; gap:9px')}>
+    <div style={s.root}>
+      <div style={s.titleWrap}>
         {renaming ? (
           <>
-            <input autoFocus value={renameVal} onChange={(e) => onRenameValChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onDoRename(); if (e.key === 'Escape') onCancelRename(); }} style={css("flex:1; min-width:0; max-width:420px; padding:6px 10px; background:var(--bg-input); border:1px solid var(--red-dim); border-radius:7px; outline:none; color:var(--white); font-family:var(--font-body); font-size:14px; font-weight:600")} />
-            <B t="button" onClick={onDoRename} c="padding:6px 12px; border:none; border-radius:7px; background:var(--red); color:#fff; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer; flex-shrink:0" h="background:var(--red-dim)">Salvar</B>
+            <input
+              autoFocus
+              value={renameVal}
+              onChange={(e) => onRenameValChange(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') onDoRename(); if (e.key === 'Escape') onCancelRename(); }}
+              style={s.renameInput}
+            />
+            <button
+              onClick={onDoRename}
+              style={s.saveBtn}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--red-dim)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--red)'; }}
+            >
+              <Check size={12} strokeWidth={2.5} /> Salvar
+            </button>
+            <button onClick={onCancelRename} style={s.cancelBtn}>
+              <X size={12} /> Cancelar
+            </button>
           </>
         ) : (
           <>
-            <span style={css('font-size:14px; font-weight:600; color:var(--white); white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{activeTitle}</span>
+            <span style={s.title}>{activeTitle}</span>
             {activeId && (
-              <B t="button" onClick={onStartRename} title="Renomear" c="background:none; border:none; padding:4px; border-radius:5px; color:var(--muted-dim); cursor:pointer; display:flex; flex-shrink:0" h="color:var(--white); background:var(--bg-panel)">
-                <IC s={13} d='<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/>' />
-              </B>
+              <button
+                onClick={onStartRename}
+                title="Renomear"
+                style={s.iconBtn}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--white)'; e.currentTarget.style.borderColor = 'var(--red-dim)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border-faint)'; }}
+              >
+                <Pencil size={12} />
+              </button>
             )}
           </>
         )}
       </div>
-      <B t="button" onClick={onToggleTheme} title={light ? 'Tema escuro' : 'Tema claro'} c="width:32px; height:32px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0" h="border-color:var(--red-dim); color:var(--white)">{themeIcon}</B>
+
+      <button
+        onClick={onToggleTheme}
+        title={light ? 'Tema escuro' : 'Tema claro'}
+        style={s.iconBtn}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--red-dim)'; e.currentTarget.style.color = 'var(--white)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-faint)'; e.currentTarget.style.color = 'var(--muted)'; }}
+      >
+        {light ? <Moon size={14} /> : <Sun size={14} />}
+      </button>
     </div>
   );
 }
