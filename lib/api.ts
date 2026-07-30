@@ -58,7 +58,7 @@ export const api = {
   // export
   export: (p: { data: any[]; title?: string; format?: 'sheets' | 'csv' }) => call('export', p),
   // clientes (lista dinâmica dos anunciantes)
-  listClients: () => call<{ clients: string[] }>('chat', { action: 'list_clients' }).catch((): { clients: string[] } => ({ clients: [] })),
+  listClients: () => call<{ clients: string[] }>('list-clients', {}).catch((): { clients: string[] } => ({ clients: [] })),
   // users / RBAC (gestão de permissões)
   listUsers: () => call<{ users: AthenaUser[] }>('users', { action: 'list' }),
   checkUser: (email: string) => call<{ exists: boolean; role: string; nome: string }>('users', { action: 'check', email }),
