@@ -52,7 +52,7 @@ export function AnimatedComposer({ onSend, prompts = [], disabled, userName }: {
       <motion.div style={{ position: 'relative', zIndex: 1 }} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <motion.h2 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            style={{ margin: 0, fontFamily: "'Montserrat',sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: 0.5, background: 'linear-gradient(90deg, var(--white), var(--muted))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+            style={{ margin: 0, fontFamily: "'Oswald',sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: 0.5, background: 'linear-gradient(90deg, var(--white), var(--muted))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
             Como posso ajudar hoje{userName ? `, ${userName}` : ''}?
           </motion.h2>
           <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: '100%', opacity: 1 }} transition={{ delay: 0.35, duration: 0.7 }}
@@ -74,13 +74,13 @@ export function AnimatedComposer({ onSend, prompts = [], disabled, userName }: {
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fire(value); } }}
               placeholder={disabled ? 'Backend nao conectado' : 'Pergunte sobre investimento, insercoes, PIs ou tabelas de preco...'}
               rows={1}
-              style={{ width: '100%', minHeight: 60, resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: 'var(--white)', fontFamily: "'Open Sans',sans-serif", fontSize: 15, lineHeight: 1.6 }}
+              style={{ width: '100%', minHeight: 60, resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: 'var(--white)', fontFamily: "'Raleway',sans-serif", fontSize: 15, lineHeight: 1.6 }}
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderTop: '1px solid var(--border)' }}>
             <span style={{ fontSize: 11, color: 'var(--muted-dim)', paddingLeft: 4 }}>Enter envia, Shift+Enter quebra linha</span>
             <motion.button type="button" onClick={() => fire(value)} disabled={disabled || !value.trim()} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10, border: 'none', cursor: value.trim() && !disabled ? 'pointer' : 'default', fontFamily: "'Open Sans',sans-serif", fontSize: 13, fontWeight: 600, color: value.trim() && !disabled ? '#fff' : 'var(--muted)', background: value.trim() && !disabled ? 'var(--red)' : 'var(--bg-panel)', boxShadow: value.trim() && !disabled ? '0 2px 12px rgba(196,30,30,.35)' : 'none' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10, border: 'none', cursor: value.trim() && !disabled ? 'pointer' : 'default', fontFamily: "'Raleway',sans-serif", fontSize: 13, fontWeight: 600, color: value.trim() && !disabled ? '#fff' : 'var(--muted)', background: value.trim() && !disabled ? 'var(--red)' : 'var(--bg-panel)', boxShadow: value.trim() && !disabled ? '0 2px 12px rgba(196,30,30,.35)' : 'none' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
               Enviar
             </motion.button>
@@ -93,7 +93,7 @@ export function AnimatedComposer({ onSend, prompts = [], disabled, userName }: {
               <motion.button key={p} type="button" onClick={() => fire(p)} disabled={disabled}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.08 }}
                 whileHover={{ y: -2 }}
-                style={{ maxWidth: 300, textAlign: 'left', padding: '9px 13px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-panel)', color: 'var(--muted-light)', fontFamily: "'Open Sans',sans-serif", fontSize: 12.5, lineHeight: 1.45, cursor: disabled ? 'default' : 'pointer' }}>
+                style={{ maxWidth: 300, textAlign: 'left', padding: '9px 13px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-panel)', color: 'var(--muted-light)', fontFamily: "'Raleway',sans-serif", fontSize: 12.5, lineHeight: 1.45, cursor: disabled ? 'default' : 'pointer' }}>
                 {p}
               </motion.button>
             ))}

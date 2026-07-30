@@ -3,11 +3,79 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, auth, isBackendError, type Conversation, type Msg } from '@/lib/api';
 import { B, IC, css } from '@/lib/dc';
+import { IconRail } from '@/components/IconRail';
 import { Markdown } from '@/components/Markdown';
 import { AnimatedComposer } from '@/components/AnimatedComposer';
 import { relativeTime, initials } from '@/lib/format';
 
 const ic = (s: number, d: string, w = 1.8) => <IC s={s} d={d} w={w} />;
+
+// Converte número pt-BR ("R$ 41.180,58", "9,4%") em Number.
+function toNum(s: string): number {
+  const cleaned = String(s || '').replace(/[^\d,.-]/g, '');
+  if (!cleaned) return NaN;
+  return parseFloat(cleaned.replace(/\./g, '').replace(',', '.'));
+}
+// Extrai a primeira tabela GFM do markdown da resposta.
+function parseTable(md: string): { headers: string[]; rows: string[][]; labelCol: number; valueCol: number } | null {
+  const lines = (md || '').split('\n');
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (lines[i].includes('|') && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i + 1]) && lines[i + 1].includes('-')) {
+      const cut = (l: string) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+      const headers = cut(lines[i]);
+      const rows: string[][] = [];
+      for (let j = i + 2; j < lines.length; j++) {
+        if (!lines[j].includes('|')) break;
+        const r = cut(lines[j]);
+        if (r.length >= 2) rows.push(r);
+      }
+      if (rows.length < 2) return null;
+      let valueCol = -1;
+      for (let c = headers.length - 1; c >= 1; c--) {
+        const ok = rows.filter((r) => !Number.isNaN(toNum(r[c]))).length;
+        if (ok >= Math.ceil(rows.length * 0.6)) { valueCol = c; break; }
+      }
+      if (valueCol < 0) return null;
+      return { headers, rows, labelCol: 0, valueCol };
+    }
+  }
+  return null;
+}
+
+// Gráfico derivado da tabela real da resposta (não inventa nada; lê a própria tabela).
+function AnswerChart({ table, on, onToggle }: { table: { headers: string[]; rows: string[][]; labelCol: number; valueCol: number }; on: boolean; onToggle: () => void }) {
+  const { headers, rows, labelCol, valueCol } = table;
+  const vals = rows.map((r) => toNum(r[valueCol]));
+  const max = Math.max(1, ...vals.map((v) => (Number.isNaN(v) ? 0 : Math.abs(v))));
+  const bars = rows.slice(0, 12).map((r, i) => ({
+    label: r[labelCol], raw: r[valueCol],
+    h: Math.max(3, Math.round(((Number.isNaN(vals[i]) ? 0 : Math.abs(vals[i])) / max) * 100)),
+  }));
+  return (
+    <div style={css('margin-top:8px')}>
+      <button onClick={onToggle} style={css(`display:inline-flex; align-items:center; gap:7px; padding:5px 11px; border-radius:8px; border:1px solid ${on ? 'var(--red-dim)' : 'var(--border)'}; background:${on ? 'var(--red-glow)' : 'transparent'}; color:${on ? 'var(--white)' : 'var(--muted-light)'}; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer`)}>
+        <IC s={12} d='<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' w={2} />
+        {on ? 'Ocultar gráfico' : 'Ver em gráfico'}
+        <span style={css('font-family:var(--font-body); font-weight:400; color:var(--muted)')}>· {headers[valueCol] || 'valor'}</span>
+      </button>
+      {on && (
+        <div style={css('margin-top:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg-card); padding:16px 18px')}>
+          <div style={css('display:flex; align-items:stretch; gap:10px; height:170px')}>
+            {bars.map((b, i) => (
+              <div key={i} style={css('flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:6px; min-width:0')}>
+                <span style={css("font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); white-space:nowrap")}>{b.raw}</span>
+                <div style={css('width:100%; height:120px; display:flex; align-items:flex-end; justify-content:center')}>
+                  <div title={`${b.label}: ${b.raw}`} style={css(`width:100%; max-width:30px; height:${b.h}%; border-radius:5px 5px 0 0; background:linear-gradient(180deg,var(--red),var(--wine))`)} />
+                </div>
+                <span style={css('font-size:10px; color:var(--muted-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; text-align:center')}>{b.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type ChatMsg = Msg & { pending?: boolean; error?: boolean; attachment?: any; fb?: 'positive' | 'negative'; sources?: { label: string; detail?: string }[]; query?: string };
 
@@ -37,6 +105,7 @@ export default function ChatPage() {
   const [renameVal, setRenameVal] = useState('');
   const [fbOpen, setFbOpen] = useState<string | null>(null);
   const [fbComment, setFbComment] = useState('');
+  const [chartView, setChartView] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { document.documentElement.classList.toggle('light', light); }, [light]);
@@ -155,6 +224,7 @@ export default function ChatPage() {
 
   return (
     <div style={css('display:flex; height:100vh; min-height:640px; background:var(--bg-deep); color:var(--white); font-family:\'Open Sans\',sans-serif; overflow:hidden')}>
+      <IconRail active="chat" admin={me?.admin} light={light} onToggleTheme={() => setLight((v) => !v)} onLogout={logout} />
       {/* SIDEBAR */}
       <aside style={css('width:var(--sidebar-w); flex-shrink:0; background:var(--bg-surface); display:flex; flex-direction:column')}>
         <div style={css('height:60px; flex-shrink:0; padding:0 16px; display:flex; align-items:center; gap:11px')}>
@@ -176,7 +246,7 @@ export default function ChatPage() {
               <option style={{ color: '#000' }}>Todos</option>
             </select>
           </div>
-          <B t="button" onClick={newConversation} c="padding:10px 14px; background:rgba(196,30,30,.1); border:1px solid var(--red-dim); border-radius:8px; color:var(--white); font-family:'Open Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:8px" h="background:rgba(196,30,30,.18); border-color:var(--red)">
+          <B t="button" onClick={newConversation} c="padding:10px 14px; background:rgba(196,30,30,.1); border:1px solid var(--red-dim); border-radius:8px; color:var(--white); font-family:'Raleway',sans-serif; font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:8px" h="background:rgba(196,30,30,.18); border-color:var(--red)">
             <span style={css('font-size:15px; line-height:1')}>+</span> Nova conversa
           </B>
           <div style={css('display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px')}>
@@ -238,7 +308,7 @@ export default function ChatPage() {
             {renaming ? (
               <>
                 <input autoFocus value={renameVal} onChange={(e) => setRenameVal(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') doRename(); if (e.key === 'Escape') setRenaming(false); }} style={css('flex:1; min-width:0; max-width:420px; padding:6px 10px; background:var(--bg-input); border:1px solid var(--red-dim); border-radius:7px; outline:none; color:var(--white); font-family:\'Open Sans\',sans-serif; font-size:14px; font-weight:600')} />
-                <B t="button" onClick={doRename} c="padding:6px 12px; border:none; border-radius:7px; background:var(--red); color:#fff; font-family:'Open Sans',sans-serif; font-size:11.5px; font-weight:600; cursor:pointer; flex-shrink:0" h="background:var(--red-dim)">Salvar</B>
+                <B t="button" onClick={doRename} c="padding:6px 12px; border:none; border-radius:7px; background:var(--red); color:#fff; font-family:'Raleway',sans-serif; font-size:11.5px; font-weight:600; cursor:pointer; flex-shrink:0" h="background:var(--red-dim)">Salvar</B>
               </>
             ) : (
               <>
@@ -317,10 +387,13 @@ export default function ChatPage() {
                         </details>
                       )}
                     </div>
+                    {!m.error && (() => { const tb = parseTable(m.content); return tb ? (
+                      <AnswerChart table={tb} on={!!chartView[m.message_id]} onToggle={() => setChartView((s) => ({ ...s, [m.message_id]: !s[m.message_id] }))} />
+                    ) : null; })()}
                     {!m.error && (
                       <div style={css('display:flex; align-items:center; gap:4px; margin-top:8px')}>
-                        <B t="button" title="Ouvir" onClick={() => playTts(m.content)} c="padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:'Open Sans',sans-serif; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px" h="border-color:var(--red-dim); color:var(--white)">{ic(12, '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>', 2)}Ouvir</B>
-                        <B t="button" title="Copiar" onClick={() => navigator.clipboard?.writeText(m.content)} c="padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:'Open Sans',sans-serif; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px" h="border-color:var(--red-dim); color:var(--white)">{ic(12, '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>', 2)}Copiar</B>
+                        <B t="button" title="Ouvir" onClick={() => playTts(m.content)} c="padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:'Raleway',sans-serif; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px" h="border-color:var(--red-dim); color:var(--white)">{ic(12, '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>', 2)}Ouvir</B>
+                        <B t="button" title="Copiar" onClick={() => navigator.clipboard?.writeText(m.content)} c="padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:'Raleway',sans-serif; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px" h="border-color:var(--red-dim); color:var(--white)">{ic(12, '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>', 2)}Copiar</B>
                         <span style={css('width:1px; height:14px; background:var(--border); margin:0 3px')} />
                         <B t="button" title="Resposta útil" onClick={() => sendFeedback(m, 'positive')} c={`padding:4px 8px; border-radius:6px; border:1px solid ${m.fb === 'positive' ? 'var(--green-dim)' : 'var(--border)'}; background:transparent; color:${m.fb === 'positive' ? 'var(--green)' : 'var(--muted)'}; cursor:pointer; display:inline-flex`} h="border-color:var(--green-dim); color:var(--green)">{ic(13, '<path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>')}</B>
                         <B t="button" title="Corrigir a Athena" onClick={() => { setFbOpen(fbOpen === m.message_id ? null : m.message_id); setFbComment(''); }} c={`padding:4px 8px; border-radius:6px; border:1px solid ${m.fb === 'negative' ? 'var(--red-dim)' : 'var(--border)'}; background:transparent; color:${m.fb === 'negative' ? 'var(--red)' : 'var(--muted)'}; cursor:pointer; display:inline-flex`} h="border-color:var(--red-dim); color:var(--red)">{ic(13, '<path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/>')}</B>
@@ -331,8 +404,8 @@ export default function ChatPage() {
                         <div style={css('font-size:12px; font-weight:600; margin-bottom:8px')}>O que estava errado? Sua correção vira aprendizado.</div>
                         <textarea value={fbComment} onChange={(e) => setFbComment(e.target.value)} rows={3} placeholder="Ex.: o status do PI deveria incluir Aprovado, não só Faturado." style={css('width:100%; resize:vertical; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 11px; color:var(--white); font-family:\'Open Sans\',sans-serif; font-size:13px; outline:none')} />
                         <div style={css('display:flex; gap:8px; margin-top:9px')}>
-                          <B t="button" onClick={() => sendFeedback(m, 'negative', fbComment)} c="padding:7px 14px; border:none; border-radius:8px; background:var(--red); color:#fff; font-family:'Open Sans',sans-serif; font-size:12px; font-weight:600; cursor:pointer" h="background:var(--red-dim)">Enviar correção</B>
-                          <B t="button" onClick={() => setFbOpen(null)} c="padding:7px 12px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted-light); font-family:'Open Sans',sans-serif; font-size:12px; cursor:pointer" h="color:var(--white)">Cancelar</B>
+                          <B t="button" onClick={() => sendFeedback(m, 'negative', fbComment)} c="padding:7px 14px; border:none; border-radius:8px; background:var(--red); color:#fff; font-family:'Raleway',sans-serif; font-size:12px; font-weight:600; cursor:pointer" h="background:var(--red-dim)">Enviar correção</B>
+                          <B t="button" onClick={() => setFbOpen(null)} c="padding:7px 12px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted-light); font-family:'Raleway',sans-serif; font-size:12px; cursor:pointer" h="color:var(--white)">Cancelar</B>
                         </div>
                       </div>
                     )}

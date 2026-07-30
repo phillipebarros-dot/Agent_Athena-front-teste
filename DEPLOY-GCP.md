@@ -54,12 +54,26 @@ allow_origins=["https://athena-web-xxxxx.us-central1.run.app", "https://athena.g
 - **Budget alerts**: Billing → Budgets & alerts → alarme por dia.
 - **Domínio + HTTPS**: mapear `athena.grupoom.com.br` (Cloud Run domain mapping; TLS automático).
 
-## 6. Login com Google (produção), troca do stub
-1. `npm i next-auth`
-2. Crie credenciais OAuth (GCP → APIs & Services → Credentials → OAuth client ID, tipo Web), redirect `https://SEU_DOMINIO/api/auth/callback/google`.
-3. Configure o provider Google no NextAuth restringindo ao domínio (`hd` + checagem de `ALLOWED_EMAIL_DOMAINS` no callback `signIn`).
-4. No callback, emita a mesma sessão assinada de `lib/session.ts` (ou use a sessão do NextAuth) e deixe `ATHENA_DEV_LOGIN=false`.
-O resto do app não muda, o proxy continua lendo a sessão do cookie.
+## 6. Login com Google (produção) — JÁ IMPLEMENTADO
+O fluxo OAuth já está no app (sem NextAuth), reusando a sessão httpOnly assinada:
+rotas `GET /api/auth/google/start` e `GET /api/auth/google/callback`.
+
+Passos:
+1. GCP → APIs e Serviços → Credenciais → **Criar OAuth client ID**, tipo **Aplicativo Web**.
+2. **URIs de redirecionamento autorizados**: adicione
+   `https://SEU-FRONT.us-central1.run.app/api/auth/google/callback`
+   (e `http://localhost:3000/api/auth/google/callback` para dev).
+3. Copie o Client ID e o Client Secret para os secrets e faça o deploy com:
+```bash
+echo -n "SEU_CLIENT_ID"     | gcloud secrets create GOOGLE_CLIENT_ID --data-file=-
+echo -n "SEU_CLIENT_SECRET" | gcloud secrets create GOOGLE_CLIENT_SECRET --data-file=-
+# no deploy do front, some aos --set-secrets:
+#   GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest
+# e deixe ATHENA_DEV_LOGIN=false
+```
+O callback valida `ALLOWED_EMAIL_DOMAINS` (grupoom.com.br / opusmultipla.com.br) e
+só então cria a sessão. O botão vermelho "Entrar com Google" já aponta para o fluxo;
+o link "modo desenvolvimento" só funciona com `ATHENA_DEV_LOGIN=true`.
 
 ## Alternativa: Vercel
 `vercel` na pasta `athena-web/`, e as mesmas variáveis em Project → Settings →

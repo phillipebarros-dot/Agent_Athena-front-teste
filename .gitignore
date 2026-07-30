@@ -1,21 +1,95 @@
-# deps
-node_modules
-# build
-.next
-out
-build
-# env — NUNCA comitar segredos
+# ==============================
+# Dependências
+# ==============================
+node_modules/
+.pnp
+.pnp.js
+
+# ==============================
+# Build / Output
+# ==============================
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# ==============================
+# Variáveis de ambiente — NUNCA comitar segredos
+# ==============================
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env*.local
-# chaves / service accounts
+
+# ==============================
+# Chaves / Service Accounts / Credenciais
+# ==============================
 *.pem
+*.key
+*.p12
+*.pfx
 *-service-account.json
-*-credentials.json
-# sistema
-.DS_Store
+service-account*.json
+credentials*.json
+
+# ==============================
+# Logs
+# ==============================
 npm-debug.log*
+yarn-debug.log*
 yarn-error.log*
-# uploads
-uploads/
-screenshots/
+pnpm-debug.log*
+.pnpm-store/
+
+# ==============================
+# Editores / IDE
+# ==============================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ==============================
+# OS / Sistema
+# ==============================
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# ==============================
+# Docker (opcional — descomente se não quiser trackear)
+# ==============================
+# docker-compose.override.yml
+
+# ==============================
+# Coverage / Testes
+# ==============================
+coverage/
+.nyc_output/
+*.lcov
+
+# ==============================
+# Debug / Misc
+# ==============================
+*.log
+.cache/
+.turbo/
+.vercel/
+.output/
+
+# ==============================
+# Lock files (descomente se NÃO quiser versionar)
+# Recomendação: package-lock.json DEVE ser commitado!
+# ==============================
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

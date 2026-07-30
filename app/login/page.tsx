@@ -24,13 +24,29 @@ export default function LoginPage() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const signIn = async () => {
+
+  useEffect(() => {
+    const e = new URLSearchParams(window.location.search).get('error');
+    if (!e) return;
+    const msgs: Record<string, string> = {
+      oauth_indisponivel: 'Login Google ainda não configurado no servidor.',
+      dominio_nao_permitido: 'Use um e-mail @grupoom.com.br ou @opusmultipla.com.br.',
+      cancelado: 'Login cancelado.',
+      estado_invalido: 'Sessão de login expirou, tente de novo.',
+      email_nao_verificado: 'E-mail do Google não verificado.',
+    };
+    setErr(msgs[e] || 'Não foi possível entrar. Tente novamente.');
+  }, []);
+
+  // Login real via Google OAuth (redireciona para o consentimento).
+  const signIn = () => { setBusy(true); setErr(''); window.location.href = '/api/auth/google/start'; };
+  // Atalho de desenvolvimento (só funciona com ATHENA_DEV_LOGIN=true).
+  const devSignIn = async () => {
     setBusy(true); setErr('');
     try {
       const r: any = await auth.login();
       if (r.ok) { router.push('/chat'); return; }
-      if (r.error === 'oauth_required') setErr('Login Google ainda não configurado. Em dev, ative ATHENA_DEV_LOGIN=true no .env.local.');
-      else setErr('Não foi possível entrar. Verifique o domínio do e-mail.');
+      setErr('Modo dev desativado. Em produção use o botão do Google.');
     } catch { setErr('Falha de conexão com o servidor.'); }
     setBusy(false);
   };
@@ -164,19 +180,21 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', overflow: 'hidden', fontFamily: "'Open Sans', sans-serif" }}>
+    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', overflow: 'hidden', fontFamily: "'Raleway',sans-serif" }}>
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, zIndex: 0, width: '100%', height: '100%' }} />
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'radial-gradient(circle at center, rgba(0,0,0,0.85) 0%, transparent 100%)' }} />
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 40%)' }} />
 
       <main style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '2rem 2.5rem 1.5rem', width: 400, maxWidth: '92vw', animation: 'card-in .8s cubic-bezier(0.16,1,0.3,1) .2s both' }}>
-        <div style={{ position: 'relative', width: 72, height: 72, marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: -58, borderRadius: '50%', background: 'radial-gradient(circle, #000 0%, rgba(0,0,0,0.92) 52%, transparent 78%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', width: 124, height: 124, marginBottom: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: -70, borderRadius: '50%', background: 'radial-gradient(circle, #000 0%, rgba(0,0,0,0.92) 52%, transparent 78%)', pointerEvents: 'none' }} />
+          <div className="logo-ping" style={{ position: 'absolute', width: 124, height: 124, borderRadius: '50%', border: '2px solid rgba(221,0,4,.5)', pointerEvents: 'none' }} />
+          <div className="logo-aura" style={{ position: 'absolute', inset: -30, borderRadius: '50%', background: 'radial-gradient(circle, rgba(221,0,4,.28) 0%, transparent 65%)', pointerEvents: 'none' }} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img ref={logoRef} src="/athena-logo.png" alt="Athena" style={{ width: '100%', height: '100%', objectFit: 'contain', position: 'relative', zIndex: 2 }} />
+          <img ref={logoRef} className="logo-sway" src="/athena-logo.png" alt="Athena" style={{ width: '100%', height: '100%', objectFit: 'contain', position: 'relative', zIndex: 2, transformOrigin: '50% 88%', filter: 'drop-shadow(0 6px 20px rgba(221,0,4,.35))' }} />
         </div>
 
-        <h1 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: '2rem', fontWeight: 700, color: '#fff', letterSpacing: 3, lineHeight: 1.1, margin: 0, animation: 'title-in .8s ease .3s both' }}>ATHENA</h1>
+        <h1 style={{ fontFamily: "'Oswald',sans-serif", fontSize: '2rem', fontWeight: 700, color: '#fff', letterSpacing: 3, lineHeight: 1.1, margin: 0, animation: 'title-in .8s ease .3s both' }}>ATHENA</h1>
         <div style={{ fontSize: '1.2rem', fontWeight: 300, color: 'rgba(255,255,255,.5)', marginTop: 2, animation: 'fade-up .6s ease .5s both' }}>Bem-vindo de volta</div>
         <div style={{ fontSize: '0.7rem', color: 'rgba(220,38,38,.5)', letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 8, fontWeight: 500, animation: 'fade-up .6s ease .6s both' }}>Assistente de mídia</div>
 
@@ -190,14 +208,18 @@ export default function LoginPage() {
           className="google-btn"
           onClick={signIn}
           disabled={busy}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: '15px 20px', background: '#fff', border: '1px solid rgba(255,255,255,0.9)', borderRadius: 999, color: '#1f1f1f', fontFamily: "'Open Sans', sans-serif", fontSize: '0.92rem', fontWeight: 600, cursor: 'pointer', transition: 'all .3s ease', animation: 'fade-up .6s ease .9s both', boxShadow: '0 6px 26px rgba(0,0,0,0.6)' }}
+          style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', padding: '16px 22px', background: 'linear-gradient(135deg, #dd0004, #b2232a)', border: 'none', borderRadius: 999, color: '#fff', fontFamily: "'Raleway',sans-serif", fontSize: '0.95rem', fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer', transition: 'transform .25s ease, box-shadow .25s ease', animation: 'fade-up .6s ease .9s both', boxShadow: '0 8px 30px rgba(221,0,4,.4)' }}
         >
-          <svg viewBox="0 0 48 48" style={{ width: 18, height: 18, flexShrink: 0 }}><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" /><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" /></svg>
-          {busy ? 'Entrando…' : 'Entrar com Google'}
+          <span className="btn-sheen" aria-hidden style={{ position: 'absolute', top: 0, bottom: 0, width: '40%', left: '-60%', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent)', pointerEvents: 'none' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#fff', flexShrink: 0 }}>
+            <svg viewBox="0 0 48 48" style={{ width: 15, height: 15 }}><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" /><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" /></svg>
+          </span>
+          {busy ? 'Entrando...' : 'Entrar com Google'}
         </button>
         {err && (
           <div style={{ marginTop: 12, fontSize: '0.75rem', color: '#ff6b6b', maxWidth: 320 }}>{err}</div>
         )}
+        <button onClick={devSignIn} disabled={busy} style={{ marginTop: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,.28)', fontFamily: "'Raleway',sans-serif", fontSize: '0.7rem', letterSpacing: '.04em', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>entrar em modo desenvolvimento</button>
 
         <div style={{ fontSize: '0.8rem', fontStyle: 'italic', fontWeight: 300, lineHeight: 1.5, color: 'rgba(255,255,255,.3)', margin: '1.2rem 0 0', minHeight: 36, opacity: fading ? 0 : 1, transform: fading ? 'translateY(-4px)' : 'translateY(0)', transition: 'opacity .5s ease, transform .3s ease', animation: 'fade-up .6s ease .8s both' }}>{QUOTES[qi]}</div>
 
@@ -210,14 +232,33 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <div style={{ marginTop: '1.5rem', fontSize: '0.65rem', color: 'rgba(255,255,255,.12)', letterSpacing: '0.08em', textTransform: 'uppercase', animation: 'fade-up .6s ease 1.1s both' }}>
-          Powered by <a href="https://opusmultipla.com.br" target="_blank" rel="noopener noreferrer">OpusMultipla</a>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginTop: '1.6rem', flexWrap: 'wrap', animation: 'fade-up .6s ease 1.1s both' }}>
+          {[{ s: '/partner-google.png', a: 'Google Partner' }, { s: '/partner-meta.png', a: 'Meta Business Partner' }, { s: '/partner-iso.png', a: 'ISO Certified' }].map((b) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={b.s} className="partner-badge" src={b.s} alt={b.a} style={{ height: 26, width: 'auto', objectFit: 'contain', filter: 'grayscale(1) brightness(1.6)', opacity: 0.4, transition: 'opacity .3s ease, filter .3s ease' }} />
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: '1.4rem', animation: 'fade-up .6s ease 1.15s both' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/grupo-om.png" alt="Grupo OM" style={{ height: 22, width: 'auto', objectFit: 'contain', opacity: 0.55 }} />
+          <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,.18)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            Powered by <a href="https://opusmultipla.com.br" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(221,0,4,.55)' }}>OpusMúltipla</a>
+          </div>
         </div>
       </main>
 
       <style jsx>{`
-        .google-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 34px rgba(0,0,0,0.7), 0 0 34px rgba(220,38,38,0.14); }
+        .google-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(221,0,4,.55); }
         .google-btn:active { transform: scale(0.98); }
+        .google-btn:hover .btn-sheen { animation: sheen 0.9s ease; }
+        @keyframes sheen { from { left: -60%; } to { left: 130%; } }
+        .logo-sway { animation: sway 4s ease-in-out infinite; }
+        .logo-ping { animation: ping 2.6s cubic-bezier(0,0,0.2,1) infinite; }
+        .logo-aura { animation: auraGlow 3.6s ease-in-out infinite; }
+        .partner-badge:hover { opacity: 0.85 !important; filter: grayscale(0) brightness(1) !important; }
+        @keyframes sway { 0%,100% { transform: rotate(-3.5deg); } 50% { transform: rotate(3.5deg); } }
+        @keyframes ping { 0% { transform: scale(.82); opacity: .7; } 70%,100% { transform: scale(1.7); opacity: 0; } }
         @keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes title-in { from { opacity: 0; transform: translateY(12px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes card-in { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }

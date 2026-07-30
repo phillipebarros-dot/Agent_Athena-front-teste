@@ -10,6 +10,10 @@ export const BACKEND_TOKEN = process.env.ATHENA_BACKEND_TOKEN || '';
 export const SESSION_SECRET = process.env.SESSION_SECRET || '';
 export const DEV_LOGIN = process.env.ATHENA_DEV_LOGIN === 'true';
 
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+export const googleConfigured = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+
 export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ||
   'andrei@grupoom.com.br,phillipe.barros@grupoom.com.br,camilo.ferreira@grupoom.com.br,gabriel.oliveira@grupoom.com.br')
   .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
