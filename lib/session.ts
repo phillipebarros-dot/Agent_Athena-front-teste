@@ -10,7 +10,7 @@ import { SESSION_SECRET } from './session-secret';
 export const COOKIE_NAME = 'athena_session';
 const MAX_AGE = 60 * 60 * 8; // 8 h
 
-export type Session = { email: string; name: string; iat: number };
+export type Session = { email: string; name: string; picture?: string; iat: number };
 
 function b64url(buf: Buffer | string) {
   return Buffer.from(buf).toString('base64url');

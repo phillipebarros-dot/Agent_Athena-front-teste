@@ -23,5 +23,5 @@ export async function GET(req: NextRequest) {
     } catch { /* fallback to hardcoded isAdmin */ }
   }
 
-  return NextResponse.json({ authenticated: true, email: s.email, name: s.name, admin });
+  return NextResponse.json({ authenticated: true, email: s.email, name: s.name, picture: s.picture || '', admin });
 }

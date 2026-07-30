@@ -52,8 +52,9 @@ export async function GET(req: NextRequest) {
     if (!domainAllowed(email)) return fail('dominio_nao_permitido');
 
     const name = info.name || email.split('@')[0];
+    const picture = info.picture || '';
     const res = NextResponse.redirect(new URL('/chat', origin));
-    res.cookies.set(COOKIE_NAME, sign({ email, name }), cookieOptions);
+    res.cookies.set(COOKIE_NAME, sign({ email, name, picture }), cookieOptions);
     res.cookies.set('oauth_state', '', { httpOnly: true, path: '/', maxAge: 0 });
 
     // Registra/atualiza usuário no BigQuery (athena_users)
