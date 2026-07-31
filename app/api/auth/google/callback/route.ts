@@ -81,14 +81,21 @@ export async function GET(req: NextRequest) {
       } catch { /* ignore fallback error */ }
     }
 
-    const res = NextResponse.redirect(new URL('/chat', origin));
-    // Sessao principal (email + name + picture) - DEVE ser < 4KB
-    res.cookies.set(COOKIE_NAME, sign({ email, name, picture }), cookieOptions);
+    // Em vez de redirect 307 (que pode nao processar Set-Cookie em cross-site),
+    // retorna HTML 200 com Set-Cookie headers + meta refresh pro /chat.
+    const sessionToken = sign({ email, name, picture });
+    const html = `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/chat"><title>Redirecionando...</title></head><body><p>Redirecionando...</p><script>window.location.href="/chat";</script></body></html>`;
+    
+    const res = new NextResponse(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+    res.cookies.set(COOKIE_NAME, sessionToken, cookieOptions);
     // Google access token em cookie separado (usado so no export pra Google Sheets)
     if (tokens.access_token) {
       res.cookies.set('google_access_token', tokens.access_token, {
         ...cookieOptions,
-        maxAge: 3600, // 1h (vida util do access token do Google)
+        maxAge: 3600,
       });
     }
     res.cookies.set('oauth_state', '', { httpOnly: true, path: '/', maxAge: 0 });
