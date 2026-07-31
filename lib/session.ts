@@ -5,7 +5,7 @@
  *, Em produção, troque o login-stub por Google OAuth (NextAuth) restrito ao domínio.
  */
 import crypto from 'crypto';
-import { SESSION_SECRET } from './session-secret';
+import { getSessionSecret } from './session-secret';
 
 export const COOKIE_NAME = 'athena_session';
 const MAX_AGE = 60 * 60 * 8; // 8 h
@@ -19,15 +19,16 @@ function b64url(buf: Buffer | string) {
 export function sign(payload: Omit<Session, 'iat'>): string {
   const body = { ...payload, iat: Date.now() };
   const data = b64url(JSON.stringify(body));
-  const sig = crypto.createHmac('sha256', SESSION_SECRET).update(data).digest('base64url');
+  const sig = crypto.createHmac('sha256', getSessionSecret()).update(data).digest('base64url');
   return `${data}.${sig}`;
 }
 
 export function verify(token?: string | null): Session | null {
-  if (!token || !SESSION_SECRET) return null;
+  const secret = getSessionSecret();
+  if (!token || !secret) return null;
   const [data, sig] = token.split('.');
   if (!data || !sig) return null;
-  const expected = crypto.createHmac('sha256', SESSION_SECRET).update(data).digest('base64url');
+  const expected = crypto.createHmac('sha256', secret).update(data).digest('base64url');
   // comparação em tempo constante
   const a = Buffer.from(sig), b = Buffer.from(expected);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
