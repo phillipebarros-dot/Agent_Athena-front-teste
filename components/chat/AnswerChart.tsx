@@ -52,7 +52,22 @@ const CHART_COLORS = [
   '#16A085', // verde-azulado
 ];
 
-type ChartType = 'bar' | 'horizontal' | 'pie';
+type ChartType = 'bar' | 'horizontal' | 'pie' | 'line';
+
+/** Detecta se labels são temporais (meses, anos, datas). */
+function isTemporal(labels: string[]): boolean {
+  const months = /^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i;
+  const yearMonth = /^\d{4}[\/-]\d{1,2}$/;
+  const datePattern = /^\d{1,2}[\/-]\d{1,2}([\/-]\d{2,4})?$/;
+  const yearOnly = /^20\d{2}$/;
+  const monthYear = /^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*[\s\/.-]?\d{2,4}$/i;
+  let temporalCount = 0;
+  for (const l of labels) {
+    const t = l.trim();
+    if (months.test(t) || yearMonth.test(t) || datePattern.test(t) || yearOnly.test(t) || monthYear.test(t)) temporalCount++;
+  }
+  return temporalCount >= Math.ceil(labels.length * 0.6);
+}
 
 /** Detecta automaticamente o melhor tipo de gráfico. */
 function detectChartType(rows: string[][], valueCol: number): ChartType {
@@ -60,7 +75,10 @@ function detectChartType(rows: string[][], valueCol: number): ChartType {
   const allPositive = vals.every((v) => v >= 0);
   const isPercentage = rows.some((r) => r[valueCol].includes('%'));
   const totalApprox100 = allPositive && Math.abs(vals.reduce((a, b) => a + b, 0) - 100) < 5;
+  const labels = rows.map(r => r[0]);
 
+  // Se labels são temporais (meses, anos, datas) → linha
+  if (isTemporal(labels) && rows.length >= 3) return 'line';
   // Se parecem percentuais que somam ~100%, pizza
   if (isPercentage && totalApprox100 && rows.length <= 8) return 'pie';
   // Se tem poucos itens e valores positivos, pizza
@@ -192,12 +210,73 @@ function PieChart({ bars, total }: { bars: { label: string; raw: string; val: nu
   );
 }
 
-/** Gráfico derivado da tabela real da resposta — barras verticais, horizontais ou pizza, coloridos. */
+// ── Line Chart (evolução temporal) ──
+function LineChart({ bars, max, min }: { bars: { label: string; raw: string; val: number }[]; max: number; min: number }) {
+  const w = 500, h = 160, padX = 40, padY = 20;
+  const plotW = w - padX * 2, plotH = h - padY * 2;
+  const range = Math.max(1, max - min);
+
+  const points = bars.map((b, i) => ({
+    x: padX + (bars.length > 1 ? (i / (bars.length - 1)) * plotW : plotW / 2),
+    y: padY + plotH - ((b.val - min) / range) * plotH,
+    ...b,
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = linePath + ` L ${points[points.length - 1].x} ${h - padY} L ${points[0].x} ${h - padY} Z`;
+
+  return (
+    <div style={css('overflow-x:auto')}>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', maxWidth: w, height: 'auto' }}>
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
+          const y = padY + plotH * (1 - pct);
+          const val = min + range * pct;
+          return (
+            <g key={i}>
+              <line x1={padX} y1={y} x2={w - padX} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3" />
+              <text x={padX - 6} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize="9" fontFamily="var(--font-mono)">
+                {val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0)}
+              </text>
+            </g>
+          );
+        })}
+        {/* Area fill */}
+        <path d={areaPath} fill="url(#lineGrad)" opacity="0.15" />
+        <defs>
+          <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={CHART_COLORS[0]} />
+            <stop offset="100%" stopColor="transparent" />
+          </linearGradient>
+        </defs>
+        {/* Line */}
+        <path d={linePath} fill="none" stroke={CHART_COLORS[0]} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        {/* Points + labels */}
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="4" fill={CHART_COLORS[i % CHART_COLORS.length]} stroke="var(--bg-card)" strokeWidth="2">
+              <title>{`${p.label}: ${p.raw}`}</title>
+            </circle>
+            <text x={p.x} y={h - 4} textAnchor="middle" fill="var(--muted-dim)" fontSize="9" fontFamily="var(--font-body)">
+              {p.label.length > 8 ? p.label.slice(0, 7) + '…' : p.label}
+            </text>
+            <text x={p.x} y={p.y - 8} textAnchor="middle" fill="var(--muted)" fontSize="8.5" fontFamily="var(--font-mono)">
+              {p.raw}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+/** Gráfico derivado da tabela real da resposta — barras verticais, horizontais, pizza ou linha, coloridos. */
 export function AnswerChart({ table, on, onToggle }: AnswerChartProps) {
   const { headers, rows, labelCol, valueCol } = table;
   const vals = rows.map((r) => toNum(r[valueCol]));
   const max = Math.max(1, ...vals.map((v) => (Number.isNaN(v) ? 0 : Math.abs(v))));
   const total = vals.filter((v) => !Number.isNaN(v)).reduce((a, b) => a + Math.abs(b), 0);
+  const min = Math.min(0, ...vals.map((v) => (Number.isNaN(v) ? 0 : v)));
   const bars = rows.slice(0, 12).map((r, i) => ({
     label: r[labelCol], raw: r[valueCol],
     val: Number.isNaN(vals[i]) ? 0 : vals[i],
@@ -215,7 +294,9 @@ export function AnswerChart({ table, on, onToggle }: AnswerChartProps) {
       </button>
       {on && (
         <div style={css('margin-top:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg-card); padding:18px 20px; overflow-x:auto')}>
-          {chartType === 'pie' ? (
+          {chartType === 'line' ? (
+            <LineChart bars={bars} max={max} min={min} />
+          ) : chartType === 'pie' ? (
             <PieChart bars={bars} total={total} />
           ) : chartType === 'horizontal' ? (
             <HorizontalChart bars={bars} max={max} />
