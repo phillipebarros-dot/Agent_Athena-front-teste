@@ -17,7 +17,7 @@ import { COOKIE_NAME, verify } from '@/lib/session';
 export const runtime = 'nodejs';
 
 // endpoints do backend que o front pode chamar (allowlist)
-const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users', 'list-clients', 'resume', 'time-travel']);
+const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users', 'list-clients', 'resume', 'time-travel', 'settings/domains', 'settings/domains/add', 'settings/domains/remove']);
 // endpoints que recebem a identidade do usuário logado
 const NEEDS_USER = new Set(['chat', 'conversations', 'save-message', 'feedback', 'audit', 'users']);
 
@@ -33,7 +33,7 @@ function rateLimited(key: string): boolean {
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
-  const endpoint = (path || [])[0];
+  const endpoint = (path || []).join('/');
 
   if (!endpoint || !ALLOWED.has(endpoint)) {
     return NextResponse.json({ error: 'endpoint_nao_permitido' }, { status: 404 });
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }
   // auditoria: só admin (o backend revalida, isto é defesa em profundidade)
-  if (endpoint === 'audit' && !isAdmin(session.email)) {
+  if ((endpoint === 'audit' || endpoint.startsWith('settings/')) && !isAdmin(session.email)) {
     return NextResponse.json({ error: 'acesso_negado' }, { status: 403 });
   }
   // users: ações admin (list, update_role) só admin; check/upsert qualquer autenticado
@@ -85,5 +85,31 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     return NextResponse.json({ error: 'backend_indisponivel' }, { status: 502 });
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+  const { path } = await ctx.params;
+  const endpoint = (path || []).join('/');
+
+  if (!['settings/domains'].includes(endpoint)) {
+    return NextResponse.json({ error: 'endpoint_nao_permitido' }, { status: 404 });
+  }
+  if (!BACKEND_URL || !BACKEND_TOKEN) {
+    return NextResponse.json({ error: 'backend_unconfigured' }, { status: 503 });
+  }
+
+  const session = verify(req.cookies.get(COOKIE_NAME)?.value);
+  if (!session) return NextResponse.json({ error: 'nao_autenticado' }, { status: 401 });
+  if (!isAdmin(session.email)) return NextResponse.json({ error: 'acesso_negado' }, { status: 403 });
+
+  try {
+    const res = await fetch(`${BACKEND_URL.replace(/\/$/, '')}/${endpoint}`, {
+      headers: { Authorization: `Bearer ${BACKEND_TOKEN}` },
+    });
+    const text = await res.text();
+    return new NextResponse(text, { status: res.status, headers: { 'Content-Type': 'application/json' } });
+  } catch {
+    return NextResponse.json({ error: 'backend_indisponivel' }, { status: 502 });
   }
 }

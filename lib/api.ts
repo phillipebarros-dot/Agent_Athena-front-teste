@@ -63,6 +63,10 @@ export const api = {
   listUsers: () => call<{ users: AthenaUser[] }>('users', { action: 'list' }),
   checkUser: (email: string) => call<{ exists: boolean; role: string; nome: string }>('users', { action: 'check', email }),
   updateRole: (target_email: string, role: string) => call('users', { action: 'update_role', target_email, role }),
+  // domínios permitidos (admin)
+  getDomains: () => fetch('/api/athena/settings/domains').then(r => r.json()).catch(() => ({ domains: [] })) as Promise<{ domains: string[] }>,
+  addDomain: (domain: string) => call('settings/domains/add', { domain }),
+  removeDomain: (domain: string) => call('settings/domains/remove', { domain }),
 };
 
 // sessão

@@ -67,6 +67,71 @@ const Panel = ({ title, hint, children, extra, delay = 0 }: any) => (
   </motion.div>
 );
 
+/* ─── Domain Manager (dinâmico via API) ─── */
+const DomainManager = () => {
+  const [domains, setDomains] = useState<string[]>([]);
+  const [newDomain, setNewDomain] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getDomains().then((r) => { setDomains(r.domains || []); setLoading(false); });
+  }, []);
+
+  const addDomain = async () => {
+    const d = newDomain.trim().toLowerCase();
+    if (!d || !d.includes('.')) return;
+    try {
+      await api.addDomain(d);
+      setDomains((prev) => [...prev.filter(x => x !== d), d]);
+      setNewDomain('');
+    } catch { /* silencioso */ }
+  };
+
+  const removeDomain = async (d: string) => {
+    try {
+      await api.removeDomain(d);
+      setDomains((prev) => prev.filter(x => x !== d));
+    } catch { /* silencioso */ }
+  };
+
+  if (loading) return <div style={css('font-size:12px; color:var(--fg-3)')}>Carregando domínios...</div>;
+
+  return (
+    <>
+      <div style={css('display:flex; flex-wrap:wrap; gap:10px')}>
+        {domains.map((d) => (
+          <span key={d} style={css('display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border:1px solid var(--border); border-radius:10px; font-size:12.5px; font-weight:600; color:var(--fg-2); background:var(--sunk)')}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 6px rgba(63,185,80,.3)' }} />
+            @{d}
+            <button
+              onClick={() => removeDomain(d)}
+              style={css('background:none; border:none; color:var(--fg-3); cursor:pointer; padding:0 2px; font-size:14px; line-height:1; transition:color .2s')}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--fg-3)'; }}
+              title={`Remover @${d}`}
+            >×</button>
+          </span>
+        ))}
+      </div>
+      <div style={css('display:flex; gap:8px; margin-top:14px')}>
+        <input
+          value={newDomain}
+          onChange={(e) => setNewDomain(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }}
+          placeholder="novodominio.com.br"
+          style={css('flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--white); font-size:12.5px; outline:none; font-family:var(--font-body)')}
+        />
+        <button
+          onClick={addDomain}
+          disabled={!newDomain.trim().includes('.')}
+          style={css(`padding:8px 16px; border-radius:8px; border:none; font-size:12px; font-weight:600; cursor:${newDomain.trim().includes('.') ? 'pointer' : 'default'}; background:${newDomain.trim().includes('.') ? 'var(--red)' : 'var(--border)'}; color:#fff; transition:all .2s`)}
+        >Adicionar</button>
+      </div>
+      <div style={css('font-size:11.5px; color:var(--fg-3); margin-top:10px; line-height:1.6')}>Gerenciado dinamicamente. Alterações aplicam imediatamente sem redeploy.</div>
+    </>
+  );
+};
+
 export default function AdminPage() {
   return <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--page)', color: 'var(--fg-3)', fontFamily: 'var(--font-body)', fontSize: 14 }}><KpiSkeleton count={5} /></div>}><AdminPageInner /></Suspense>;
 }
@@ -554,15 +619,7 @@ function AdminPageInner() {
                     </Panel>
 
                     <Panel title="Domínios permitidos" hint="e-mails fora desses domínios não conseguem logar" delay={0.1}>
-                      <div style={css('display:flex; flex-wrap:wrap; gap:10px')}>
-                        {['grupoom.com.br', 'opusmultipla.com.br'].map((d) => (
-                          <span key={d} style={css('display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border:1px solid var(--border); border-radius:10px; font-size:12.5px; font-weight:600; color:var(--fg-2); background:var(--sunk)')}>
-                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 6px rgba(63,185,80,.3)' }} />
-                            @{d}
-                          </span>
-                        ))}
-                      </div>
-                      <div style={css('font-size:11.5px; color:var(--fg-3); margin-top:14px; line-height:1.6')}>Configurado via ALLOWED_EMAIL_DOMAINS no servidor. Alterações requerem redeploy.</div>
+                      <DomainManager />
                     </Panel>
 
                     <Panel title="Administradores" hint="e-mails com acesso ao painel admin (fallback hardcoded)" delay={0.15}>
