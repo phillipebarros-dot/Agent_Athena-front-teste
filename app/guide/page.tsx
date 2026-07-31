@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth, AuthUser } from '@/lib/api';
+import { auth } from '@/lib/api';
 
 const css = (s: string) => {
   const obj: Record<string, string> = {};
@@ -105,7 +105,7 @@ const FAQ = [
 
 export default function GuidePage() {
   const router = useRouter();
-  const [me, setMe] = useState<AuthUser | null>(null);
+  const [me, setMe] = useState<any>(null);
   const [activeSection, setActiveSection] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
@@ -115,7 +115,7 @@ export default function GuidePage() {
       try {
         const m = await auth.me();
         if (!m?.authenticated) { router.replace('/login'); return; }
-        setMe(m as AuthUser);
+        setMe(m);
       } catch { router.replace('/login'); }
     })();
   }, [router]);

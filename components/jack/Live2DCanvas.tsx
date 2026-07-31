@@ -1,5 +1,5 @@
 /**
- * Live2DCanvas - Renderizador do modelo Live2D Jack no navegador.
+ * Live2DCanvas - Renderizador do modelo Live2D Beyonder no navegador.
  *
  * Usa PixiJS v7 + pixi-live2d-display para carregar o modelo .moc3,
  * gerenciar animacoes idle, expressoes e lip sync.
@@ -7,9 +7,22 @@
  * O componente expoe metodos via ref (useImperativeHandle) para que
  * o pai possa controlar expressoes e lip sync externamente.
  *
+ * Modelo Beyonder (Jack in the Box):
+ * - 36 parametros: cabeca, olhos, boca, corpo, emotes
+ * - 4 sistemas de fisica: cadarco, perna, gravata, bracos
+ * - 7 expressoes: smile, angy, worried, blush, aww, oh, ehh
+ * - Parametros de emote toggle: Param7-Param13
+ *   Param7  = eyebag (oh expression)
+ *   Param8  = aww
+ *   Param9  = depressed (ehh expression)
+ *   Param10 = angy
+ *   Param11 = blush
+ *   Param12 = sweat (worried expression)
+ *   Param13 = neutral
+ *
  * Requisitos:
  * - Cubism Core SDK (live2dcubismcore.min.js) carregado via <script>
- * - Modelo em /public/jack/ com model3.json atualizado
+ * - Modelo em /public/beyonder/ com model3.json atualizado
  */
 'use client';
 import React, { useRef, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react';
@@ -29,12 +42,10 @@ interface Live2DCanvasProps {
 }
 
 const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
-  ({ width = 500, height = 600, modelPath = '/jack/jack in the box.model3.json', onModelReady }, ref) => {
+  ({ width = 500, height = 600, modelPath = '/beyonder/jack in the box.model3.json', onModelReady }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const appRef = useRef<any>(null);
     const modelRef = useRef<any>(null);
-    const breathTimerRef = useRef<number>(0);
-    const blinkTimerRef = useRef<number>(0);
     const idleFrameRef = useRef<number | null>(null);
 
     // Expor metodos para o pai
@@ -43,13 +54,18 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
         const model = modelRef.current;
         if (!model) return;
         try {
-          // pixi-live2d-display usa expressionManager
-          const mgr = model.internalModel?.motionManager?.expressionManager;
-          if (mgr && typeof mgr.setExpression === 'function') {
-            mgr.setExpression(name);
+          // pixi-live2d-display: model.expression(name) e o shorthand correto
+          if (typeof model.expression === 'function') {
+            model.expression(name);
+          } else {
+            // fallback: acesso direto ao expressionManager
+            const mgr = model.internalModel?.motionManager?.expressionManager;
+            if (mgr && typeof mgr.setExpression === 'function') {
+              mgr.setExpression(name);
+            }
           }
         } catch (err) {
-          console.warn('[Live2D] Erro ao setar expressao:', name, err);
+          console.warn('[Beyonder] Erro ao setar expressao:', name, err);
         }
       },
 
@@ -65,9 +81,13 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
         const model = modelRef.current;
         if (!model) return;
         try {
-          const mgr = model.internalModel?.motionManager?.expressionManager;
-          if (mgr && typeof mgr.resetExpression === 'function') {
-            mgr.resetExpression();
+          if (typeof model.expression === 'function') {
+            model.expression(); // sem argumento = reset
+          } else {
+            const mgr = model.internalModel?.motionManager?.expressionManager;
+            if (mgr && typeof mgr.setExpression === 'function') {
+              mgr.setExpression(null);
+            }
           }
         } catch { /* silencioso */ }
       },
@@ -75,7 +95,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
       getModel: () => modelRef.current,
     }));
 
-    // Animacao idle (respiracao + piscar)
+    // Animacao idle (respiracao + piscar + balanco suave)
     const idleLoop = useCallback(() => {
       const model = modelRef.current;
       if (!model?.internalModel?.coreModel) {
@@ -86,29 +106,46 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
       const core = model.internalModel.coreModel;
       const now = performance.now() / 1000;
 
-      // Respiracao suave (seno)
+      // Respiracao suave (ciclo de ~3.5s)
       const breathValue = Math.sin(now * 1.8) * 0.5 + 0.5;
       try { core.setParameterValueById('ParamBreath', breathValue); } catch {}
 
-      // Piscar periodico (a cada ~4 segundos)
-      const blinkCycle = now % 4;
+      // Piscar natural (a cada ~4-5 segundos, variacao para nao parecer mecanico)
+      const blinkPeriod = 4.2 + Math.sin(now * 0.1) * 0.8; // varia entre 3.4 e 5.0s
+      const blinkCycle = now % blinkPeriod;
       let eyeOpen = 1.0;
-      if (blinkCycle > 3.7 && blinkCycle < 3.85) {
-        eyeOpen = 1.0 - ((blinkCycle - 3.7) / 0.15); // fecha
-      } else if (blinkCycle >= 3.85 && blinkCycle < 4.0) {
-        eyeOpen = (blinkCycle - 3.85) / 0.15; // abre
+      if (blinkCycle > blinkPeriod - 0.15 && blinkCycle < blinkPeriod - 0.075) {
+        eyeOpen = 1.0 - ((blinkCycle - (blinkPeriod - 0.15)) / 0.075);
+      } else if (blinkCycle >= blinkPeriod - 0.075) {
+        eyeOpen = (blinkCycle - (blinkPeriod - 0.075)) / 0.075;
       }
       try {
         core.setParameterValueById('ParamEyeLOpen', eyeOpen);
         core.setParameterValueById('ParamEyeROpen', eyeOpen);
       } catch {}
 
-      // Leve balanco da cabeca
-      const headX = Math.sin(now * 0.5) * 3;
-      const headY = Math.sin(now * 0.3) * 2;
+      // Leve balanco da cabeca (microanima para parecer vivo)
+      const headX = Math.sin(now * 0.5) * 3 + Math.sin(now * 1.3) * 1;
+      const headY = Math.sin(now * 0.3) * 2 + Math.cos(now * 0.7) * 0.5;
       try {
         core.setParameterValueById('ParamAngleX', headX);
         core.setParameterValueById('ParamAngleY', headY);
+      } catch {}
+
+      // Corpo acompanha cabeca levemente
+      const bodyX = Math.sin(now * 0.4) * 1.5;
+      const bodyY = Math.sin(now * 0.25) * 1;
+      try {
+        core.setParameterValueById('ParamBodyAngleX', bodyX);
+        core.setParameterValueById('ParamBodyAngleY', bodyY);
+      } catch {}
+
+      // Olhar suave seguindo a "camera"
+      const eyeX = Math.sin(now * 0.6) * 0.3;
+      const eyeY = Math.sin(now * 0.4) * 0.2;
+      try {
+        core.setParameterValueById('ParamEyeBallX', eyeX);
+        core.setParameterValueById('ParamEyeBallY', eyeY);
       } catch {}
 
       idleFrameRef.current = requestAnimationFrame(idleLoop);
@@ -120,21 +157,21 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
       let destroyed = false;
 
       const init = async () => {
-        // Import dinamico para evitar SSR
+        // Import dinamico para evitar SSR (PixiJS precisa de window/document)
         const PIXI = await import('pixi.js');
         const { Live2DModel } = await import('pixi-live2d-display');
 
-        // Registrar Live2D no PixiJS
-        Live2DModel.registerTicker(PIXI.Ticker);
+        // Registrar ticker do Live2D no PixiJS
+        Live2DModel.registerTicker(PIXI.Ticker as any);
 
         if (destroyed) return;
 
-        // Criar app PixiJS
+        // Criar app PixiJS com fundo transparente
         const app = new PIXI.Application({
           view: canvasRef.current!,
           width,
           height,
-          backgroundAlpha: 0, // fundo transparente
+          backgroundAlpha: 0,
           antialias: true,
           resolution: window.devicePixelRatio || 1,
           autoDensity: true,
@@ -142,7 +179,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
         appRef.current = app;
 
         try {
-          // Carregar modelo
+          // Carregar modelo Live2D
           const model = await Live2DModel.from(modelPath, {
             autoInteract: false,
             autoUpdate: true,
@@ -152,21 +189,23 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
 
           modelRef.current = model;
 
-          // Posicionar e escalar o modelo no centro
+          // Posicionar e escalar para caber no canvas
           const scale = Math.min(width / model.width, height / model.height) * 0.85;
           model.scale.set(scale);
           model.x = (width - model.width * scale) / 2;
           model.y = (height - model.height * scale) / 2 + 20;
 
-          app.stage.addChild(model);
+          app.stage.addChild(model as any);
 
           // Iniciar idle loop
           idleLoop();
 
           onModelReady?.();
-          console.log('[Live2D] Modelo Jack carregado com sucesso');
+          console.log('[Beyonder] Modelo carregado com sucesso. Parametros:', {
+            expressions: model.internalModel?.motionManager?.expressionManager?.definitions?.length || 0,
+          });
         } catch (err) {
-          console.error('[Live2D] Erro ao carregar modelo:', err);
+          console.error('[Beyonder] Erro ao carregar modelo:', err);
         }
       };
 

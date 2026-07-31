@@ -4,7 +4,7 @@
 **Organizacao**: Opus Multipla / Grupo OM  
 **Versao**: 3.1.0 | **Licenca**: Proprietaria
 
-Frontend do assistente Athena. Interface de chat inteligente para consulta de dados de midia, planejamento e investimento publicitario. Aplicacao Next.js 14 com autenticacao Google OAuth 2.0, proxy server-side seguro e design system proprio. Inclui o assistente virtual Jack (Live2D) para guiar usuarios.
+Frontend do assistente Athena. Interface de chat inteligente para consulta de dados de midia, planejamento e investimento publicitario. Aplicacao Next.js 14 com autenticacao Google OAuth 2.0, proxy server-side seguro e design system proprio. Inclui o assistente virtual Beyonder (Live2D) para guiar usuarios.
 
 ---
 
@@ -13,7 +13,7 @@ Frontend do assistente Athena. Interface de chat inteligente para consulta de da
 - [Tecnologias](#tecnologias)
 - [Arquitetura](#arquitetura)
 - [Funcionalidades](#funcionalidades)
-- [Jack - Assistente Virtual](#jack---assistente-virtual)
+- [Beyonder - Assistente Virtual](#jack---assistente-virtual)
 - [Componentes](#componentes)
 - [Atalhos de Teclado](#atalhos-de-teclado)
 - [Configuracao](#configuracao)
@@ -37,7 +37,7 @@ Frontend do assistente Athena. Interface de chat inteligente para consulta de da
 | Fontes | Google Fonts | Inter + DM Sans | Tipografia premium |
 | Markdown | Renderizacao propria | - | Parser GFM com tabelas |
 | Graficos | Chart.js | via canvas | Visualizacao de dados |
-| Live2D | pixi-live2d-display | + PixiJS v7 | Assistente Jack (VTuber) |
+| Live2D | pixi-live2d-display | + PixiJS v7 | Assistente Beyonder (VTuber) |
 | Lip Sync | Web Audio API | AnalyserNode | Sincronizacao boca/audio |
 | Voz TTS | OpenAI TTS | tts-1-hd, voz nova | Voz natural e suave |
 | Voz STT | Web Speech API | - | Ditado por voz (Chrome) |
@@ -57,7 +57,7 @@ Next.js 14 (Cloud Run)
     |
     +-- /login               Tela de login com Google
     +-- /chat                Interface principal do chat
-    +-- /jack                Assistente virtual Jack (Live2D)
+    +-- /jack                Assistente virtual Beyonder (Live2D)
     +-- /guide               Guia completo de funcionalidades e FAQ
     +-- /admin               Dashboard administrativo
     |
@@ -126,9 +126,9 @@ Next.js 14 (Cloud Run)
 
 ---
 
-## Jack - Assistente Virtual
+## Beyonder - Assistente Virtual
 
-O Jack e um personagem Live2D integrado ao frontend que funciona como assistente de onboarding e ajuda contextual. Ele guia os usuarios pelas funcionalidades do sistema, explica botoes, ajuda a tomar decisoes e responde duvidas sobre o uso da Athena.
+O Beyonder e um personagem Live2D integrado ao frontend que funciona como assistente de onboarding e ajuda contextual. Ele guia os usuarios pelas funcionalidades do sistema, explica botoes, ajuda a tomar decisoes e responde duvidas sobre o uso da Athena.
 
 ### Caracteristicas
 - Modelo Live2D Cubism renderizado via PixiJS no navegador
@@ -140,7 +140,7 @@ O Jack e um personagem Live2D integrado ao frontend que funciona como assistente
 - Animacoes idle: Respiracao, piscar, fisica de gravata e cadarco
 - Input por voz: Web Speech API para ditado (Chrome)
 
-### Quando o Jack aparece
+### Quando o Beyonder aparece
 - Primeira vez que o usuario acessa o sistema
 - Quando o usuario acessa a pagina /jack
 - Quando o usuario precisa de ajuda com funcionalidades
@@ -234,7 +234,7 @@ Agent_Athena-front-teste/
     page.tsx                  # Redirect para /chat
     login/page.tsx            # Tela de login Google OAuth
     chat/page.tsx             # Pagina principal (toda a logica)
-    jack/page.tsx             # Assistente virtual Jack (Live2D)
+    jack/page.tsx             # Assistente virtual Beyonder (Live2D)
     guide/page.tsx            # Guia de funcionalidades e FAQ
     admin/page.tsx            # Dashboard administrativo
     api/

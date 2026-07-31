@@ -18,7 +18,7 @@ export class LipSyncEngine {
   private analyser: AnalyserNode | null = null;
   private source: AudioBufferSourceNode | null = null;
   private animationFrameId: number | null = null;
-  private dataArray: Uint8Array | null = null;
+  private dataArray: Uint8Array<ArrayBuffer> | null = null;
   private callback: LipSyncCallback;
   private smoothedValue = 0;
   private readonly smoothingFactor = 0.35; // suavizacao para evitar "tremedeira"

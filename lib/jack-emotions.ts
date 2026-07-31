@@ -1,5 +1,5 @@
 /**
- * Sistema de Emocoes do Jack - Mapeia texto/contexto para expressoes Live2D.
+ * Sistema de Emocoes do Beyonder - Mapeia texto/contexto para expressoes Live2D.
  *
  * Usa analise de palavras-chave com pesos para determinar a emocao
  * mais adequada para cada resposta. O sistema e extensivel via
@@ -18,10 +18,10 @@
  *   Texto da resposta -> analisa keywords com peso -> emocao dominante -> nome da expressao
  */
 
-export type JackEmotion = 'smile' | 'angy' | 'worried' | 'blush' | 'aww' | 'oh' | 'ehh';
+export type BeyonderEmotion = 'smile' | 'angy' | 'worried' | 'blush' | 'aww' | 'oh' | 'ehh';
 
 interface EmotionRule {
-  emotion: JackEmotion;
+  emotion: BeyonderEmotion;
   keywords: string[];
   weight: number;
 }
@@ -124,7 +124,7 @@ const EMOTION_RULES: EmotionRule[] = [
  * 4. Retorna a emocao com maior score
  * 5. Default: 'smile' se nenhuma keyword bater
  */
-export function detectEmotion(text: string): JackEmotion {
+export function detectEmotion(text: string): BeyonderEmotion {
   if (!text || text.trim().length === 0) return 'smile';
 
   const normalized = text
@@ -132,7 +132,7 @@ export function detectEmotion(text: string): JackEmotion {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, ''); // remove acentos
 
-  let bestEmotion: JackEmotion = 'smile';
+  let bestEmotion: BeyonderEmotion = 'smile';
   let bestScore = 0;
 
   for (const rule of EMOTION_RULES) {
@@ -158,8 +158,8 @@ export function detectEmotion(text: string): JackEmotion {
 /**
  * Retorna o nome do arquivo de expressao para uma emocao.
  */
-export function getExpressionFile(emotion: JackEmotion): string {
-  const map: Record<JackEmotion, string> = {
+export function getExpressionFile(emotion: BeyonderEmotion): string {
+  const map: Record<BeyonderEmotion, string> = {
     smile: 'smile',
     angy: 'angy',
     worried: 'worried',
@@ -174,8 +174,8 @@ export function getExpressionFile(emotion: JackEmotion): string {
 /**
  * Retorna um texto descritivo da emocao (para debug/logs).
  */
-export function emotionLabel(emotion: JackEmotion): string {
-  const labels: Record<JackEmotion, string> = {
+export function emotionLabel(emotion: BeyonderEmotion): string {
+  const labels: Record<BeyonderEmotion, string> = {
     smile: 'Feliz',
     angy: 'Bravo',
     worried: 'Preocupado',
@@ -188,9 +188,9 @@ export function emotionLabel(emotion: JackEmotion): string {
 }
 
 /**
- * Palavras de contexto de ajuda - o Jack usa quando esta guiando o usuario.
+ * Palavras de contexto de ajuda - o Beyonder usa quando esta guiando o usuario.
  */
-export const JACK_HELP_PHRASES: Record<string, string> = {
+export const BEYONDER_HELP_PHRASES: Record<string, string> = {
   export: 'Para exportar, clique nos botoes CSV, XLSX, PDF ou Sheets abaixo de qualquer tabela que eu mostrar.',
   voice: 'Clique no icone de microfone para falar comigo. Funciona melhor no Chrome.',
   newchat: 'Use Ctrl+N ou o botao Nova Conversa na sidebar para iniciar um tema novo.',

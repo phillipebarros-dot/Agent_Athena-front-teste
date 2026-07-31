@@ -1,8 +1,8 @@
 /**
- * SpeechBubble - Balao de fala do Jack com efeito typewriter.
+ * SpeechBubble - Balao de fala do Beyonder com efeito typewriter.
  *
  * Renderiza o texto letra por letra com velocidade configuravel.
- * Inclui tail (triangulo) apontando para o Jack e animacao de entrada.
+ * Inclui tail (triangulo) apontando para o Beyonder e animacao de entrada.
  */
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
