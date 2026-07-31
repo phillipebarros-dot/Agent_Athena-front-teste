@@ -74,6 +74,15 @@ export const api = {
   getSynonyms: () => fetch('/api/athena/settings/synonyms').then(r => r.json()).catch(() => ({ synonyms: [] })) as Promise<{ synonyms: { from: string; to: string }[] }>,
   addSynonym: (term_from: string, term_to: string) => call('settings/synonyms/add', { term_from, term_to }),
   removeSynonym: (term_from: string) => call('settings/synonyms/remove', { term_from }),
+  // upload de documentos (PDF/Excel/CSV)
+  upload: async (file: File): Promise<{ filename: string; type: string; text: string; tables?: any[]; tables_count?: number; pages?: number; sheets_count?: number }> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/athena/upload', { method: 'POST', credentials: 'same-origin', body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data?.detail || `erro_${res.status}`), { status: res.status, data });
+    return data;
+  },
 };
 
 // sessão

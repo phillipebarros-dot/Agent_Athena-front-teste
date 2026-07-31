@@ -17,7 +17,7 @@ import { COOKIE_NAME, verify } from '@/lib/session';
 export const runtime = 'nodejs';
 
 // endpoints do backend que o front pode chamar (allowlist)
-const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users', 'list-clients', 'resume', 'time-travel', 'settings/domains', 'settings/domains/add', 'settings/domains/remove', 'search-entities', 'settings/synonyms', 'settings/synonyms/add', 'settings/synonyms/remove']);
+const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users', 'list-clients', 'resume', 'time-travel', 'settings/domains', 'settings/domains/add', 'settings/domains/remove', 'search-entities', 'settings/synonyms', 'settings/synonyms/add', 'settings/synonyms/remove', 'upload']);
 // endpoints que recebem a identidade do usuário logado
 const NEEDS_USER = new Set(['chat', 'conversations', 'save-message', 'feedback', 'audit', 'users']);
 
@@ -55,6 +55,31 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   }
   // users: ações admin (list, update_role) só admin; check/upsert qualquer autenticado
   // (guard movido pra depois do parse do body)
+
+  // Upload: encaminha multipart/form-data direto (não JSON)
+  if (endpoint === 'upload') {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000);
+    try {
+      const formData = await req.formData();
+      const file = formData.get('file') as File | null;
+      if (!file) return NextResponse.json({ error: 'nenhum_arquivo' }, { status: 400 });
+      const upstreamForm = new FormData();
+      upstreamForm.append('file', file);
+      const res = await fetch(`${BACKEND_URL().replace(/\/$/, '')}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${BACKEND_TOKEN()}` },
+        body: upstreamForm,
+        signal: controller.signal,
+      });
+      const text = await res.text();
+      return new NextResponse(text, { status: res.status, headers: { 'Content-Type': res.headers.get('content-type') || 'application/json' } });
+    } catch {
+      return NextResponse.json({ error: 'backend_indisponivel' }, { status: 502 });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
 
   let body: any = {};
   try { body = await req.json(); } catch { body = {}; }

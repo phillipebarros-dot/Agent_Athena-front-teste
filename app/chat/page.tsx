@@ -63,6 +63,10 @@ export default function ChatPage() {
   // Mic: gravação de áudio (Web Speech API)
   const [recording, setRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  // Upload de documentos (PDF/Excel/CSV)
+  const [attachedFile, setAttachedFile] = useState<{ file: File; extractedText: string; filename: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auth gate
   useEffect(() => {
@@ -159,7 +163,13 @@ export default function ChatPage() {
 
     // A1: append contexto fixado à mensagem
     const ctxParts = Object.entries(contextChips).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`);
-    const enrichedMsg = ctxParts.length > 0 ? `[Contexto: ${ctxParts.join(', ')}] ${msg}` : msg;
+    let enrichedMsg = ctxParts.length > 0 ? `[Contexto: ${ctxParts.join(', ')}] ${msg}` : msg;
+
+    // Inclui texto extraido do arquivo anexo como contexto
+    if (attachedFile) {
+      enrichedMsg = `[Documento anexado: ${attachedFile.filename}]\n\n${attachedFile.extractedText}\n\n---\nPergunta: ${enrichedMsg}`;
+      setAttachedFile(null); // limpa após envio
+    }
 
     try {
       const r = await api.chat({ message: enrichedMsg, conversation_id: convId, client }, controller.signal);
@@ -420,7 +430,43 @@ export default function ChatPage() {
                   ))}
                 </div>
               )}
-              <div style={css('display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border)')}>
+              {/* Indicador de arquivo anexado */}
+              {attachedFile && (
+                <div style={css('display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px 12px; background:rgba(63,185,80,.06); border:1px solid rgba(63,185,80,.2); border-radius:8px; font-size:12px; color:var(--green)')}>
+                  <IC s={14} d='<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' stroke="var(--green)" />
+                  <span style={css('flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap')}>{attachedFile.filename}</span>
+                  <button onClick={() => setAttachedFile(null)} style={css('background:none; border:none; color:var(--muted); cursor:pointer; padding:2px; display:flex')}>
+                    <IC s={14} d='<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' w={2} />
+                  </button>
+                </div>
+              )}
+              {uploading && (
+                <div style={css('display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--muted-light)')}>
+                  <span style={css('width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--red); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0')} />
+                  Processando documento...
+                </div>
+              )}
+              {/* File input hidden */}
+              <input ref={fileInputRef} type="file" accept=".pdf,.xlsx,.xls,.csv" style={{ display: 'none' }} onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                e.target.value = ''; // reset para permitir re-upload do mesmo arquivo
+                setUploading(true);
+                try {
+                  const result = await api.upload(f);
+                  setAttachedFile({ file: f, extractedText: result.text, filename: result.filename });
+                  setToast(`Documento processado: ${result.filename}`);
+                  setTimeout(() => setToast(null), 3000);
+                } catch (err: any) {
+                  setToast(`Erro ao processar: ${err.message || 'falha no upload'}`);
+                  setTimeout(() => setToast(null), 4000);
+                }
+                setUploading(false);
+              }} />
+              <div style={css('display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border)')}>                {/* Attach button */}
+                <B t="button" onClick={() => fileInputRef.current?.click()} c="width:36px; height:36px; border:1px solid var(--border); border-radius:9px; color:var(--muted-light); cursor:pointer; display:flex; align-items:center; justify-content:center; background:transparent; transition:all .2s" h="border-color:var(--red-dim); color:var(--white)" title="Anexar documento (PDF, Excel, CSV)">
+                  <IC s={16} d='<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>' w={1.8} />
+                </B>
                 {/* Mic button — Web Speech API */}
                 <B t="button" onClick={() => {
                   if (recording) {
