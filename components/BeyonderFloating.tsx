@@ -100,7 +100,7 @@ export function BeyonderFloating() {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 0, right: 24,
+      position: 'fixed', bottom: 0, right: 40,
       zIndex: 9999,
       display: 'flex', alignItems: 'flex-end', gap: 0,
     }}>
