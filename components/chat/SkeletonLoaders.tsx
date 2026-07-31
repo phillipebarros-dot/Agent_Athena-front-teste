@@ -9,7 +9,8 @@ export function MessageSkeleton() {
   return (
     <div style={css('display:flex; gap:14px; align-items:flex-start; padding:4px 0;')} aria-hidden="true">
       {/* Avatar */}
-      <div style={css(`width:32px; height:32px; border-radius:50%; flex-shrink:0; ${skeletonBase}`)} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/athena-logo.png" alt="" style={css('width:38px; height:38px; object-fit:contain; flex-shrink:0; opacity:0.5;')} />
       {/* Text lines */}
       <div style={css('flex:1; display:flex; flex-direction:column; gap:10px; padding-top:4px')}>  
         <div style={css(`height:14px; width:85%; ${skeletonBase}`)} />
@@ -70,10 +71,8 @@ export function KpiSkeleton({ count = 4 }: { count?: number }) {
 export function ThinkingIndicator({ label = 'Analisando...' }: { label?: string }) {
   return (
     <div style={css('display:flex; gap:14px; align-items:flex-start;')}>
-      <div style={css('width:32px; height:32px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0;')}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/athena-logo.png" alt="" style={css('width:20px; height:20px; object-fit:contain;')} />
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/athena-logo.png" alt="" style={css('width:38px; height:38px; object-fit:contain; flex-shrink:0; margin-top:2px;')} />
       <div style={css('display:flex; flex-direction:column; gap:8px; padding-top:6px;')}>
         <span
           style={{
