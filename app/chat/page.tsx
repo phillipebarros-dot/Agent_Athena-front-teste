@@ -1,5 +1,5 @@
 'use client';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, auth, isBackendError } from '@/lib/api';
 import { B, IC, css } from '@/lib/dc';
@@ -33,10 +33,15 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingHist, setLoadingHist] = useState(false);
   const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
+  // FIX B2: per-conversation sending state (não bloqueia global)
+  const [sendingConvs, setSendingConvs] = useState<Record<string, boolean>>({});
+  const sending = !!(activeId && sendingConvs[activeId]);
   const [search, setSearch] = useState('');
   const [chartView, setChartView] = useState<Record<string, boolean>>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // FIX B1: toast + pending messages for wrong-conversation responses
+  const [toast, setToast] = useState<string | null>(null);
+  const pendingMsgsRef = useRef<Record<string, ChatMessage[]>>({});
   const [loadingConvs, setLoadingConvs] = useState(true);
 
   // Auth gate
@@ -80,7 +85,13 @@ export default function ChatPage() {
     setActiveId(id); setMessages([]); setLoadingHist(true);
     try {
       const r = await api.history(id);
-      setMessages((r.messages || []).filter((m) => m.role !== 'system_summary') as ChatMessage[]);
+      let msgs = (r.messages || []).filter((m) => m.role !== 'system_summary') as ChatMessage[];
+      // FIX B1: merge pending messages que chegaram enquanto estava em outra conversa
+      if (pendingMsgsRef.current[id]) {
+        msgs = [...msgs, ...pendingMsgsRef.current[id]];
+        delete pendingMsgsRef.current[id];
+      }
+      setMessages(msgs);
     } catch (e) {
       if (isBackendError(e)) setBackendDown(true);
     }
@@ -93,7 +104,7 @@ export default function ChatPage() {
 
   async function send(text: string) {
     const msg = text.trim();
-    if (!msg || sending || backendDown) return;
+    if (!msg || backendDown) return;
     setInput('');
 
     let convId = activeId;
@@ -104,16 +115,33 @@ export default function ChatPage() {
       try { await api.createConversation(convId, msg.slice(0, 48)); } catch { /* segue */ }
     }
 
+    // FIX B2: per-conversation sending — não bloqueia global
+    const sendingConvId = convId;
+    setSendingConvs((prev) => ({ ...prev, [sendingConvId]: true }));
+
     const now = new Date().toISOString();
     const userMsg: ChatMessage = { message_id: `local_u_${Date.now()}`, conversation_id: convId, user_id: me?.email || 'me', role: 'user', content: msg, timestamp: now };
     setMessages((cur) => [...cur, userMsg]);
-    setSending(true);
     api.saveMessage({ conversation_id: convId, role: 'user', content: msg }).catch(() => {});
 
     try {
       const r = await api.chat({ message: msg, conversation_id: convId, client });
       const bot: ChatMessage = { message_id: `local_a_${Date.now()}`, conversation_id: convId, user_id: 'athena', role: 'assistant', content: r.output || '', timestamp: new Date().toISOString(), sources: (r as any).sources || undefined, query: (r as any).query || undefined, attachment: r.attachment || undefined };
-      setMessages((cur) => [...cur, bot]);
+
+      // FIX B1: só adiciona mensagem se ainda estiver na mesma conversa
+      setActiveId((currentActiveId) => {
+        if (currentActiveId === sendingConvId) {
+          setMessages((cur) => [...cur, bot]);
+        } else {
+          // Resposta chegou em conversa não-ativa — notifica
+          setToast(`Athena respondeu em outra conversa`);
+          setTimeout(() => setToast(null), 4000);
+          // Guarda pra quando o user voltar a essa conversa
+          pendingMsgsRef.current[sendingConvId] = [...(pendingMsgsRef.current[sendingConvId] || []), bot];
+        }
+        return currentActiveId;
+      });
+
       api.saveMessage({ conversation_id: convId!, role: 'assistant', content: r.output || '' }).catch(() => {});
       if (isNew) loadConversations();
       // Compactação automática — evita perda de contexto (bug Victor)
@@ -122,9 +150,15 @@ export default function ChatPage() {
       }
     } catch (e: unknown) {
       if (isBackendError(e)) setBackendDown(true);
-      setMessages((cur) => [...cur, { message_id: `err_${Date.now()}`, conversation_id: convId!, user_id: 'athena', role: 'assistant', content: isBackendError(e) ? 'Backend não conectado. Configure ATHENA_BACKEND_URL para conversar com dados reais.' : 'Não consegui consultar agora. Tente novamente.', timestamp: new Date().toISOString(), error: true }]);
+      const errMsg: ChatMessage = { message_id: `err_${Date.now()}`, conversation_id: convId!, user_id: 'athena', role: 'assistant', content: isBackendError(e) ? 'Backend não conectado. Configure ATHENA_BACKEND_URL para conversar com dados reais.' : 'Não consegui consultar agora. Tente novamente.', timestamp: new Date().toISOString(), error: true };
+      setActiveId((currentActiveId) => {
+        if (currentActiveId === sendingConvId) {
+          setMessages((cur) => [...cur, errMsg]);
+        }
+        return currentActiveId;
+      });
     }
-    setSending(false);
+    setSendingConvs((prev) => { const next = { ...prev }; delete next[sendingConvId]; return next; });
   }
 
   async function sendFeedback(m: ChatMessage, rating: 'positive' | 'negative', comment?: string) {
@@ -274,6 +308,13 @@ export default function ChatPage() {
           </div>
         </div>
       </main>
+
+      {/* FIX B1: Toast notification */}
+      {toast && (
+        <div style={css('position:fixed; bottom:24px; right:24px; z-index:9999; padding:12px 20px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-lg); font-size:13px; color:var(--white); animation:fadeIn 0.3s ease;')}>
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
