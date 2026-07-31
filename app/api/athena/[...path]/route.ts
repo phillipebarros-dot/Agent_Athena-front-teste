@@ -17,7 +17,7 @@ import { COOKIE_NAME, verify } from '@/lib/session';
 export const runtime = 'nodejs';
 
 // endpoints do backend que o front pode chamar (allowlist)
-const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users', 'list-clients', 'resume', 'time-travel', 'settings/domains', 'settings/domains/add', 'settings/domains/remove']);
+const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users', 'list-clients', 'resume', 'time-travel', 'settings/domains', 'settings/domains/add', 'settings/domains/remove', 'search-entities']);
 // endpoints que recebem a identidade do usuário logado
 const NEEDS_USER = new Set(['chat', 'conversations', 'save-message', 'feedback', 'audit', 'users']);
 

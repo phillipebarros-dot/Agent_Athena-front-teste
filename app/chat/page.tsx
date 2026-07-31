@@ -10,6 +10,7 @@ import { MessageList } from '@/components/chat/MessageList';
 import { WelcomeScreen } from '@/components/chat/WelcomeScreen';
 import { SidebarSkeleton, HistorySkeleton } from '@/components/chat/SkeletonLoaders';
 import { useKeyboardShortcuts } from '@/lib/shortcuts';
+import { ContextBar } from '@/components/chat/ContextBar';
 import type { ChatMessage, Conversation, AuthUser } from '@/lib/types';
 
 const SUGGESTIONS = [
@@ -27,6 +28,10 @@ export default function ChatPage() {
   const [client, setClient] = useState('O Boticário');
   const [clients, setClients] = useState<string[]>([]);
   const [backendDown, setBackendDown] = useState(false);
+  // A1: Contexto fixado (chips editáveis)
+  const [contextChips, setContextChips] = useState<Record<string, string>>({
+    ciclo: '', plano: '', periodo: '', meio: '',
+  });
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -46,6 +51,10 @@ export default function ChatPage() {
   const abortControllersRef = useRef<Record<string, AbortController>>({});
   // A2: notificações por conversa (badge "1 nova")
   const [convNotifs, setConvNotifs] = useState<Record<string, number>>({});
+  // A4: Autocomplete de entidades
+  const [acResults, setAcResults] = useState<{ name: string; type: string; label: string }[]>([]);
+  const [acVisible, setAcVisible] = useState(false);
+  const acTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loadingConvs, setLoadingConvs] = useState(true);
 
   // Auth gate
@@ -134,8 +143,12 @@ export default function ChatPage() {
     const controller = new AbortController();
     abortControllersRef.current[sendingConvId] = controller;
 
+    // A1: append contexto fixado à mensagem
+    const ctxParts = Object.entries(contextChips).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`);
+    const enrichedMsg = ctxParts.length > 0 ? `[Contexto: ${ctxParts.join(', ')}] ${msg}` : msg;
+
     try {
-      const r = await api.chat({ message: msg, conversation_id: convId, client }, controller.signal);
+      const r = await api.chat({ message: enrichedMsg, conversation_id: convId, client }, controller.signal);
       const bot: ChatMessage = { message_id: `local_a_${Date.now()}`, conversation_id: convId, user_id: 'athena', role: 'assistant', content: r.output || '', timestamp: new Date().toISOString(), sources: (r as any).sources || undefined, query: (r as any).query || undefined, attachment: r.attachment || undefined };
 
       // FIX B1: só adiciona mensagem se ainda estiver na mesma conversa
@@ -279,6 +292,20 @@ export default function ChatPage() {
           <IC s={18} d='<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>' w={2} />
         </button>
 
+        {/* A1: Barra de contexto fixado */}
+        {!welcome && (
+          <ContextBar
+            chips={[
+              { key: 'ciclo', label: 'Ciclo', value: contextChips.ciclo },
+              { key: 'plano', label: 'Plano', value: contextChips.plano },
+              { key: 'periodo', label: 'Período', value: contextChips.periodo },
+              { key: 'meio', label: 'Meio', value: contextChips.meio, options: ['TV', 'Rádio', 'Digital', 'OOH', 'Jornal', 'Revista'] },
+            ]}
+            onChipChange={(key, val) => setContextChips(prev => ({ ...prev, [key]: val }))}
+            onClearAll={() => setContextChips({ ciclo: '', plano: '', periodo: '', meio: '' })}
+          />
+        )}
+
         {backendDown && (
           <div style={css('flex-shrink:0; display:flex; align-items:center; gap:11px; padding:10px 24px; background:rgba(201,162,39,.08); border-bottom:1px solid rgba(201,162,39,.25)')}>
             <IC s={15} d='<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' stroke="var(--gold)" />
@@ -312,16 +339,56 @@ export default function ChatPage() {
         {/* Composer */}
         <div style={css(`padding:14px 24px 22px; flex-shrink:0; display:${welcome ? 'none' : 'block'}`)}>
           <div style={css('max-width:760px; margin:0 auto')}>
-            <div style={css('background:var(--bg-input); border:1px solid var(--red-dim); border-radius:14px; padding:12px 16px; box-shadow:0 0 0 3px rgba(196,30,30,.08)')}>
+            <div style={css('background:var(--bg-input); border:1px solid var(--red-dim); border-radius:14px; padding:12px 16px; box-shadow:0 0 0 3px rgba(196,30,30,.08); position:relative')}>
               <textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  // A4: debounced autocomplete
+                  const val = e.target.value;
+                  if (acTimerRef.current) clearTimeout(acTimerRef.current);
+                  const lastWord = val.split(/\s+/).pop() || '';
+                  if (lastWord.length >= 2) {
+                    acTimerRef.current = setTimeout(async () => {
+                      try {
+                        const r = await api.searchEntities(lastWord);
+                        setAcResults(r.results || []);
+                        setAcVisible((r.results || []).length > 0);
+                      } catch { setAcVisible(false); }
+                    }, 300);
+                  } else { setAcVisible(false); }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') { setAcVisible(false); return; }
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); setAcVisible(false); send(input); }
+                }}
                 rows={1}
                 disabled={backendDown}
                 placeholder={backendDown ? 'Backend não conectado' : 'Pergunte sobre inserções, investimento, PIs ou tabelas de preço…'}
                 style={css('width:100%; resize:none; min-height:26px; max-height:160px; background:transparent; border:none; outline:none; color:var(--white); font-family:var(--font-body); font-size:14.5px; line-height:1.6')}
               />
+              {/* A4: Autocomplete dropdown */}
+              {acVisible && acResults.length > 0 && (
+                <div style={css('position:absolute; bottom:100%; left:0; right:0; max-height:200px; overflow-y:auto; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; margin-bottom:6px; box-shadow:var(--shadow-lg); z-index:20')}>
+                  {acResults.map((r, i) => (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        const words = input.split(/\s+/);
+                        words[words.length - 1] = r.name;
+                        setInput(words.join(' ') + ' ');
+                        setAcVisible(false);
+                      }}
+                      style={css('padding:8px 14px; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:10px; transition:background .15s')}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-surface)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <span style={css('font-size:9.5px; padding:2px 7px; border-radius:5px; background:var(--bg-surface); color:var(--fg-3); font-weight:600; letter-spacing:.03em; text-transform:uppercase; flex-shrink:0')}>{r.label}</span>
+                      <span style={css('color:var(--white); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap')}>{r.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div style={css('display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border)')}>
                 {/* A3: Botão Parar geração */}
                 {sending && (

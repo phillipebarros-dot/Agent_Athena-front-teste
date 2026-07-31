@@ -52,7 +52,7 @@ export const api = {
   // feedback (vira aprendizado na curadoria)
   feedback: (p: { message_id: string; rating: 'positive' | 'negative'; conversation_id?: string; user_query?: string; assistant_response?: string; comment?: string }) => call('feedback', p),
   // auditoria (admin)
-  audit: (query: 'kpis' | 'recent_activity' | 'recent_feedback' | 'top_users' | 'all_conversations' | 'conversation_messages', extra?: { conversation_id?: string; date_from?: string; date_to?: string }) =>
+  audit: (query: 'kpis' | 'recent_activity' | 'recent_feedback' | 'top_users' | 'all_conversations' | 'conversation_messages' | 'system_stats' | 'mcp_health', extra?: { conversation_id?: string; date_from?: string; date_to?: string }) =>
     call<{ query: string; data: any }>('audit', { query, ...(extra || {}) }),
   // voz
   tts: (text: string) => call<{ audio: string }>('tts', { text }),
@@ -60,6 +60,8 @@ export const api = {
   export: (p: { data: any[]; title?: string; format?: 'sheets' | 'csv' }) => call('export', p),
   // clientes (lista dinâmica dos anunciantes)
   listClients: () => call<{ clients: string[] }>('list-clients', {}).catch((): { clients: string[] } => ({ clients: [] })),
+  // A4: autocomplete de entidades (veículo, programa, praça)
+  searchEntities: (query: string, entity_type = 'all') => call<{ results: { name: string; type: string; label: string }[] }>('search-entities', { query, entity_type }),
   // users / RBAC (gestão de permissões)
   listUsers: () => call<{ users: AthenaUser[] }>('users', { action: 'list' }),
   checkUser: (email: string) => call<{ exists: boolean; role: string; nome: string }>('users', { action: 'check', email }),

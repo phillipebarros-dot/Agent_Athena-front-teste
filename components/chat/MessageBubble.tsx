@@ -76,6 +76,12 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
                 if (hasBQ) badges.push({ label: 'BigQuery (Publi)', color: 'var(--green)' });
                 if (hasWeb) badges.push({ label: 'Web', color: 'var(--blue, #58a6ff)' });
                 if (!hasBQ && !hasWeb) badges.push({ label: 'Modelo', color: 'var(--gold)' });
+                // A6: Badge recorte geográfico
+                const states = ['Paraná', 'Santa Catarina', 'Rio Grande do Sul', 'São Paulo', 'Rio de Janeiro', 'Minas Gerais', 'Bahia', 'Ceará', 'Pernambuco', 'Goiás', 'Distrito Federal'];
+                const content = message.content || '';
+                const found = states.filter(s => content.includes(s));
+                if (found.length === 1) badges.push({ label: `📍 ${found[0]}`, color: 'var(--muted-light)' });
+                else if (found.length > 1) badges.push({ label: `📍 ${found.length} estados`, color: 'var(--muted-light)' });
                 return (
                   <div style={css('display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px')}>
                     {badges.map((b, i) => (
@@ -119,16 +125,26 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
             </details>
           )}
 
-          {/* Aviso de truncamento */}
+          {/* Aviso de truncamento + A5: Ampliar busca */}
           {!message.error && table && table.rows.length >= 2 && table.rows.length <= 5 && (
             <div style={css('display:flex; align-items:center; gap:8px; margin-top:12px; padding:10px 14px; background:rgba(201,162,39,.08); border:1px solid rgba(201,162,39,.18); border-radius:8px; font-size:12px; color:var(--gold)')}>
               <IC s={14} d='<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' stroke="var(--gold)" />
-              <span>Resultados podem estar incompletos. Tente refinar sua pergunta para um período ou veículo específico.</span>
+              <span style={css('flex:1')}>Resultados podem estar incompletos. Tente refinar sua pergunta para um período ou veículo específico.</span>
+              {onRegenerate && (
+                <button
+                  onClick={() => onRegenerate()}
+                  style={css('flex-shrink:0; padding:4px 10px; border:1px solid rgba(201,162,39,.3); border-radius:6px; background:transparent; color:var(--gold); font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-body); transition:background .2s')}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(201,162,39,.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  Ampliar busca
+                </button>
+              )}
             </div>
           )}
         </div>
 
-        {/* Export CSV — aparece quando tem tabela */}
+        {/* Export CSV / XLSX — aparece quando tem tabela */}
         {table && (
           <div style={css('display:flex; gap:8px; margin-top:4px; margin-bottom:4px;')}>
             <button
@@ -144,7 +160,35 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
               onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--muted-light)'; }}
             >
               <IC s={13} d='<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' stroke="currentColor" />
-              Exportar CSV
+              CSV
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const data = table.rows.map(r => {
+                    const obj: Record<string, string> = {};
+                    table.headers.forEach((h, i) => { obj[h] = r[i] || ''; });
+                    return obj;
+                  });
+                  const { api } = await import('@/lib/api');
+                  const result = await api.export({ data, title: 'athena_export', format: 'csv' });
+                  if (result && (result as any).content_base64) {
+                    const bin = atob((result as any).content_base64);
+                    const bytes = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = (result as any).filename || 'athena_export.xlsx'; a.click();
+                    URL.revokeObjectURL(url);
+                  }
+                } catch { /* fallback silencioso */ }
+              }}
+              style={css('display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-surface); font-size:11.5px; color:var(--muted-light); cursor:pointer; transition:all 0.2s;')}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--white)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--muted-light)'; }}
+            >
+              <IC s={13} d='<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' stroke="currentColor" />
+              XLSX
             </button>
           </div>
         )}
