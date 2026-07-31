@@ -8,9 +8,11 @@ import React, { useEffect, useRef, useState } from 'react';
  * Physics: 4 settings (shoelace, leg, tie, arms) com gravidade
  * Expressoes: smile, angy, worried, blush, aww, oh, ehh
  * Groups: EyeBlink (ParamEyeLOpen, ParamEyeROpen), LipSync (ParamMouthOpenY)
+ *
+ * Lip sync: Se analyserNode e fornecido, usa frequencias reais do audio.
+ * Senao, usa simulacao por random quando speaking=true.
  */
 
-// Mapeamento emocao -> expressao do modelo
 const EMOTION_MAP: Record<string, string> = {
   greeting: 'smile',
   happy: 'smile',
@@ -25,16 +27,13 @@ const EMOTION_MAP: Record<string, string> = {
 };
 
 interface BeyonderLive2DProps {
-  /** Emocao atual para expressao do modelo */
   emotion?: string;
-  /** Se o modelo esta "falando" (ativa lip sync) */
   speaking?: boolean;
-  /** Se esta expandido (grande) ou minimizado (icone) */
   expanded?: boolean;
-  /** Callback ao clicar no modelo */
   onClick?: () => void;
-  /** Texto do balao de fala */
   speechText?: string;
+  /** AnalyserNode do Web Audio API para lip sync real */
+  analyserNode?: AnalyserNode | null;
 }
 
 export function BeyonderLive2D({
@@ -43,10 +42,12 @@ export function BeyonderLive2D({
   expanded = false,
   onClick,
   speechText,
+  analyserNode,
 }: BeyonderLive2DProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const appRef = useRef<any>(null);
   const modelRef = useRef<any>(null);
+  const lipSyncRafRef = useRef<number | null>(null);
   const lipSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,26 +60,20 @@ export function BeyonderLive2D({
 
     async function init() {
       try {
-        // Dynamic imports para evitar SSR issues
         const PIXI = await import('pixi.js');
         const { Live2DModel } = await import('pixi-live2d-display/cubism4');
 
-        // Expor PIXI globalmente para o plugin
         if (typeof window !== 'undefined') {
           (window as any).PIXI = PIXI;
         }
 
-        // Registrar ticker
         Live2DModel.registerTicker(PIXI.Ticker as any);
-
 
         if (destroyed) return;
 
-        // Dimensoes fixas baseadas no estado
         const canvasW = expanded ? 320 : 80;
-        const canvasH = expanded ? 400 : 80;
+        const canvasH = expanded ? 180 : 80;
 
-        // Criar app PixiJS com dimensoes fixas (nao usar resizeTo)
         const app = new PIXI.Application({
           view: canvasRef.current!,
           autoStart: true,
@@ -92,7 +87,6 @@ export function BeyonderLive2D({
 
         appRef.current = app;
 
-        // Carregar modelo Live2D
         const model = await Live2DModel.from(
           '/beyonder/model/jack in the box.model3.json',
           { autoInteract: false }
@@ -105,24 +99,21 @@ export function BeyonderLive2D({
 
         modelRef.current = model;
 
-        // Calcular escala para caber no canvas (modelo original e ~2000px)
         const scaleX = canvasW / model.width;
         const scaleY = canvasH / model.height;
         const fitScale = Math.min(scaleX, scaleY) * (expanded ? 0.85 : 0.9);
         model.scale.set(fitScale);
 
-        // Centralizar o modelo no canvas
         model.x = (canvasW - model.width * fitScale) / 2;
-        model.y = (canvasH - model.height * fitScale) / 2 + (expanded ? 20 : 0);
+        model.y = (canvasH - model.height * fitScale) / 2 + (expanded ? 10 : 0);
 
-        // Desabilitar event system do PixiJS no modelo (fix isInteractive error)
         (model as any).eventMode = 'none';
         (model as any).interactive = false;
         (model as any).interactiveChildren = false;
 
         app.stage.addChild(model as any);
 
-        // Mouse tracking: olhos seguem o cursor
+        // Mouse tracking
         const onMouseMove = (e: MouseEvent) => {
           if (!canvasRef.current || !modelRef.current) return;
           const rect = canvasRef.current.getBoundingClientRect();
@@ -152,6 +143,7 @@ export function BeyonderLive2D({
 
     return () => {
       destroyed = true;
+      if (lipSyncRafRef.current) cancelAnimationFrame(lipSyncRafRef.current);
       if (lipSyncIntervalRef.current) clearInterval(lipSyncIntervalRef.current);
       if (modelRef.current) {
         const cleanup = (modelRef.current as any)._mouseCleanup;
@@ -177,41 +169,84 @@ export function BeyonderLive2D({
     } catch { /* expressao nao encontrada */ }
   }, [emotion, loaded]);
 
-  // Lip sync quando falando
+  // Lip sync -- REAL (via analyserNode) ou SIMULADO (random)
   useEffect(() => {
     if (!modelRef.current || !loaded) return;
 
-    if (speaking) {
+    // Limpar anterior
+    if (lipSyncRafRef.current) { cancelAnimationFrame(lipSyncRafRef.current); lipSyncRafRef.current = null; }
+    if (lipSyncIntervalRef.current) { clearInterval(lipSyncIntervalRef.current); lipSyncIntervalRef.current = null; }
+
+    if (speaking && analyserNode) {
+      // ---- LIP SYNC REAL: frequencias do audio ----
+      const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+      let smoothValue = 0;
+
+      const update = () => {
+        if (!modelRef.current?.internalModel?.coreModel) {
+          lipSyncRafRef.current = requestAnimationFrame(update);
+          return;
+        }
+
+        analyserNode.getByteFrequencyData(dataArray);
+
+        // Media das frequencias baixas (bins 0-15 ~ 0-600Hz, zona da voz)
+        let sum = 0;
+        const voiceBins = Math.min(16, dataArray.length);
+        for (let i = 0; i < voiceBins; i++) sum += dataArray[i];
+        const avg = sum / voiceBins / 255; // normalizar 0-1
+
+        // Smoothing pra evitar tremor
+        smoothValue = smoothValue * 0.4 + avg * 0.6;
+
+        // Mapear pra ParamMouthOpenY com range util (0.05 - 0.95)
+        const mouthValue = Math.min(0.95, Math.max(0, smoothValue * 1.8));
+
+        try {
+          modelRef.current.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', mouthValue);
+        } catch { /* ignore */ }
+
+        lipSyncRafRef.current = requestAnimationFrame(update);
+      };
+
+      lipSyncRafRef.current = requestAnimationFrame(update);
+
+    } else if (speaking) {
+      // ---- LIP SYNC SIMULADO (fallback) ----
       lipSyncIntervalRef.current = setInterval(() => {
         if (!modelRef.current?.internalModel?.coreModel) return;
-        const core = modelRef.current.internalModel.coreModel;
         const value = Math.random() * 0.7 + 0.1;
         try {
-          core.setParameterValueById('ParamMouthOpenY', value);
+          modelRef.current.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', value);
         } catch { /* ignore */ }
       }, 100);
+
     } else {
-      if (lipSyncIntervalRef.current) {
-        clearInterval(lipSyncIntervalRef.current);
-        lipSyncIntervalRef.current = null;
-      }
-      try {
-        modelRef.current?.internalModel?.coreModel?.setParameterValueById('ParamMouthOpenY', 0);
-      } catch { /* ignore */ }
+      // ---- PARADO: fechar boca suavemente ----
+      let currentMouth = 0.5;
+      const closeSmooth = () => {
+        if (!modelRef.current?.internalModel?.coreModel) return;
+        currentMouth *= 0.7; // decay
+        if (currentMouth < 0.01) {
+          try { modelRef.current.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', 0); } catch {}
+          return;
+        }
+        try { modelRef.current.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', currentMouth); } catch {}
+        lipSyncRafRef.current = requestAnimationFrame(closeSmooth);
+      };
+      lipSyncRafRef.current = requestAnimationFrame(closeSmooth);
     }
 
     return () => {
-      if (lipSyncIntervalRef.current) {
-        clearInterval(lipSyncIntervalRef.current);
-        lipSyncIntervalRef.current = null;
-      }
+      if (lipSyncRafRef.current) { cancelAnimationFrame(lipSyncRafRef.current); lipSyncRafRef.current = null; }
+      if (lipSyncIntervalRef.current) { clearInterval(lipSyncIntervalRef.current); lipSyncIntervalRef.current = null; }
     };
-  }, [speaking, loaded]);
+  }, [speaking, loaded, analyserNode]);
 
   const containerStyle: React.CSSProperties = expanded
     ? {
-        width: 320, height: 400,
-        position: 'relative', cursor: 'pointer',
+        width: 320, height: 180,
+        position: 'relative', cursor: 'default',
         transition: 'all 0.3s ease',
       }
     : {
@@ -219,7 +254,7 @@ export function BeyonderLive2D({
         position: 'relative', cursor: 'pointer',
         borderRadius: '50%', overflow: 'hidden',
         boxShadow: '0 4px 20px rgba(221, 0, 4, 0.3)',
-        border: '2px solid var(--red-dim)',
+        border: '2px solid var(--red-dim, rgba(221,0,4,0.4))',
         transition: 'all 0.3s ease',
       };
 
@@ -234,11 +269,11 @@ export function BeyonderLive2D({
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-surface)',
+            background: expanded ? 'transparent' : 'var(--bg-surface, #1a1a2e)',
             borderRadius: expanded ? 12 : '50%',
           }}>
             <div style={{
-              width: 24, height: 24, border: '3px solid var(--red)',
+              width: 24, height: 24, border: '3px solid var(--red, #dd0004)',
               borderTopColor: 'transparent', borderRadius: '50%',
               animation: 'spin 0.8s linear infinite',
             }} />
@@ -248,37 +283,14 @@ export function BeyonderLive2D({
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-surface)', fontSize: 10, color: 'var(--muted)',
+            background: expanded ? 'transparent' : 'var(--bg-surface, #1a1a2e)',
+            fontSize: 10, color: 'var(--muted, #888)',
             borderRadius: expanded ? 12 : '50%', padding: 8, textAlign: 'center',
           }}>
             Beyonder offline
           </div>
         )}
       </div>
-
-      {/* Balao de fala */}
-      {expanded && speechText && (
-        <div style={{
-          position: 'absolute', top: -10, left: '110%',
-          minWidth: 200, maxWidth: 320,
-          padding: '12px 16px',
-          background: 'var(--bg-panel)',
-          border: '1px solid var(--border)',
-          borderRadius: '16px 16px 16px 4px',
-          fontSize: 13, lineHeight: 1.5, color: 'var(--white)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          animation: 'fadeInUp 0.3s ease',
-        }}>
-          {speechText}
-          <div style={{
-            position: 'absolute', left: -8, bottom: 16,
-            width: 0, height: 0,
-            borderTop: '8px solid transparent',
-            borderBottom: '8px solid transparent',
-            borderRight: '8px solid var(--bg-panel)',
-          }} />
-        </div>
-      )}
     </div>
   );
 }
