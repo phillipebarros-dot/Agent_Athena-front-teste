@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { IC, css } from '@/lib/dc';
 import type { ParsedTable } from '@/lib/types';
 
@@ -36,21 +36,176 @@ export function parseTable(md: string): ParsedTable | null {
   return null;
 }
 
+// Paleta vibrante com 12 cores distintas
+const CHART_COLORS = [
+  '#E8453C', // vermelho athena
+  '#4A90D9', // azul
+  '#50C878', // verde esmeralda
+  '#F5A623', // laranja
+  '#9B59B6', // roxo
+  '#1ABC9C', // turquesa
+  '#E74C8B', // rosa
+  '#2ECC71', // verde limão
+  '#3498DB', // azul claro
+  '#E67E22', // tangerina
+  '#8E44AD', // roxo escuro
+  '#16A085', // verde-azulado
+];
+
+type ChartType = 'bar' | 'horizontal' | 'pie';
+
+/** Detecta automaticamente o melhor tipo de gráfico. */
+function detectChartType(rows: string[][], valueCol: number): ChartType {
+  const vals = rows.map((r) => toNum(r[valueCol])).filter((v) => !Number.isNaN(v));
+  const allPositive = vals.every((v) => v >= 0);
+  const isPercentage = rows.some((r) => r[valueCol].includes('%'));
+  const totalApprox100 = allPositive && Math.abs(vals.reduce((a, b) => a + b, 0) - 100) < 5;
+
+  // Se parecem percentuais que somam ~100%, pizza
+  if (isPercentage && totalApprox100 && rows.length <= 8) return 'pie';
+  // Se tem poucos itens e valores positivos, pizza
+  if (allPositive && rows.length <= 5 && rows.length >= 2) return 'pie';
+  // Se labels são longos, horizontal
+  if (rows.some((r) => r[0].length > 20) || rows.length > 8) return 'horizontal';
+  return 'bar';
+}
+
 interface AnswerChartProps {
   table: ParsedTable;
   on: boolean;
   onToggle: () => void;
 }
 
-/** Gráfico derivado da tabela real da resposta (não inventa nada; lê a própria tabela). */
+// ── Bar Chart (vertical) ──
+function BarChart({ bars, max }: { bars: { label: string; raw: string; val: number }[]; max: number }) {
+  return (
+    <div style={css('display:flex; align-items:stretch; gap:10px; height:180px')}>
+      {bars.map((b, i) => (
+        <div key={i} style={css('flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:5px; min-width:0')}>
+          <span style={css("font-family:var(--font-mono); font-size:10px; color:var(--muted); white-space:nowrap")}>{b.raw}</span>
+          <div style={css('width:100%; height:130px; display:flex; align-items:flex-end; justify-content:center')}>
+            <div
+              title={`${b.label}: ${b.raw}`}
+              style={{
+                width: '100%',
+                maxWidth: '36px',
+                height: `${Math.max(4, Math.round((Math.abs(b.val) / max) * 100))}%`,
+                borderRadius: '6px 6px 2px 2px',
+                background: CHART_COLORS[i % CHART_COLORS.length],
+                transition: 'height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                boxShadow: `0 2px 8px ${CHART_COLORS[i % CHART_COLORS.length]}40`,
+              }}
+            />
+          </div>
+          <span style={css('font-size:9.5px; color:var(--muted-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; text-align:center')}>{b.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Horizontal Bar Chart ──
+function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; val: number }[]; max: number }) {
+  return (
+    <div style={css('display:flex; flex-direction:column; gap:8px')}>
+      {bars.map((b, i) => (
+        <div key={i} style={css('display:flex; align-items:center; gap:10px')}>
+          <span style={css('font-size:11px; color:var(--muted-light); min-width:120px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; flex-shrink:0')}>{b.label}</span>
+          <div style={css('flex:1; height:22px; background:var(--bg-surface); border-radius:6px; overflow:hidden; position:relative')}>
+            <div
+              title={`${b.label}: ${b.raw}`}
+              style={{
+                height: '100%',
+                width: `${Math.max(3, Math.round((Math.abs(b.val) / max) * 100))}%`,
+                borderRadius: '6px',
+                background: CHART_COLORS[i % CHART_COLORS.length],
+                transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                paddingRight: '6px',
+              }}
+            >
+              <span style={css('font-family:var(--font-mono); font-size:9.5px; color:#fff; font-weight:600; text-shadow:0 1px 2px rgba(0,0,0,.3)')}>{b.raw}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Pie Chart ──
+function PieChart({ bars, total }: { bars: { label: string; raw: string; val: number }[]; total: number }) {
+  const segments = useMemo(() => {
+    let cumulative = 0;
+    return bars.map((b, i) => {
+      const pct = total > 0 ? (Math.abs(b.val) / total) * 100 : 0;
+      const start = cumulative;
+      cumulative += pct;
+      return { ...b, pct, start, color: CHART_COLORS[i % CHART_COLORS.length] };
+    });
+  }, [bars, total]);
+
+  // SVG conic gradient via multiple arcs
+  const size = 160;
+  const cx = size / 2, cy = size / 2, r = 60;
+
+  function arcPath(startPct: number, endPct: number) {
+    const startAngle = (startPct / 100) * 360 - 90;
+    const endAngle = (endPct / 100) * 360 - 90;
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(startRad);
+    const y1 = cy + r * Math.sin(startRad);
+    const x2 = cx + r * Math.cos(endRad);
+    const y2 = cy + r * Math.sin(endRad);
+    const largeArc = endPct - startPct > 50 ? 1 : 0;
+    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+  }
+
+  return (
+    <div style={css('display:flex; align-items:center; gap:24px; flex-wrap:wrap; justify-content:center')}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {segments.map((seg, i) => (
+          <path
+            key={i}
+            d={arcPath(seg.start, seg.start + seg.pct)}
+            fill={seg.color}
+            stroke="var(--bg-card)"
+            strokeWidth="2"
+          >
+            <title>{`${seg.label}: ${seg.raw} (${seg.pct.toFixed(1)}%)`}</title>
+          </path>
+        ))}
+      </svg>
+      <div style={css('display:flex; flex-direction:column; gap:6px')}>
+        {segments.map((seg, i) => (
+          <div key={i} style={css('display:flex; align-items:center; gap:8px')}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: seg.color, flexShrink: 0 }} />
+            <span style={css('font-size:11px; color:var(--muted-light)')}>{seg.label}</span>
+            <span style={css('font-family:var(--font-mono); font-size:10.5px; color:var(--muted)')}>{seg.raw}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Gráfico derivado da tabela real da resposta — barras verticais, horizontais ou pizza, coloridos. */
 export function AnswerChart({ table, on, onToggle }: AnswerChartProps) {
   const { headers, rows, labelCol, valueCol } = table;
   const vals = rows.map((r) => toNum(r[valueCol]));
   const max = Math.max(1, ...vals.map((v) => (Number.isNaN(v) ? 0 : Math.abs(v))));
+  const total = vals.filter((v) => !Number.isNaN(v)).reduce((a, b) => a + Math.abs(b), 0);
   const bars = rows.slice(0, 12).map((r, i) => ({
     label: r[labelCol], raw: r[valueCol],
-    h: Math.max(3, Math.round(((Number.isNaN(vals[i]) ? 0 : Math.abs(vals[i])) / max) * 100)),
+    val: Number.isNaN(vals[i]) ? 0 : vals[i],
   }));
+
+  const chartType = detectChartType(rows, valueCol);
+  const chartLabel = chartType === 'pie' ? 'pizza' : chartType === 'horizontal' ? 'barras' : 'barras';
+
   return (
     <div style={css('margin-top:8px')}>
       <button onClick={onToggle} style={css(`display:inline-flex; align-items:center; gap:7px; padding:5px 11px; border-radius:8px; border:1px solid ${on ? 'var(--red-dim)' : 'var(--border)'}; background:${on ? 'var(--red-glow)' : 'transparent'}; color:${on ? 'var(--white)' : 'var(--muted-light)'}; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer`)}>
@@ -59,18 +214,14 @@ export function AnswerChart({ table, on, onToggle }: AnswerChartProps) {
         <span style={css('font-family:var(--font-body); font-weight:400; color:var(--muted)')}>· {headers[valueCol] || 'valor'}</span>
       </button>
       {on && (
-        <div style={css('margin-top:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg-card); padding:16px 18px')}>
-          <div style={css('display:flex; align-items:stretch; gap:10px; height:170px')}>
-            {bars.map((b, i) => (
-              <div key={i} style={css('flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:6px; min-width:0')}>
-                <span style={css("font-family:var(--font-mono); font-size:10px; color:var(--muted); white-space:nowrap")}>{b.raw}</span>
-                <div style={css('width:100%; height:120px; display:flex; align-items:flex-end; justify-content:center')}>
-                  <div title={`${b.label}: ${b.raw}`} style={css(`width:100%; max-width:30px; height:${b.h}%; border-radius:5px 5px 0 0; background:linear-gradient(180deg,var(--red),var(--wine))`)} />
-                </div>
-                <span style={css('font-size:10px; color:var(--muted-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; text-align:center')}>{b.label}</span>
-              </div>
-            ))}
-          </div>
+        <div style={css('margin-top:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg-card); padding:18px 20px; overflow-x:auto')}>
+          {chartType === 'pie' ? (
+            <PieChart bars={bars} total={total} />
+          ) : chartType === 'horizontal' ? (
+            <HorizontalChart bars={bars} max={max} />
+          ) : (
+            <BarChart bars={bars} max={max} />
+          )}
         </div>
       )}
     </div>
