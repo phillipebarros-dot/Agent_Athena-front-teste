@@ -9,11 +9,11 @@ export async function GET(req: NextRequest) {
   if (!s) return NextResponse.json({ authenticated: false }, { status: 200 });
 
   let admin = isAdmin(s.email); // fallback hardcoded
-  if (BACKEND_URL && BACKEND_TOKEN) {
+  if (BACKEND_URL() && BACKEND_TOKEN()) {
     try {
-      const res = await fetch(`${BACKEND_URL.replace(/\/$/, '')}/users`, {
+      const res = await fetch(`${BACKEND_URL().replace(/\/$/, '')}/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN()}` },
         body: JSON.stringify({ action: 'check', email: s.email }),
       });
       if (res.ok) {

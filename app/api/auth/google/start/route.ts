@@ -34,13 +34,13 @@ export async function GET(req: NextRequest) {
     return new NextResponse('Too Many Requests', { status: 429 });
   }
 
-  if (!googleConfigured) {
+  if (!googleConfigured()) {
     return NextResponse.redirect(new URL('/login?error=oauth_indisponivel', getOrigin(req)));
   }
   const state = crypto.randomBytes(16).toString('base64url');
   const redirectUri = `${getOrigin(req)}/api/auth/google/callback`;
   const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
+    client_id: GOOGLE_CLIENT_ID(),
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'openid email profile',
@@ -49,10 +49,10 @@ export async function GET(req: NextRequest) {
     access_type: 'online',
   });
   
-  if (ALLOWED_DOMAINS.length > 1) {
+  if (ALLOWED_DOMAINS().length > 1) {
     params.set('hd', '*');
-  } else if (ALLOWED_DOMAINS.length === 1) {
-    params.set('hd', ALLOWED_DOMAINS[0]);
+  } else if (ALLOWED_DOMAINS().length === 1) {
+    params.set('hd', ALLOWED_DOMAINS()[0]);
   }
 
   const res = NextResponse.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + params.toString());

@@ -28,7 +28,7 @@ function rateLimited(key: string): boolean {
   const arr = (hits.get(key) || []).filter((t) => now - t < windowMs);
   arr.push(now);
   hits.set(key, arr);
-  return arr.length > RATE_LIMIT_PER_MIN;
+  return arr.length > RATE_LIMIT_PER_MIN();
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   if (!endpoint || !ALLOWED.has(endpoint)) {
     return NextResponse.json({ error: 'endpoint_nao_permitido' }, { status: 404 });
   }
-  if (!BACKEND_URL || !BACKEND_TOKEN) {
+  if (!BACKEND_URL() || !BACKEND_TOKEN()) {
     return NextResponse.json({ error: 'backend_unconfigured', hint: 'defina ATHENA_BACKEND_URL e ATHENA_BACKEND_TOKEN no servidor' }, { status: 503 });
   }
 
@@ -73,9 +73,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
-    const res = await fetch(`${BACKEND_URL.replace(/\/$/, '')}/${endpoint}`, {
+    const res = await fetch(`${BACKEND_URL().replace(/\/$/, '')}/${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN()}` },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
   if (!['settings/domains', 'settings/synonyms'].includes(endpoint)) {
     return NextResponse.json({ error: 'endpoint_nao_permitido' }, { status: 404 });
   }
-  if (!BACKEND_URL || !BACKEND_TOKEN) {
+  if (!BACKEND_URL() || !BACKEND_TOKEN()) {
     return NextResponse.json({ error: 'backend_unconfigured' }, { status: 503 });
   }
 
@@ -104,8 +104,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
   if (!isAdmin(session.email)) return NextResponse.json({ error: 'acesso_negado' }, { status: 403 });
 
   try {
-    const res = await fetch(`${BACKEND_URL.replace(/\/$/, '')}/${endpoint}`, {
-      headers: { Authorization: `Bearer ${BACKEND_TOKEN}` },
+    const res = await fetch(`${BACKEND_URL().replace(/\/$/, '')}/${endpoint}`, {
+      headers: { Authorization: `Bearer ${BACKEND_TOKEN()}` },
     });
     const text = await res.text();
     return new NextResponse(text, { status: res.status, headers: { 'Content-Type': 'application/json' } });

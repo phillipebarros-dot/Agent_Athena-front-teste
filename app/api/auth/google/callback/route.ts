@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
   const fail = (e: string) => NextResponse.redirect(new URL('/login?error=' + e, origin));
 
-  if (!googleConfigured) return fail('oauth_indisponivel');
+  if (!googleConfigured()) return fail('oauth_indisponivel');
   if (url.searchParams.get('error')) return fail('cancelado');
   if (!code || !state || !cookieState || state !== cookieState) return fail('estado_invalido');
 
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        code, client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET,
+        code, client_id: GOOGLE_CLIENT_ID(), client_secret: GOOGLE_CLIENT_SECRET(),
         redirect_uri: redirectUri, grant_type: 'authorization_code',
       }),
     });
@@ -86,10 +86,10 @@ export async function GET(req: NextRequest) {
     res.cookies.set('oauth_state', '', { httpOnly: true, path: '/', maxAge: 0 });
 
     // Registra/atualiza usuário no BigQuery (athena_users)
-    if (BACKEND_URL && BACKEND_TOKEN) {
-      fetch(`${BACKEND_URL.replace(/\/$/, '')}/users`, {
+    if (BACKEND_URL() && BACKEND_TOKEN()) {
+      fetch(`${BACKEND_URL().replace(/\/$/, '')}/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN()}` },
         body: JSON.stringify({
           action: 'upsert',
           google_sub: info.sub || '',

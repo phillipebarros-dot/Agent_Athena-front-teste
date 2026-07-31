@@ -11,7 +11,7 @@ import { COOKIE_NAME, sign, cookieOptions } from '@/lib/session';
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
-  if (!DEV_LOGIN) {
+  if (!DEV_LOGIN()) {
     return NextResponse.json(
       { error: 'oauth_required', hint: 'Em produção o login é via Google OAuth. Ative ATHENA_DEV_LOGIN=true só em dev.' },
       { status: 501 },
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     email = (body.email || '').trim().toLowerCase();
     name = (body.name || '').trim();
   } catch { /* usa default abaixo */ }
-  if (!email) email = ADMIN_EMAILS[0] || 'phillipe.barros@grupoom.com.br';
+  if (!email) email = ADMIN_EMAILS()[0] || 'phillipe.barros@grupoom.com.br';
   if (!domainAllowed(email)) {
     return NextResponse.json({ error: 'dominio_nao_permitido' }, { status: 403 });
   }
