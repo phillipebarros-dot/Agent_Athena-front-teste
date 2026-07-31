@@ -56,6 +56,9 @@ export default function ChatPage() {
   const [acVisible, setAcVisible] = useState(false);
   const acTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loadingConvs, setLoadingConvs] = useState(true);
+  // Mic: gravação de áudio (Web Speech API)
+  const [recording, setRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   // Auth gate
   useEffect(() => {
@@ -407,6 +410,32 @@ export default function ChatPage() {
                 </div>
               )}
               <div style={css('display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border)')}>
+                {/* Mic button — Web Speech API */}
+                <B t="button" onClick={() => {
+                  if (recording) {
+                    recognitionRef.current?.stop();
+                    setRecording(false);
+                    return;
+                  }
+                  const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                  if (!SR) { setToast('Seu navegador não suporta gravação de voz'); setTimeout(() => setToast(null), 3000); return; }
+                  const rec = new SR();
+                  rec.lang = 'pt-BR';
+                  rec.interimResults = false;
+                  rec.maxAlternatives = 1;
+                  rec.onresult = (e: any) => {
+                    const txt = e.results[0][0].transcript;
+                    setInput((prev) => (prev ? prev + ' ' : '') + txt);
+                    setRecording(false);
+                  };
+                  rec.onerror = () => setRecording(false);
+                  rec.onend = () => setRecording(false);
+                  recognitionRef.current = rec;
+                  rec.start();
+                  setRecording(true);
+                }} c={`width:36px; height:36px; border:1px solid ${recording ? 'var(--red)' : 'var(--border)'}; border-radius:9px; color:${recording ? 'var(--red)' : 'var(--muted-light)'}; cursor:pointer; display:flex; align-items:center; justify-content:center; background:${recording ? 'rgba(196,30,30,.1)' : 'transparent'}; transition:all .2s; ${recording ? 'animation:pulse 1.5s infinite' : ''}`} h={recording ? '' : 'border-color:var(--red-dim); color:var(--white)'} title={recording ? 'Parar gravação' : 'Perguntar por voz'}>
+                  <IC s={16} d='<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>' w={1.8} />
+                </B>
                 {/* A3: Botão Parar geração */}
                 {sending && (
                   <B t="button" onClick={stopGeneration} c="height:36px; padding:0 14px; border:1px solid var(--red-dim); border-radius:9px; color:var(--red); cursor:pointer; display:flex; align-items:center; gap:6px; background:transparent; font-size:12.5px; font-weight:600; font-family:var(--font-body)" h="background:rgba(196,30,30,.1)">

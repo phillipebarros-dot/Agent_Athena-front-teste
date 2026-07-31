@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { B, IC, css } from '@/lib/dc';
 import { Markdown } from '@/components/Markdown';
 import { FeedbackActions, FeedbackForm } from './FeedbackPanel';
-import { AnswerChart, parseTable } from './AnswerChart';
+import { AnswerChart, parseTable, stripMd } from './AnswerChart';
 import type { ChatMessage } from '@/lib/types';
 import { initials } from '@/lib/format';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -149,7 +149,8 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
           <div style={css('display:flex; gap:8px; margin-top:4px; margin-bottom:4px;')}>
             <button
               onClick={() => {
-                const csv = [table.headers.join(','), ...table.rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+                const hdrs = table.headers.map(h => stripMd(h));
+                const csv = [hdrs.join(','), ...table.rows.map(r => r.map(c => `"${stripMd(c).replace(/"/g, '""')}"`).join(','))].join('\n');
                 const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a'); a.href = url; a.download = `athena_export_${Date.now()}.csv`; a.click();
@@ -167,7 +168,7 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
                 try {
                   const data = table.rows.map(r => {
                     const obj: Record<string, string> = {};
-                    table.headers.forEach((h, i) => { obj[h] = r[i] || ''; });
+                    table.headers.forEach((h, i) => { obj[stripMd(h)] = stripMd(r[i] || ''); });
                     return obj;
                   });
                   const { api } = await import('@/lib/api');
@@ -189,6 +190,21 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
             >
               <IC s={13} d='<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' stroke="currentColor" />
               XLSX
+            </button>
+            <button
+              onClick={() => {
+                const hdrs = table.headers.map(h => stripMd(h));
+                const cleanRows = table.rows.map(r => r.map(c => stripMd(c)));
+                const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Athena Export</title><style>body{font-family:Arial,sans-serif;padding:40px;color:#222}h2{color:#C41E1E;margin-bottom:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:10px 14px;text-align:left;font-size:13px}th{background:#C41E1E;color:white;font-weight:600}tr:nth-child(even){background:#f9f9f9}.footer{margin-top:30px;font-size:11px;color:#999}</style></head><body><h2>Athena — Relatório</h2><table><tr>${hdrs.map(h => `<th>${h}</th>`).join('')}</tr>${cleanRows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table><div class="footer">Gerado em ${new Date().toLocaleString('pt-BR')} • Athena, OpusMúltipla</div></body></html>`;
+                const w = window.open('', '_blank');
+                if (w) { w.document.write(html); w.document.close(); setTimeout(() => { w.print(); }, 500); }
+              }}
+              style={css('display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-surface); font-size:11.5px; color:var(--muted-light); cursor:pointer; transition:all 0.2s;')}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--white)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--muted-light)'; }}
+            >
+              <IC s={13} d='<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' stroke="currentColor" />
+              PDF
             </button>
           </div>
         )}

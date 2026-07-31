@@ -10,6 +10,18 @@ export function toNum(s: string): number {
   return parseFloat(cleaned.replace(/\./g, '').replace(',', '.'));
 }
 
+/** Remove formatação markdown (bold, italic, strikethrough, code). */
+export function stripMd(s: string): string {
+  return String(s || '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')  // **bold**
+    .replace(/__(.+?)__/g, '$1')       // __bold__
+    .replace(/\*(.+?)\*/g, '$1')       // *italic*
+    .replace(/_(.+?)_/g, '$1')         // _italic_
+    .replace(/~~(.+?)~~/g, '$1')       // ~~strike~~
+    .replace(/`(.+?)`/g, '$1')         // `code`
+    .trim();
+}
+
 /** Extrai a primeira tabela GFM do markdown da resposta. */
 export function parseTable(md: string): ParsedTable | null {
   const lines = (md || '').split('\n');
@@ -278,12 +290,12 @@ export function AnswerChart({ table, on, onToggle }: AnswerChartProps) {
   const total = vals.filter((v) => !Number.isNaN(v)).reduce((a, b) => a + Math.abs(b), 0);
   const min = Math.min(0, ...vals.map((v) => (Number.isNaN(v) ? 0 : v)));
   const bars = rows.slice(0, 12).map((r, i) => ({
-    label: r[labelCol], raw: r[valueCol],
+    label: stripMd(r[labelCol]), raw: stripMd(r[valueCol]),
     val: Number.isNaN(vals[i]) ? 0 : vals[i],
   }));
 
   const chartType = detectChartType(rows, valueCol);
-  const chartLabel = chartType === 'pie' ? 'pizza' : chartType === 'horizontal' ? 'barras' : 'barras';
+  const chartLabel = chartType === 'line' ? 'linha' : chartType === 'pie' ? 'pizza' : 'barras';
 
   return (
     <div style={css('margin-top:8px')}>
