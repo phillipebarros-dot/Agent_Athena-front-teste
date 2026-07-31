@@ -280,6 +280,23 @@ export default function ChatPage() {
           if (activeId === id) { setActiveId(null); setMessages([]); }
           api.deleteConversation(id).catch(() => {});
         }}
+        onPinConversation={(id) => {
+          setConversations((cur) => {
+            const updated = cur.map((c) => c.conversation_id === id ? { ...c, pinned: !c.pinned } : c);
+            // Persist pins in localStorage
+            const pins = updated.filter(c => c.pinned).map(c => c.conversation_id);
+            try { localStorage.setItem('athena_pinned', JSON.stringify(pins)); } catch {}
+            return updated;
+          });
+        }}
+        onDuplicateConversation={(id) => {
+          const orig = conversations.find(c => c.conversation_id === id);
+          if (!orig) return;
+          const newId = `dup_${Date.now()}`;
+          const dup: Conversation = { ...orig, conversation_id: newId, title: `${orig.title} (cópia)`, pinned: false };
+          setConversations((cur) => [dup, ...cur]);
+          selectConversation(newId);
+        }}
         sendingConvs={sendingConvs}
         convNotifs={convNotifs}
       />

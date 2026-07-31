@@ -70,6 +70,10 @@ export const api = {
   getDomains: () => fetch('/api/athena/settings/domains').then(r => r.json()).catch(() => ({ domains: [] })) as Promise<{ domains: string[] }>,
   addDomain: (domain: string) => call('settings/domains/add', { domain }),
   removeDomain: (domain: string) => call('settings/domains/remove', { domain }),
+  // sinônimos (dicionário admin)
+  getSynonyms: () => fetch('/api/athena/settings/synonyms').then(r => r.json()).catch(() => ({ synonyms: [] })) as Promise<{ synonyms: { from: string; to: string }[] }>,
+  addSynonym: (term_from: string, term_to: string) => call('settings/synonyms/add', { term_from, term_to }),
+  removeSynonym: (term_from: string) => call('settings/synonyms/remove', { term_from }),
 };
 
 // sessão

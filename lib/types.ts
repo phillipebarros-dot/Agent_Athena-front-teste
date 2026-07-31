@@ -51,6 +51,9 @@ export interface Conversation {
   message_count: number;
   created_at?: string;
   updated_at?: string;
+  // A7: Tags/pin (client-side, via localStorage)
+  pinned?: boolean;
+  tags?: string[];
 }
 
 /* ─── Admin / Auditoria ─── */

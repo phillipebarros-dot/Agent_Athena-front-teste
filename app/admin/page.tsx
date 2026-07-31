@@ -680,6 +680,69 @@ function AdminPageInner() {
                         <div style={css('font-size:12px; color:var(--fg-3)')}>Carregando saúde MCP...</div>
                       )}
                     </Panel>
+
+                    {/* Curadoria do Aprendizado */}
+                    <Panel title="Curadoria do aprendizado" hint="feedbacks negativos pendentes de revisão" delay={0.3}>
+                      {feedback && feedback.length > 0 ? (
+                        <div style={css('display:flex; flex-direction:column; gap:10px; max-height:300px; overflow-y:auto')}>
+                          {feedback.filter((f: any) => f.rating === 'negative').slice(0, 10).map((f: any, i: number) => (
+                            <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} style={css('padding:12px 14px; background:var(--bg-deep); border:1px solid var(--border); border-radius:10px')}>
+                              <div style={css('font-size:11px; color:var(--fg-3); margin-bottom:6px')}>
+                                {shortName(f.user_id)} · {relativeTime(f.timestamp)}
+                              </div>
+                              {f.user_query && (
+                                <div style={css('font-size:12.5px; color:var(--muted-light); margin-bottom:4px')}>
+                                  <span style={css('color:var(--fg-3)')}>Pergunta:</span> {f.user_query.slice(0, 120)}
+                                </div>
+                              )}
+                              {f.comment && (
+                                <div style={css('font-size:12px; color:var(--gold); font-style:italic')}>"{f.comment}"</div>
+                              )}
+                              <div style={css('display:flex; gap:6px; margin-top:8px')}>
+                                <button style={css('padding:3px 10px; border-radius:6px; border:1px solid var(--green); background:transparent; color:var(--green); font-size:10.5px; font-weight:600; cursor:pointer; font-family:var(--font-body)')}>Criar regra</button>
+                                <button style={css('padding:3px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--fg-3); font-size:10.5px; font-weight:600; cursor:pointer; font-family:var(--font-body)')}>Ignorar</button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={css('font-size:12px; color:var(--fg-3)')}>Nenhum feedback negativo pendente.</div>
+                      )}
+                    </Panel>
+
+                    {/* Dicionário de Sinônimos */}
+                    <Panel title="Dicionário de sinônimos" hint="termos mapeados e não reconhecidos" delay={0.35}>
+                      <div style={css('display:flex; flex-direction:column; gap:8px')}>
+                        <div style={css('font-size:11px; color:var(--fg-3); margin-bottom:4px')}>Termos mapeados automaticamente:</div>
+                        {[
+                          { from: 'rádio atlântida', to: 'RD ATLÂNTIDA FM' },
+                          { from: 'globo', to: 'REDE GLOBO' },
+                          { from: 'band', to: 'REDE BANDEIRANTES' },
+                          { from: 'ooh', to: 'MÍDIA EXTERIOR' },
+                          { from: 'digital', to: 'INTERNET' },
+                        ].map((t, i) => (
+                          <div key={i} style={css('display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; font-size:12px')}>
+                            <span style={css('color:var(--muted-light); flex:1')}>{t.from}</span>
+                            <span style={css('color:var(--fg-3)')}>→</span>
+                            <span style={css('color:var(--green); flex:1; text-align:right')}>{t.to}</span>
+                            <button style={css('background:none; border:none; color:var(--fg-3); cursor:pointer; padding:2px; display:flex')}>
+                              {ic('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', 11)}
+                            </button>
+                          </div>
+                        ))}
+                        <div style={css('display:flex; gap:6px; margin-top:6px')}>
+                          <input
+                            placeholder="termo do usuário"
+                            style={css('flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--white); font-size:12px; font-family:var(--font-body); outline:none')}
+                          />
+                          <input
+                            placeholder="mapeia para"
+                            style={css('flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--white); font-size:12px; font-family:var(--font-body); outline:none')}
+                          />
+                          <button style={css('padding:6px 12px; border-radius:6px; border:none; background:var(--red); color:#fff; font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-body)')}>+</button>
+                        </div>
+                      </div>
+                    </Panel>
                   </>
                 )}
               </motion.div>

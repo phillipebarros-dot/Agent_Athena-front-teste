@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import {
   ChatCircle, Plus, MagnifyingGlass, CaretDown, ShieldCheck, SignOut,
   ChartBar, GearSix, Sparkle, Clock, CalendarDots, Archive,
-  Moon, Sun, PencilSimple, Check, X, Trash,
+  Moon, Sun, PencilSimple, Check, X, Trash, PushPin, CopySimple,
 } from '@phosphor-icons/react';
 import type { Conversation } from '@/lib/types';
 import { relativeTime, initials } from '@/lib/format';
@@ -28,6 +28,9 @@ interface SidebarProps {
   onToggleTheme?: () => void;
   onRenameConversation?: (id: string, title: string) => void;
   onDeleteConversation?: (id: string) => void;
+  // A7: Pin/duplicate
+  onPinConversation?: (id: string) => void;
+  onDuplicateConversation?: (id: string) => void;
   // A2: status per-conversa + badge de notificações
   sendingConvs?: Record<string, boolean>;
   convNotifs?: Record<string, number>;
@@ -41,6 +44,7 @@ function groupByTime(conversations: Conversation[]) {
   const weekAgo = today - 7 * 86400000;
 
   const groups: { label: string; icon: React.ReactNode; items: Conversation[] }[] = [
+    { label: 'Fixadas', icon: <PushPin size={13} />, items: [] },
     { label: 'Hoje', icon: <Sparkle size={13} />, items: [] },
     { label: 'Ontem', icon: <Clock size={13} />, items: [] },
     { label: 'Esta semana', icon: <CalendarDots size={13} />, items: [] },
@@ -48,11 +52,12 @@ function groupByTime(conversations: Conversation[]) {
   ];
 
   for (const c of conversations) {
+    if (c.pinned) { groups[0].items.push(c); continue; }
     const t = c.updated_at ? new Date(c.updated_at).getTime() : 0;
-    if (t >= today) groups[0].items.push(c);
-    else if (t >= yesterday) groups[1].items.push(c);
-    else if (t >= weekAgo) groups[2].items.push(c);
-    else groups[3].items.push(c);
+    if (t >= today) groups[1].items.push(c);
+    else if (t >= yesterday) groups[2].items.push(c);
+    else if (t >= weekAgo) groups[3].items.push(c);
+    else groups[4].items.push(c);
   }
   return groups.filter((g) => g.items.length > 0);
 }
@@ -334,6 +339,7 @@ export function Sidebar({
   me, conversations, activeId, search, onSearchChange,
   client, clients, onClientChange, onSelectConversation, onNewConversation,
   onLogout, backendDown, light, onToggleTheme, onRenameConversation, onDeleteConversation, loading,
+  onPinConversation, onDuplicateConversation,
   sendingConvs = {}, convNotifs = {},
 }: SidebarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
@@ -510,8 +516,33 @@ export function Sidebar({
                               onDeleteConversation(c.conversation_id);
                             }}
                             style={{ color: 'var(--muted)', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 4, transition: 'color .15s' }}
+                            title="Excluir"
                           >
                             <Trash size={12} />
+                          </span>
+                        )}
+                        {onPinConversation && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onPinConversation(c.conversation_id);
+                            }}
+                            style={{ color: c.pinned ? 'var(--red)' : 'var(--muted)', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 4, transition: 'color .15s' }}
+                            title={c.pinned ? 'Desafixar' : 'Fixar'}
+                          >
+                            <PushPin size={12} weight={c.pinned ? 'fill' : 'regular'} />
+                          </span>
+                        )}
+                        {onDuplicateConversation && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDuplicateConversation(c.conversation_id);
+                            }}
+                            style={{ color: 'var(--muted)', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 4, transition: 'color .15s' }}
+                            title="Duplicar"
+                          >
+                            <CopySimple size={12} />
                           </span>
                         )}
                       </span>
