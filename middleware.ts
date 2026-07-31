@@ -9,15 +9,17 @@ export function middleware(request: NextRequest) {
   // Gerar nonce unico por request
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   
-  // CSP com nonce (remove unsafe-inline para scripts)
+  // CSP com nonce (Cubism Core SDK e servido localmente, sem CDN externo)
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval' https://cubism.live2d.com`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`,
+    `script-src-elem 'self' 'nonce-${nonce}' 'unsafe-inline'`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://cubism.live2d.com",
+    "connect-src 'self'",
     "media-src 'self' data: blob:",
+    "worker-src 'self' blob:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

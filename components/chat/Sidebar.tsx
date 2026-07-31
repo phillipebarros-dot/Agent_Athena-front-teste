@@ -601,11 +601,22 @@ export function Sidebar({
           </div>
         </>
       )}
+      {/* Beyonder - Assistente Visual (acessivel por todos) */}
+      <div style={s.divider} />
+      <div style={{ padding: '4px 10px' }}>
+        <a href="/jack" style={{ ...s.navItem(false), textDecoration: 'none' }}>
+          <Sparkle size={17} color="var(--red)" weight="duotone" />
+          Beyonder
+          <span style={{ fontSize: 9, color: 'var(--muted-dim)', marginLeft: 'auto', fontStyle: 'italic' }}>
+            assistente
+          </span>
+        </a>
+      </div>
 
-      {/* ═══ OpusMúltipla ═══ */}
+      {/* OpusMultipla */}
       <div style={{ padding: '6px 18px 4px', textAlign: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/opus-multipla-logo.png" alt="OpusMúltipla" style={{ maxWidth: 90, height: 'auto', opacity: 0.22 }} />
+        <img src="/opus-multipla-logo.png" alt="OpusMultipla" style={{ maxWidth: 90, height: 'auto', opacity: 0.22 }} />
       </div>
 
       {/* ═══ User footer ═══ */}
