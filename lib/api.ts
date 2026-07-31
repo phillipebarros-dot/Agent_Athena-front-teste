@@ -57,7 +57,7 @@ export const api = {
   // voz
   tts: (text: string) => call<{ audio: string }>('tts', { text }),
   // export
-  export: (p: { data: any[]; title?: string; format?: 'sheets' | 'csv' }) => call('export', p),
+  export: (p: { data: any[]; title?: string; format?: 'sheets' | 'csv' | 'xlsx'; user_email?: string }) => call('export', p),
   // clientes (lista dinâmica dos anunciantes)
   listClients: () => call<{ clients: string[] }>('list-clients', {}).catch((): { clients: string[] } => ({ clients: [] })),
   // A4: autocomplete de entidades (veículo, programa, praça)

@@ -40,7 +40,7 @@ function UserBubble({ message, me }: { message: ChatMessage; me: MessageBubblePr
 }
 
 /** Bubble de resposta da Athena. */
-function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onToggleChart }: Omit<MessageBubbleProps, 'me'>) {
+function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen, onToggleChart }: MessageBubbleProps) {
   const [fbOpen, setFbOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const table = !message.error ? parseTable(message.content) : null;
@@ -205,6 +205,30 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
             >
               <IC s={13} d='<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' stroke="currentColor" />
               PDF
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const data = table.rows.map(r => {
+                    const obj: Record<string, string> = {};
+                    table.headers.forEach((h, i) => { obj[stripMd(h)] = stripMd(r[i] || ''); });
+                    return obj;
+                  });
+                  const { api } = await import('@/lib/api');
+                  const result = await api.export({ data, title: 'athena_export', format: 'sheets', user_email: me?.email || '' });
+                  if (result && (result as any).url) {
+                    window.open((result as any).url, '_blank');
+                  } else if (result && (result as any).message) {
+                    alert((result as any).message);
+                  }
+                } catch { /* silencioso */ }
+              }}
+              style={css('display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-surface); font-size:11.5px; color:var(--muted-light); cursor:pointer; transition:all 0.2s;')}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#0F9D58'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--muted-light)'; }}
+            >
+              <IC s={13} d='<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>' stroke="currentColor" />
+              Sheets
             </button>
           </div>
         )}
