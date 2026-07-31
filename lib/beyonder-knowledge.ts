@@ -196,7 +196,7 @@ export const ATHENA_FEATURES: FeatureGuide[] = [
     title: 'Ouvir resposta (TTS)',
     description: 'Converte a resposta da Athena em audio com voz natural (nao robotica).',
     howTo: 'Clique no icone de alto-falante ao lado da resposta.',
-    tip: 'Usa voz "Nova" da OpenAI, modelo tts-1-hd. E a mesma voz que eu (Beyonder) uso.',
+    tip: 'Usa voz "Onyx" da OpenAI (masculina, grave), modelo tts-1-hd.',
   },
   // === UPLOAD ===
   {

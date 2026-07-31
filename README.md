@@ -39,7 +39,7 @@ Frontend do assistente Athena. Interface de chat inteligente para consulta de da
 | Graficos | Chart.js | via canvas | Visualizacao de dados |
 | Live2D | pixi-live2d-display | + PixiJS v7 | Assistente Beyonder (VTuber) |
 | Lip Sync | Web Audio API | AnalyserNode | Sincronizacao boca/audio |
-| Voz TTS | OpenAI TTS | tts-1-hd, voz nova | Voz natural e suave |
+| Voz TTS | OpenAI TTS | tts-1-hd, voz onyx | Voz masculina grave e natural |
 | Voz STT | Web Speech API | - | Ditado por voz (Chrome) |
 | CSP | Nonce per-request | middleware.ts | Content Security Policy |
 | Infra | Google Cloud Run | - | Serverless containers |
@@ -57,8 +57,7 @@ Next.js 14 (Cloud Run)
     |
     +-- /login               Tela de login com Google
     +-- /chat                Interface principal do chat
-    +-- /jack                Assistente virtual Beyonder (Live2D)
-    +-- /guide               Guia completo de funcionalidades e FAQ
+    +-- /faq                 Central de Ajuda (FAQ completo)
     +-- /admin               Dashboard administrativo
     |
     +-- /api/auth/*           Fluxo OAuth 2.0
@@ -134,7 +133,7 @@ O Beyonder e um personagem Live2D integrado ao frontend que funciona como assist
 - Modelo Live2D Cubism renderizado via PixiJS no navegador
 - 7 expressoes emocionais: feliz, bravo, preocupado, envergonhado, fofo, surpreso, confuso
 - Lip sync em tempo real: Web Audio API analisa volume do audio TTS e sincroniza com a boca
-- Voz natural e suave: OpenAI TTS modelo tts-1-hd com voz "nova" (nao robotica)
+- Voz masculina grave: OpenAI TTS modelo tts-1-hd com voz "onyx"
 - Baloes de fala: Efeito typewriter com animacao de entrada/saida
 - Deteccao de emocao: Analisa o contexto da resposta e muda expressao automaticamente
 - Animacoes idle: Respiracao, piscar, fisica de gravata e cadarco
@@ -142,7 +141,6 @@ O Beyonder e um personagem Live2D integrado ao frontend que funciona como assist
 
 ### Quando o Beyonder aparece
 - Primeira vez que o usuario acessa o sistema
-- Quando o usuario acessa a pagina /jack
 - Quando o usuario precisa de ajuda com funcionalidades
 
 ### Parametros do modelo
@@ -234,8 +232,7 @@ Agent_Athena-front-teste/
     page.tsx                  # Redirect para /chat
     login/page.tsx            # Tela de login Google OAuth
     chat/page.tsx             # Pagina principal (toda a logica)
-    jack/page.tsx             # Assistente virtual Beyonder (Live2D)
-    guide/page.tsx            # Guia de funcionalidades e FAQ
+    faq/page.tsx              # Central de Ajuda (FAQ completo, dark theme, 9 categorias)
     admin/page.tsx            # Dashboard administrativo
     api/
       auth/                   # OAuth 2.0 (start, callback, me, logout)
@@ -307,5 +304,8 @@ R: Clique no icone de microfone no compositor. Disponivel apenas em Chrome.
 P: Posso renomear conversas?
 R: Sim. Passe o mouse sobre a conversa na sidebar e clique no icone de lapis.
 
-P: O que e o Jack?
-R: Jack e o assistente virtual Live2D que guia voce pelas funcionalidades do sistema, explica botoes e ajuda a tomar decisoes.
+P: O que e o Beyonder?
+R: O Beyonder e o assistente virtual Live2D que guia voce pelas funcionalidades do sistema. Ele aparece no canto inferior direito do chat e pode direcionar para a Central de Ajuda (/faq).
+
+P: Onde fica a Central de Ajuda?
+R: Acesse /faq no navegador ou clique em "Ver Central de Ajuda completa" no Beyonder. La tem 9 categorias com todas as funcionalidades documentadas.

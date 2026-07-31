@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
         user_email: session.email,
         conversation_id: `beyonder_${session.email.replace(/[^a-zA-Z0-9]/g, '_')}`,
         client: 'Todos',
+        is_audio: true,
       }),
     });
 
