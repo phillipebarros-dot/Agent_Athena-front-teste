@@ -45,15 +45,17 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   const cookieValue = req.cookies.get(COOKIE_NAME)?.value;
   const session = verify(cookieValue);
   if (!session) {
-    console.error('[proxy 401]', {
-      endpoint,
-      hasCookie: !!cookieValue,
-      cookieLen: cookieValue?.length || 0,
-      hasSecret: !!process.env.SESSION_SECRET,
-      secretLen: (process.env.SESSION_SECRET || '').length,
-      allCookies: req.cookies.getAll().map(c => c.name),
-    });
-    return NextResponse.json({ error: 'nao_autenticado' }, { status: 401 });
+    return NextResponse.json({
+      error: 'nao_autenticado',
+      _debug: {
+        endpoint,
+        hasCookie: !!cookieValue,
+        cookieLen: cookieValue?.length || 0,
+        hasSecret: !!process.env.SESSION_SECRET,
+        secretLen: (process.env.SESSION_SECRET || '').length,
+        cookieNames: req.cookies.getAll().map(c => c.name),
+      }
+    }, { status: 401 });
   }
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
