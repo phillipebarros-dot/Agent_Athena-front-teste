@@ -12,11 +12,11 @@ export function middleware(request: NextRequest) {
   // CSP com nonce (remove unsafe-inline para scripts)
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval' https://cubism.live2d.com`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
-    "connect-src 'self'",
+    "connect-src 'self' https://cubism.live2d.com",
     "media-src 'self' data: blob:",
     "frame-ancestors 'none'",
     "base-uri 'self'",

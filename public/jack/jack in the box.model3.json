@@ -1,0 +1,32 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "jack in the box.moc3",
+		"Textures": [
+			"jack in the box.4096/texture_00.png"
+		],
+		"Physics": "jack in the box.physics3.json",
+		"DisplayInfo": "jack in the box.cdi3.json",
+		"Expressions": [
+			{ "Name": "smile", "File": "smile.exp3.json" },
+			{ "Name": "angy", "File": "angy.exp3.json" },
+			{ "Name": "worried", "File": "worried.exp3.json" },
+			{ "Name": "blush", "File": "blush.exp3.json" },
+			{ "Name": "aww", "File": "aww.exp3.json" },
+			{ "Name": "oh", "File": "oh..exp3.json" },
+			{ "Name": "ehh", "File": "ehh.exp3.json" }
+		]
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": ["ParamEyeLOpen", "ParamEyeROpen"]
+		},
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": ["ParamMouthOpenY"]
+		}
+	]
+}

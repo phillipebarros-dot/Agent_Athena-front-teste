@@ -1,249 +1,311 @@
-# Athena Frontend
+# Athena Frontend - Interface de Inteligencia de Midia
 
-Frontend do assistente Athena da OpusMultipla. Aplicacao Next.js 14 (App Router) que funciona como interface de chat inteligente para consulta de dados de midia, planejamento e investimento. Conecta no backend FastAPI via proxy server-side com autenticacao Google OAuth 2.0.
+**Autor**: Phillipe Barros ([@phillipebarros-dot](https://github.com/phillipebarros-dot))  
+**Organizacao**: Opus Multipla / Grupo OM  
+**Versao**: 3.1.0 | **Licenca**: Proprietaria
 
+Frontend do assistente Athena. Interface de chat inteligente para consulta de dados de midia, planejamento e investimento publicitario. Aplicacao Next.js 14 com autenticacao Google OAuth 2.0, proxy server-side seguro e design system proprio. Inclui o assistente virtual Jack (Live2D) para guiar usuarios.
+
+---
+
+## Indice
+
+- [Tecnologias](#tecnologias)
+- [Arquitetura](#arquitetura)
+- [Funcionalidades](#funcionalidades)
+- [Jack - Assistente Virtual](#jack---assistente-virtual)
+- [Componentes](#componentes)
+- [Atalhos de Teclado](#atalhos-de-teclado)
+- [Configuracao](#configuracao)
+- [Deploy](#deploy)
+- [Estrutura de Arquivos](#estrutura-de-arquivos)
+- [Seguranca](#seguranca)
+- [Guia do Usuario](#guia-do-usuario)
+
+---
+
+## Tecnologias
+
+| Camada | Tecnologia | Versao | Proposito |
+|--------|-----------|--------|-----------|
+| Framework | Next.js | 14 (App Router) | SSR + API Routes |
+| Linguagem | TypeScript | 5.x | Tipagem estatica |
+| React | React | 18.x | UI reativa |
+| Autenticacao | Google OAuth 2.0 | - | Login corporativo |
+| Sessao | HMAC-SHA256 | - | Cookie httpOnly assinado |
+| Estilos | CSS Variables | - | Design system proprio (sem Tailwind) |
+| Fontes | Google Fonts | Inter + DM Sans | Tipografia premium |
+| Markdown | Renderizacao propria | - | Parser GFM com tabelas |
+| Graficos | Chart.js | via canvas | Visualizacao de dados |
+| Live2D | pixi-live2d-display | + PixiJS v7 | Assistente Jack (VTuber) |
+| Lip Sync | Web Audio API | AnalyserNode | Sincronizacao boca/audio |
+| Voz TTS | OpenAI TTS | tts-1-hd, voz nova | Voz natural e suave |
+| Voz STT | Web Speech API | - | Ditado por voz (Chrome) |
+| CSP | Nonce per-request | middleware.ts | Content Security Policy |
+| Infra | Google Cloud Run | - | Serverless containers |
+| CI/CD | Docker | - | Containerizacao standalone |
+
+---
 
 ## Arquitetura
 
-O frontend e uma aplicacao Next.js que roda no Google Cloud Run. Toda comunicacao com o backend passa por um proxy server-side (`app/api/athena/[...path]/route.ts`) que injeta o token de autenticacao e controla o timeout. A autenticacao usa Google OAuth 2.0 com cookies de sessao assinados.
-
 ```
-Navegador
+Navegador (Chrome/Edge)
     |
     v
-Next.js (Cloud Run)
+Next.js 14 (Cloud Run)
     |
-    +-- /login              # Tela de login com Google
-    +-- /chat               # Interface principal do chat
-    +-- /admin              # Dashboard administrativo
+    +-- /login               Tela de login com Google
+    +-- /chat                Interface principal do chat
+    +-- /jack                Assistente virtual Jack (Live2D)
+    +-- /guide               Guia completo de funcionalidades e FAQ
+    +-- /admin               Dashboard administrativo
     |
-    +-- /api/auth/*          # OAuth 2.0 (Google)
-    |     +-- /login         # Inicio do fluxo
-    |     +-- /google/start  # Redireciona para Google
-    |     +-- /google/callback # Recebe o token
-    |     +-- /me            # Retorna sessao atual
-    |     +-- /logout        # Encerra sessao
+    +-- /api/auth/*           Fluxo OAuth 2.0
+    |     +-- /google/start   Redireciona para Google (scopes: email, sheets, drive)
+    |     +-- /google/callback Recebe o token, valida dominio
+    |     +-- /me             Retorna sessao atual (JWT)
+    |     +-- /logout         Encerra sessao
     |
-    +-- /api/athena/[...path]  # Proxy para o backend FastAPI
-          +-- Timeout: 120s
-          +-- Injeta Bearer Token
-          +-- Cookie de sessao
+    +-- /api/athena/[...path]  Proxy seguro para o backend FastAPI
+    |     +-- Timeout: 120s
+    |     +-- Injeta Bearer Token (server-side, nunca exposto)
+    |     +-- Injeta user_email e google_access_token
+    |
+    +-- middleware.ts         CSP com nonce por request
 ```
 
+---
 
-## Estrutura de arquivos
+## Funcionalidades
+
+### Chat Inteligente
+- Envio de mensagens: Texto livre com contexto de cliente e ciclo
+- Respostas em Markdown: Tabelas GFM, listas, negrito, codigo
+- Tabelas interativas: Renderizacao rica com headers estilizados
+- Graficos automaticos: Botao "Ver em grafico" converte tabela em Chart.js
+- Chips de sugestao: 8 prompts predefinidos na tela inicial
+- Regenerar resposta: Botao para refazer a ultima consulta
+- Feedback: Like/dislike com comentario por mensagem
+
+### Gestao de Conversas (Sidebar)
+- Nova conversa: Botao ou Ctrl+N
+- Renomear: Clique no icone de lapis (hover)
+- Fixar: Pin para manter no topo
+- Duplicar: Cria copia de uma conversa
+- Deletar: Remove conversa do historico
+- Busca: Filtra conversas por titulo
+- Indicador "Pensando...": Badge animado quando o agente processa
+- Badge de notificacao: Aviso quando resposta chega em conversa inativa
+- Parar geracao: Botao "Parar" ou Ctrl+Shift+S
+
+### Exportacao de Dados
+- CSV: Download direto no navegador
+- XLSX: Via backend com headers estilizados e auto-width
+- PDF: Gera HTML formatado e abre impressao
+- Google Sheets: Cria planilha nativa no Drive do usuario (botao verde)
+
+### Voz
+- Ditado: Botao de microfone no compositor (Web Speech API, Chrome)
+- Ouvir resposta: Botao de alto-falante converte texto em audio (OpenAI TTS)
+
+### Upload de Documentos
+- PDF: Extrai texto e usa como contexto da pergunta
+- Excel/CSV: Extrai dados e inclui na conversa
+
+### Contexto Fixado
+- Barra de contexto: Chips editaveis (Ciclo, Plano, Periodo, Meio)
+- Cliente: Seletor no sidebar (Boticario, Eudora, etc.)
+- Persistente: Contexto acompanha todas as mensagens da conversa
+
+### Admin Dashboard
+- Auditoria: Log de todas as consultas com query SQL, tokens, timestamp
+- Dominios: Gerenciar dominios de e-mail permitidos para login
+- Sinonimos: Mapear termos de busca para nomes do Publi
+- Usuarios: Lista de usuarios com role (user/admin)
+
+---
+
+## Jack - Assistente Virtual
+
+O Jack e um personagem Live2D integrado ao frontend que funciona como assistente de onboarding e ajuda contextual. Ele guia os usuarios pelas funcionalidades do sistema, explica botoes, ajuda a tomar decisoes e responde duvidas sobre o uso da Athena.
+
+### Caracteristicas
+- Modelo Live2D Cubism renderizado via PixiJS no navegador
+- 7 expressoes emocionais: feliz, bravo, preocupado, envergonhado, fofo, surpreso, confuso
+- Lip sync em tempo real: Web Audio API analisa volume do audio TTS e sincroniza com a boca
+- Voz natural e suave: OpenAI TTS modelo tts-1-hd com voz "nova" (nao robotica)
+- Baloes de fala: Efeito typewriter com animacao de entrada/saida
+- Deteccao de emocao: Analisa o contexto da resposta e muda expressao automaticamente
+- Animacoes idle: Respiracao, piscar, fisica de gravata e cadarco
+- Input por voz: Web Speech API para ditado (Chrome)
+
+### Quando o Jack aparece
+- Primeira vez que o usuario acessa o sistema
+- Quando o usuario acessa a pagina /jack
+- Quando o usuario precisa de ajuda com funcionalidades
+
+### Parametros do modelo
+- ParamMouthOpenY: Abertura da boca (lip sync, 0.0 a 1.0)
+- ParamMouthForm: Formato da boca (sorriso vs neutro)
+- ParamAngleX/Y/Z: Rotacao da cabeca
+- ParamBodyAngleX/Y/Z: Inclinacao do corpo
+- ParamBreath: Respiracao (idle)
+- ParamEyeLOpen/ROpen: Piscar
+- ParamEyeBallX/Y: Direcao do olhar
+
+---
+
+## Componentes
+
+| Componente | Arquivo | Descricao |
+|-----------|---------|-----------|
+| Sidebar | components/chat/Sidebar.tsx | Lista de conversas, busca, acoes |
+| MessageBubble | components/chat/MessageBubble.tsx | Bolha de mensagem (user/assistant) |
+| MessageList | components/chat/MessageList.tsx | Lista scrollavel de mensagens |
+| ContextBar | components/chat/ContextBar.tsx | Barra de contexto fixado |
+| ChatComposer | components/chat/ChatComposer.tsx | Area de input + mic + upload |
+| WelcomeScreen | components/chat/WelcomeScreen.tsx | Tela inicial com chips de sugestao |
+| TableChart | components/chat/TableChart.tsx | Grafico Chart.js de uma tabela |
+| Live2DCanvas | components/jack/Live2DCanvas.tsx | Renderizador Live2D (PixiJS) |
+| SpeechBubble | components/jack/SpeechBubble.tsx | Balao de fala typewriter |
+| IC | components/ui/IC.tsx | Icone SVG inline (sem biblioteca) |
+
+---
+
+## Atalhos de Teclado
+
+| Atalho | Acao |
+|--------|------|
+| Ctrl+N | Nova conversa |
+| Ctrl+B | Abrir/fechar sidebar |
+| Ctrl+K | Focar na busca |
+| Ctrl+Shift+S | Parar geracao |
+| Enter | Enviar mensagem |
+| Shift+Enter | Nova linha |
+
+---
+
+## Configuracao
+
+### Variaveis de Ambiente
+
+```env
+# Obrigatorias
+ATHENA_BACKEND_URL=https://athena-backend-xxx.run.app
+ATHENA_BACKEND_TOKEN=token-de-acesso-ao-backend
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-...
+SESSION_SECRET=chave-aleatoria-32-chars
+
+# Controle de Acesso
+ALLOWED_EMAIL_DOMAINS=grupoom.com.br,opusmultipla.com.br
+ADMIN_EMAILS=phillipe.barros@grupoom.com.br
+
+# Opcionais
+RATE_LIMIT_PER_MINUTE=30
+ATHENA_DEV_LOGIN=false
+NODE_ENV=production
+```
+
+---
+
+## Deploy
+
+```bash
+# Build e deploy no Cloud Run
+gcloud run deploy athena-frontend \
+  --source=. \
+  --region=us-central1 \
+  --allow-unauthenticated \
+  --timeout=300 \
+  --set-secrets="ATHENA_BACKEND_TOKEN=ATHENA_BACKEND_TOKEN:latest"
+```
+
+---
+
+## Estrutura de Arquivos
 
 ```
 Agent_Athena-front-teste/
   app/
-    globals.css              # Design system (tokens, cores, tipografia)
-    layout.tsx               # Layout raiz (fontes, meta tags)
-    page.tsx                 # Redirect para /chat
-    icon.png                 # Favicon
-    login/
-      page.tsx               # Tela de login com botao Google
-    chat/
-      page.tsx               # Pagina principal do chat (toda a logica)
-    admin/
-      page.tsx               # Dashboard administrativo completo
+    globals.css               # Design system (240+ tokens CSS)
+    layout.tsx                # Layout raiz (fontes, meta SEO)
+    page.tsx                  # Redirect para /chat
+    login/page.tsx            # Tela de login Google OAuth
+    chat/page.tsx             # Pagina principal (toda a logica)
+    jack/page.tsx             # Assistente virtual Jack (Live2D)
+    guide/page.tsx            # Guia de funcionalidades e FAQ
+    admin/page.tsx            # Dashboard administrativo
     api/
-      athena/
-        [...path]/route.ts   # Proxy para backend FastAPI
-      auth/
-        login/route.ts       # POST login por email
-        logout/route.ts      # POST logout
-        me/route.ts          # GET sessao atual
-        google/
-          start/route.ts     # Inicia OAuth Google
-          callback/route.ts  # Callback do Google
+      auth/                   # OAuth 2.0 (start, callback, me, logout)
+      athena/[...path]/       # Proxy seguro para backend
   components/
-    Markdown.tsx             # Renderizador de markdown (react-markdown)
-    AnimatedComposer.tsx     # Input com animacoes
-    IconRail.tsx             # Barra lateral de icones
-    chat/
-      AnswerChart.tsx        # Graficos da resposta (barras, horizontal, pizza, linha)
-      ChatHeader.tsx         # Cabecalho com titulo e rename
-      ContextBar.tsx         # Barra de contexto flutuante e draggable
-      FeedbackPanel.tsx      # Formulario de feedback (positivo/negativo)
-      MessageBubble.tsx      # Bolha de mensagem (user + assistant)
-      MessageList.tsx        # Lista de mensagens com scroll
-      Sidebar.tsx            # Sidebar com conversas, busca, agrupamento
-      SkeletonLoaders.tsx    # Loaders animados para carregamento
-      WelcomeScreen.tsx      # Tela inicial com sugestoes
-    scan-effect/
-      DepthScanCard.tsx      # Efeito visual de scan
-      scan.css               # CSS do efeito
+    chat/                     # Sidebar, MessageBubble, Composer, etc.
+    jack/                     # Live2DCanvas, SpeechBubble
+    ui/                       # IC (icone SVG inline)
   lib/
-    api.ts                   # Cliente HTTP (browser, fala com /api/athena/*)
-    config.ts                # Configuracao (BACKEND_URL, BACKEND_TOKEN)
-    dc.tsx                   # Design components (B, IC, css helpers)
-    format.ts                # Formatacao (relativeTime, initials, fmtNum)
-    session.ts               # Gestao de sessao (cookies assinados)
-    session-secret.ts        # Chave de assinatura do cookie
-    shortcuts.ts             # Atalhos de teclado (Ctrl+K, Ctrl+N)
-    theme.tsx                # Provider de tema (claro/escuro)
-    types.ts                 # TypeScript types (ChatMessage, Conversation, etc)
+    api.ts                    # Cliente HTTP (call, endpoints)
+    config.ts                 # Configuracoes server-side
+    session.ts                # JWT sign/verify (HMAC-SHA256)
+    session-secret.ts         # Geracao/validacao do secret
+    lipsync.ts                # Motor de lip sync (Web Audio API)
+    jack-emotions.ts          # Mapeamento texto para expressao
+    types.ts                  # Tipos compartilhados
+    useTheme.ts               # Hook de tema (light/dark)
+  middleware.ts               # CSP com nonce por request
   public/
-    athena-logo.png          # Logo da Athena
-    grupo-om.png             # Logo Grupo OM
-    opus-branca.svg          # Logo Opus branca
-    opus-multipla-logo.png   # Logo OpusMultipla
-    partner-*.png            # Logos de parceiros
-  Dockerfile                 # Container Node.js 20
-  package.json               # Dependencias npm
-  tsconfig.json              # Configuracao TypeScript
-  next.config.mjs            # Configuracao Next.js
+    jack/                     # Modelo Live2D (moc3, texturas, expressoes)
+  next.config.mjs             # Config Next.js + security headers
+  Dockerfile                  # Container standalone para Cloud Run
+  package.json                # Dependencias
+  README.md                   # Este arquivo
 ```
 
+---
 
-## Funcionalidades
+## Seguranca
 
-### Chat
+- OAuth 2.0: Login exclusivo via Google, restrito a dominios permitidos
+- Sessao: Cookie httpOnly + Secure + SameSite=Lax (HMAC-SHA256)
+- CSP: Content-Security-Policy com nonce por request (sem unsafe-inline em scripts)
+- HSTS: Strict-Transport-Security com preload
+- Proxy: Token do backend nunca exposto no navegador (server-side only)
+- Rate Limit: 30 req/min por IP+endpoint no proxy
+- State CSRF: Token aleatorio no fluxo OAuth (cookie + URL param)
+- X-Frame-Options: DENY (impede iframe)
+- Referrer-Policy: strict-origin-when-cross-origin
 
-1. **Envio de mensagens**: Textarea com Enter para enviar, Shift+Enter para nova linha
-2. **Gravacao por voz**: Botao de microfone usando Web Speech API (pt-BR), transcreve voz para texto
-3. **Respostas em markdown**: Tabelas GFM, listas, negrito, code blocks
-4. **Graficos automaticos**: Detecta tabelas na resposta e gera graficos SVG
-   a. Barras verticais (default para dados categoricos)
-   b. Barras horizontais (labels longos ou muitos itens)
-   c. Pizza (percentuais que somam 100% ou poucos itens)
-   d. Linha (dados temporais: meses, anos, datas)
-5. **Paleta de 12 cores**: Graficos coloridos, nao monocromaticos
-6. **Proveniencia**: Badge de fonte (BigQuery/Web/Modelo) + SQL executada + recorte geografico
-7. **Exportacao**: CSV (client-side), XLSX (via backend), PDF (window.print com tabela formatada)
-8. **Feedback**: Botao positivo/negativo com comentario opcional por resposta
-9. **Ouvir (TTS)**: Botao que converte resposta em audio via OpenAI TTS
-10. **Copiar**: Copia resposta para clipboard
-11. **Regenerar**: Reenvia a mesma pergunta
-12. **Parar geracao**: Botao "Parar" com AbortController per-conversa
-13. **Contexto fixado**: Barra flutuante e draggable com chips editaveis (Ciclo, Plano, Periodo, Meio)
-14. **Autocomplete**: Sugere entidades (veiculo, programa, praca) enquanto digita
-15. **Compactacao**: Automatica apos 20 mensagens via Claude Haiku
+---
 
-### Sidebar
+## Guia do Usuario
 
-1. **Lista de conversas**: Agrupadas por Hoje, Ontem, Esta Semana, Anteriores
-2. **Conversas fixadas**: Pin para manter no topo
-3. **Busca**: Filtra conversas por titulo (Ctrl+K)
-4. **Nova conversa**: Botao + atalho Ctrl+N
-5. **Menu de contexto**: Renomear, Fixar, Duplicar, Excluir
-6. **Seletor de cliente**: Dropdown multi-tenant (Boticario, Eudora, QDB, etc)
-7. **Status de envio**: Indicador por conversa (evita confusao de "qual conversa ta gerando")
-8. **Badge de notificacao**: "1 nova" quando resposta chega em outra conversa
-9. **Busca por atalho**: Ctrl+K foca no campo de busca
-10. **Tema claro/escuro**: Toggle com Moon/Sun
-11. **Link Admin**: Visivel apenas para usuarios admin
-12. **Logout**: Com confirmacao
+### Como fazer perguntas eficientes
 
-### Admin Dashboard
+1. Seja especifico: "Investimento do Boticario em TV no ciclo 04" e melhor que "gastos com TV"
+2. Informe o periodo: Ciclo (C01-C06), meses ou datas especificas
+3. Use nomes como estao no Publi: Se nao souber, pergunte a Athena qual o nome correto
+4. Uma pergunta por vez: Separe consultas complexas em conversas diferentes
 
-1. **6 KPIs**: Mensagens totais, conversas ativas, usuarios unicos, assertividade, fb+, fb-
-2. **Grafico de conversas por dia**: Barras verticais com 7 dias
-3. **Atividade por hora**: 24 barras mostrando distribuicao horaria
-4. **Distribuicao de mensagens**: Histograma por conversa
-5. **Top usuarios**: Ranking com contagem de mensagens
-6. **Feedback recente**: Lista com query, resposta, rating e comentario
-7. **Drawer de conversa**: Clica numa conversa e ve todas as mensagens
-8. **RBAC**: Gestao de usuarios com papeis (Administrador, Planejamento, Midia, Atendimento)
-9. **Matriz de permissoes**: Visualizacao de quem pode fazer o que
-10. **Status do sistema**: Checagem de Backend, OAuth, TTS, Export
-11. **Saude MCP**: Status de cada conector (publi, pesquisas, export, digital)
-12. **Dominios permitidos**: CRUD de dominios autorizados para login
-13. **Sinonimos/Dicionario**: CRUD de mapeamentos de termos
+### FAQ
 
-### Autenticacao
+P: A Athena nao encontrou meus dados. O que fazer?
+R: Tente variacoes do nome (ex: "Meio Dia PR" em vez de "Meio Dia Parana"). Use termos parciais.
 
-1. **Google OAuth 2.0**: Login via conta Google
-2. **Login por email**: Fallback para usuarios sem Google
-3. **Cookie de sessao**: Assinado com HMAC, HttpOnly, Secure, SameSite=Lax
-4. **Verificacao de dominio**: Apenas emails de dominios permitidos podem logar
-5. **Sessao persistente**: Cookie dura 7 dias
+P: Posso exportar os resultados?
+R: Sim. Clique em CSV, XLSX, PDF ou Sheets (verde) abaixo de qualquer tabela.
 
+P: Como ouvir a resposta em audio?
+R: Clique no icone de alto-falante ao lado da resposta. Funciona melhor em Chrome.
 
-## Design System
+P: A resposta apareceu na conversa errada?
+R: Evite trocar de conversa enquanto a Athena esta respondendo. Se acontecer, volte a conversa original.
 
-Cores da marca OpusMultipla (extraidas do site oficial):
+P: Como falar por voz?
+R: Clique no icone de microfone no compositor. Disponivel apenas em Chrome.
 
-| Token | Valor | Uso |
-|-------|-------|-----|
-| --red | #dd0004 | Cor principal, botoes, acentos |
-| --bg-deep | #0d0c0c | Fundo da pagina |
-| --bg-surface | #141312 | Fundo de paineis |
-| --white | #f4f2f0 | Texto principal |
-| --muted | #7a7472 | Texto secundario |
-| --green | #3fb950 | Indicadores positivos |
-| --gold | #d9a441 | Avisos |
+P: Posso renomear conversas?
+R: Sim. Passe o mouse sobre a conversa na sidebar e clique no icone de lapis.
 
-Tipografia:
-1. Body: Inter (Google Fonts)
-2. Display: Oswald, Raleway
-3. Mono: JetBrains Mono
-
-
-## Proxy Backend
-
-Todas as chamadas ao backend passam pelo proxy em `app/api/athena/[...path]/route.ts`:
-
-1. O frontend chama `/api/athena/chat` (mesma origem)
-2. O proxy redireciona para `BACKEND_URL/chat`
-3. Injeta header `Authorization: Bearer BACKEND_TOKEN`
-4. Timeout de 120 segundos
-5. Cookie de sessao e validado no proxy
-
-Variaveis de ambiente do proxy:
-
-| Variavel | Descricao |
-|----------|-----------|
-| ATHENA_BACKEND_URL | URL do backend FastAPI |
-| ATHENA_BACKEND_TOKEN | Token Bearer para autenticacao |
-| GOOGLE_CLIENT_ID | Client ID do Google OAuth |
-| GOOGLE_CLIENT_SECRET | Client Secret do Google OAuth |
-| SESSION_SECRET | Chave HMAC para assinatura de cookies |
-
-
-## Deploy
-
-O frontend roda no Google Cloud Run. O deploy e feito via source deploy:
-
-```bash
-gcloud run deploy athena-frontend-teste \
-  --source=. \
-  --region=us-central1 \
-  --allow-unauthenticated \
-  --timeout=300
-```
-
-
-## Desenvolvimento local
-
-```bash
-# Instalar dependencias
-npm install
-
-# Configurar variaveis
-cp .env.example .env.local
-# Editar com as credenciais reais
-
-# Rodar
-npm run dev
-```
-
-O app abre em http://localhost:3000.
-
-
-## Dependencias principais
-
-| Pacote | Versao | Uso |
-|--------|--------|-----|
-| next | 14 | Framework React SSR |
-| react | 18 | UI library |
-| framer-motion | 11 | Animacoes e transicoes |
-| react-markdown | 9 | Renderizacao de markdown |
-| remark-gfm | 4 | Tabelas GFM no markdown |
-| @phosphor-icons/react | 2 | Icones |
-
-
-## Autores
-
-Phillipe Barros, Camilo Ferreira, Wesley Macena, Andrei Nogueira
-Grupo OpusMultipla
+P: O que e o Jack?
+R: Jack e o assistente virtual Live2D que guia voce pelas funcionalidades do sistema, explica botoes e ajuda a tomar decisoes.
