@@ -109,6 +109,27 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
           )}
         </div>
 
+        {/* Export CSV — aparece quando tem tabela */}
+        {table && (
+          <div style={css('display:flex; gap:8px; margin-top:4px; margin-bottom:4px;')}>
+            <button
+              onClick={() => {
+                const csv = [table.headers.join(','), ...table.rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+                const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `athena_export_${Date.now()}.csv`; a.click();
+                URL.revokeObjectURL(url);
+              }}
+              style={css('display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-surface); font-size:11.5px; color:var(--muted-light); cursor:pointer; transition:all 0.2s;')}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--white)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--muted-light)'; }}
+            >
+              <IC s={13} d='<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' stroke="currentColor" />
+              Exportar CSV
+            </button>
+          </div>
+        )}
+
         {/* Chart */}
         {table && <AnswerChart table={table} on={chartOpen} onToggle={onToggleChart} />}
 
