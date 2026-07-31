@@ -513,7 +513,7 @@ export default function ChatPage() {
       </main>
 
       {/* Beyonder Live2D - icone flutuante */}
-      <BeyonderFloating emotion={sending ? 'thinking' : 'neutral'} speaking={sending} />
+      <BeyonderFloating />
 
       {/* FIX B1: Toast notification */}
       {toast && (
