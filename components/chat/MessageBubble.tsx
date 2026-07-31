@@ -67,7 +67,7 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
               <span style={css('font-size:14.5px; color:var(--muted-light)')}>{message.content}</span>
             </div>
           ) : (
-            <div style={css('font-size:15px; line-height:1.625; color:var(--white)')}>
+            <div className="shielded" style={css('font-size:15px; line-height:1.625; color:var(--white)')}>
               {/* A9: Rótulo de fonte por bloco */}
               {!message.error && (message.sources || message.query) && (() => {
                 const hasBQ = message.query || message.sources?.some(s => s.label?.toLowerCase().includes('bigquery') || s.label?.toLowerCase().includes('publi') || s.label?.toLowerCase().includes('kantar'));

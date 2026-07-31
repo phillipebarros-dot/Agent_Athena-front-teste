@@ -109,6 +109,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
       signal: controller.signal,
     });
     const text = await res.text();
+
+    // ShieldFont: codifica output do chat antes de enviar ao browser
+    if (endpoint === 'chat' && res.ok) {
+      try {
+        const data = JSON.parse(text);
+        if (data.output && typeof data.output === 'string') {
+          const { encode, alpha } = await import('@shieldfont/core');
+          data.output = encode(data.output, alpha);
+          data._shielded = true; // flag para o front saber que esta codificado
+          return NextResponse.json(data, { status: res.status });
+        }
+      } catch {
+        // Se encoding falhar, retorna resposta original (graceful degradation)
+      }
+    }
+
     return new NextResponse(text, { status: res.status, headers: { 'Content-Type': res.headers.get('content-type') || 'application/json' } });
   } catch {
     return NextResponse.json({ error: 'backend_indisponivel' }, { status: 502 });

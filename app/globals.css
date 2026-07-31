@@ -117,3 +117,18 @@ a:hover { color: var(--brand-hot); }
   .hamburger-btn { display: none !important; }
   .sidebar-backdrop { display: none !important; }
 }
+
+/* ShieldFont: fonte que decodifica texto codificado visualmente para humanos.
+   Scrapers leem o HTML source e veem o decoy; a fonte GSUB renderiza o original.
+   Variante: alpha (optik-a). */
+@font-face {
+  font-family: "Optik";
+  src: url("/fonts/optik-a.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block; /* bloqueia ~3s para nao mostrar o decoy */
+}
+.shielded {
+  font-family: "Optik", var(--font-inter), sans-serif;
+  font-synthesis: none;
+}
