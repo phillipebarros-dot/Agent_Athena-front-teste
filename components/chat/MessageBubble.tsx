@@ -68,6 +68,25 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
             </div>
           ) : (
             <div style={css('font-size:15px; line-height:1.625; color:var(--white)')}>
+              {/* A9: Rótulo de fonte por bloco */}
+              {!message.error && (message.sources || message.query) && (() => {
+                const hasBQ = message.query || message.sources?.some(s => s.label?.toLowerCase().includes('bigquery') || s.label?.toLowerCase().includes('publi') || s.label?.toLowerCase().includes('kantar'));
+                const hasWeb = message.sources?.some(s => s.label?.toLowerCase().includes('web') || s.label?.toLowerCase().includes('pesquisa'));
+                const badges: { label: string; color: string }[] = [];
+                if (hasBQ) badges.push({ label: 'BigQuery (Publi)', color: 'var(--green)' });
+                if (hasWeb) badges.push({ label: 'Web', color: 'var(--blue, #58a6ff)' });
+                if (!hasBQ && !hasWeb) badges.push({ label: 'Modelo', color: 'var(--gold)' });
+                return (
+                  <div style={css('display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px')}>
+                    {badges.map((b, i) => (
+                      <span key={i} style={css(`display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:6px; font-size:10.5px; font-weight:600; color:${b.color}; background:rgba(0,0,0,0.15); border:1px solid ${b.color}22; letter-spacing:.02em`)}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: b.color }} />
+                        {b.label}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
               <Markdown>{message.content}</Markdown>
             </div>
           )}

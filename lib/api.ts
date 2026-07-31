@@ -24,12 +24,13 @@ export type ChatReply = {
 export type Conversation = ConversationType;
 export type Msg = { message_id: string; conversation_id: string; user_id: string; role: string; content: string; timestamp?: string; is_compacted?: boolean };
 
-async function call<T>(endpoint: string, body: unknown): Promise<T> {
+async function call<T>(endpoint: string, body: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(`/api/athena/${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
     body: JSON.stringify(body ?? {}),
+    signal,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(data?.error || `erro_${res.status}`), { status: res.status, data });
@@ -38,7 +39,7 @@ async function call<T>(endpoint: string, body: unknown): Promise<T> {
 
 export const api = {
   // chat principal (equivale ao POST /chat do backend)
-  chat: (p: { message: string; conversation_id?: string; is_audio?: boolean; client?: string }) => call<ChatReply>('chat', p),
+  chat: (p: { message: string; conversation_id?: string; is_audio?: boolean; client?: string }, signal?: AbortSignal) => call<ChatReply>('chat', p, signal),
   // conversas
   listConversations: () => call<{ conversations: Conversation[] }>('conversations', { action: 'list' }),
   createConversation: (conversation_id: string, title?: string) => call('conversations', { action: 'create', conversation_id, title }),

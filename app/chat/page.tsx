@@ -42,6 +42,10 @@ export default function ChatPage() {
   // FIX B1: toast + pending messages for wrong-conversation responses
   const [toast, setToast] = useState<string | null>(null);
   const pendingMsgsRef = useRef<Record<string, ChatMessage[]>>({});
+  // A3: AbortController per-conversa (parar geração)
+  const abortControllersRef = useRef<Record<string, AbortController>>({});
+  // A2: notificações por conversa (badge "1 nova")
+  const [convNotifs, setConvNotifs] = useState<Record<string, number>>({});
   const [loadingConvs, setLoadingConvs] = useState(true);
 
   // Auth gate
@@ -83,6 +87,8 @@ export default function ChatPage() {
 
   async function selectConversation(id: string) {
     setActiveId(id); setMessages([]); setLoadingHist(true);
+    // A2: limpar badge de notificação ao abrir conversa
+    setConvNotifs((prev) => { const next = { ...prev }; delete next[id]; return next; });
     try {
       const r = await api.history(id);
       let msgs = (r.messages || []).filter((m) => m.role !== 'system_summary') as ChatMessage[];
@@ -124,8 +130,12 @@ export default function ChatPage() {
     setMessages((cur) => [...cur, userMsg]);
     api.saveMessage({ conversation_id: convId, role: 'user', content: msg }).catch(() => {});
 
+    // A3: criar AbortController para esta conversa
+    const controller = new AbortController();
+    abortControllersRef.current[sendingConvId] = controller;
+
     try {
-      const r = await api.chat({ message: msg, conversation_id: convId, client });
+      const r = await api.chat({ message: msg, conversation_id: convId, client }, controller.signal);
       const bot: ChatMessage = { message_id: `local_a_${Date.now()}`, conversation_id: convId, user_id: 'athena', role: 'assistant', content: r.output || '', timestamp: new Date().toISOString(), sources: (r as any).sources || undefined, query: (r as any).query || undefined, attachment: r.attachment || undefined };
 
       // FIX B1: só adiciona mensagem se ainda estiver na mesma conversa
@@ -136,6 +146,8 @@ export default function ChatPage() {
           // Resposta chegou em conversa não-ativa — notifica
           setToast(`Athena respondeu em outra conversa`);
           setTimeout(() => setToast(null), 4000);
+          // A2: badge "1 nova" na sidebar
+          setConvNotifs((prev) => ({ ...prev, [sendingConvId]: (prev[sendingConvId] || 0) + 1 }));
           // Guarda pra quando o user voltar a essa conversa
           pendingMsgsRef.current[sendingConvId] = [...(pendingMsgsRef.current[sendingConvId] || []), bot];
         }
@@ -158,7 +170,17 @@ export default function ChatPage() {
         return currentActiveId;
       });
     }
+    delete abortControllersRef.current[sendingConvId];
     setSendingConvs((prev) => { const next = { ...prev }; delete next[sendingConvId]; return next; });
+  }
+
+  // A3: Parar geração
+  function stopGeneration() {
+    if (activeId && abortControllersRef.current[activeId]) {
+      abortControllersRef.current[activeId].abort();
+      delete abortControllersRef.current[activeId];
+      setSendingConvs((prev) => { const next = { ...prev }; if (activeId) delete next[activeId]; return next; });
+    }
   }
 
   async function sendFeedback(m: ChatMessage, rating: 'positive' | 'negative', comment?: string) {
@@ -245,6 +267,8 @@ export default function ChatPage() {
           if (activeId === id) { setActiveId(null); setMessages([]); }
           api.deleteConversation(id).catch(() => {});
         }}
+        sendingConvs={sendingConvs}
+        convNotifs={convNotifs}
       />
       </div>
 
@@ -298,7 +322,14 @@ export default function ChatPage() {
                 placeholder={backendDown ? 'Backend não conectado' : 'Pergunte sobre inserções, investimento, PIs ou tabelas de preço…'}
                 style={css('width:100%; resize:none; min-height:26px; max-height:160px; background:transparent; border:none; outline:none; color:var(--white); font-family:var(--font-body); font-size:14.5px; line-height:1.6')}
               />
-              <div style={css('display:flex; align-items:center; justify-content:flex-end; margin-top:8px; padding-top:8px; border-top:1px solid var(--border)')}>
+              <div style={css('display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border)')}>
+                {/* A3: Botão Parar geração */}
+                {sending && (
+                  <B t="button" onClick={stopGeneration} c="height:36px; padding:0 14px; border:1px solid var(--red-dim); border-radius:9px; color:var(--red); cursor:pointer; display:flex; align-items:center; gap:6px; background:transparent; font-size:12.5px; font-weight:600; font-family:var(--font-body)" h="background:rgba(196,30,30,.1)">
+                    <IC s={14} d='<rect x="6" y="6" width="12" height="12" rx="2"/>' stroke="var(--red)" w={2} />
+                    Parar
+                  </B>
+                )}
                 <B t="button" onClick={() => send(input)} c={`width:36px; height:36px; border:none; border-radius:9px; color:#fff; cursor:${input.trim() && !sending && !backendDown ? 'pointer' : 'default'}; display:flex; align-items:center; justify-content:center; background:${input.trim() && !sending && !backendDown ? 'var(--red)' : 'var(--border)'}`} h={input.trim() && !sending && !backendDown ? 'background:var(--red-dim); transform:translateY(-1px)' : ''}>
                   <IC s={18} d='<path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>' w={2} />
                 </B>

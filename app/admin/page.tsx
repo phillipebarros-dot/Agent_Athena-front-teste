@@ -158,6 +158,9 @@ function AdminPageInner() {
   const [roleMap, setRoleMap] = useState<Record<string, string>>({});
   const [roleView, setRoleView] = useState('Administrador');
   const [roleSaved, setRoleSaved] = useState(false);
+  // Admin expanded: system stats + MCP health
+  const [systemStats, setSystemStats] = useState<any>(null);
+  const [mcpHealth, setMcpHealth] = useState<any>(null);
 
   useEffect(() => {
     (async () => {
@@ -175,14 +178,17 @@ function AdminPageInner() {
     setLoading(true);
     const r = await Promise.allSettled([
       api.audit('kpis'), api.audit('top_users'), api.audit('recent_activity'),
-      api.audit('recent_feedback'), api.audit('all_conversations'), api.listUsers()
+      api.audit('recent_feedback'), api.audit('all_conversations'), api.listUsers(),
+      api.audit('system_stats'), api.audit('mcp_health'),
     ]);
-    const [k, tu, act, fb, cv, usr] = r;
+    const [k, tu, act, fb, cv, usr, ss, mh] = r;
     if (k.status === 'fulfilled') setKpis(k.value.data);
     if (tu.status === 'fulfilled') setTopUsers(tu.value.data || []);
     if (act.status === 'fulfilled') setActivity(act.value.data || []);
     if (fb.status === 'fulfilled') setFeedback(fb.value.data || []);
     if (cv.status === 'fulfilled') setConvs(cv.value.data || []);
+    if (ss.status === 'fulfilled') setSystemStats(ss.value.data);
+    if (mh.status === 'fulfilled') setMcpHealth(mh.value.data);
     if (usr.status === 'fulfilled') {
       const usersData = usr.value.users || [];
       const newRoleMap: Record<string, string> = {};
@@ -633,6 +639,46 @@ function AdminPageInner() {
                         ))}
                       </div>
                       <div style={css('font-size:11.5px; color:var(--fg-3); margin-top:14px; line-height:1.6')}>Com o RBAC dinâmico (BigQuery), a role é consultada em /users. Estes e-mails são o fallback se o backend estiver offline.</div>
+                    </Panel>
+
+                    {/* System Metrics — latência, custo, sem resultado */}
+                    <Panel title="Métricas de sistema" hint="últimos 30 dias — latência, custo estimado, taxa sem resultado" delay={0.2}>
+                      {systemStats ? (
+                        <div style={css('display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:14px')}>
+                          {[
+                            { l: 'Latência média', v: `${systemStats.avg_latency_sec || 0}s`, s: 'user→assistant' },
+                            { l: 'Sem resultado', v: `${systemStats.no_result_pct || 0}%`, s: `${systemStats.no_result_count || 0} de ${systemStats.total_messages_30d || 0}` },
+                            { l: 'Custo estimado', v: `$${systemStats.estimated_cost_month_usd || 0}`, s: 'mês atual (est.)' },
+                            { l: 'Modelo', v: (systemStats.model || '').split('-').slice(-3, -1).join('-') || systemStats.model, s: systemStats.model },
+                            { l: 'Msgs 30d', v: fmtNum(systemStats.total_messages_30d || 0), s: 'total período' },
+                          ].map((k, i) => (
+                            <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.05 }} style={{ background: 'var(--sunk)', borderRadius: 12, padding: '14px 16px' }}>
+                              <div style={css('font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-3)')}>{k.l}</div>
+                              <div style={css('font-family:' + DISP + '; font-size:22px; font-weight:600; margin-top:4px')}>{k.v}</div>
+                              <div style={css('font-size:10px; color:var(--fg-3); margin-top:3px')}>{k.s}</div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={css('font-size:12px; color:var(--fg-3)')}>Carregando métricas...</div>
+                      )}
+                    </Panel>
+
+                    {/* MCP Health */}
+                    <Panel title="Saúde das fontes MCP" hint="conectores de dados da Athena" delay={0.25}>
+                      {mcpHealth?.servers ? (
+                        <div style={css('display:flex; flex-direction:column; gap:4px')}>
+                          {mcpHealth.servers.map((srv: any, i: number) => (
+                            <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.05 }} style={css('display:flex; align-items:center; gap:14px; padding:12px 0; border-top:1px dashed var(--dash)')}>
+                              <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: srv.status === 'ok' ? 'var(--green)' : srv.status === 'not_configured' ? 'var(--gold)' : 'var(--red)', boxShadow: srv.status === 'ok' ? '0 0 8px rgba(63,185,80,.3)' : '0 0 8px rgba(221,0,4,.3)' }} />
+                              <span style={css('font-size:13px; font-weight:600; flex:1')}>{srv.name.replace(/_/g, ' ')}</span>
+                              <span style={css(`font-size:12px; color:${srv.status === 'ok' ? 'var(--green)' : srv.status === 'not_configured' ? 'var(--gold)' : 'var(--red)'}`)}>{srv.status === 'ok' ? 'Online' : srv.status === 'not_configured' ? 'Não configurado' : 'Offline'}</span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={css('font-size:12px; color:var(--fg-3)')}>Carregando saúde MCP...</div>
+                      )}
                     </Panel>
                   </>
                 )}

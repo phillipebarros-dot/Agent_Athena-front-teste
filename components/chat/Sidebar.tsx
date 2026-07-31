@@ -28,6 +28,9 @@ interface SidebarProps {
   onToggleTheme?: () => void;
   onRenameConversation?: (id: string, title: string) => void;
   onDeleteConversation?: (id: string) => void;
+  // A2: status per-conversa + badge de notificações
+  sendingConvs?: Record<string, boolean>;
+  convNotifs?: Record<string, number>;
 }
 
 /* ─── Group conversations by time ─── */
@@ -331,6 +334,7 @@ export function Sidebar({
   me, conversations, activeId, search, onSearchChange,
   client, clients, onClientChange, onSelectConversation, onNewConversation,
   onLogout, backendDown, light, onToggleTheme, onRenameConversation, onDeleteConversation, loading,
+  sendingConvs = {}, convNotifs = {},
 }: SidebarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -470,6 +474,18 @@ export function Sidebar({
                         <span style={s.convTitle(on)}>{c.title || 'Sem título'}</span>
                       )}
                       <span style={s.convMeta}>
+                        {/* A2: status Pensando / badge notificação */}
+                        {sendingConvs[c.conversation_id] && (
+                          <span style={{ color: 'var(--gold)', fontSize: 10.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--gold)', animation: 'pulse 1.2s ease-in-out infinite' }} />
+                            Pensando…
+                          </span>
+                        )}
+                        {!sendingConvs[c.conversation_id] && (convNotifs[c.conversation_id] || 0) > 0 && (
+                          <span style={{ background: 'var(--red)', color: '#fff', fontSize: 9.5, fontWeight: 700, borderRadius: 8, padding: '1px 6px', minWidth: 16, textAlign: 'center' as const }}>
+                            {convNotifs[c.conversation_id]} nova
+                          </span>
+                        )}
                         <span>{relativeTime(c.updated_at)}</span>
                         {c.message_count > 0 && <span>· {c.message_count} msg</span>}
                       </span>
