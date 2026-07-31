@@ -8,7 +8,7 @@ import { HistorySkeleton, ThinkingIndicator } from './SkeletonLoaders';
 
 interface MessageListProps {
   messages: ChatMessage[];
-  me: { name?: string; email?: string } | null;
+  me: { name?: string; email?: string; picture?: string } | null;
   sending: boolean;
   loadingHist: boolean;
   onSendFeedback: (m: ChatMessage, rating: 'positive' | 'negative', comment?: string) => void;

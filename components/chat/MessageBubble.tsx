@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface MessageBubbleProps {
   message: ChatMessage;
-  me: { name?: string; email?: string } | null;
+  me: { name?: string; email?: string; picture?: string } | null;
   onSendFeedback: (m: ChatMessage, rating: 'positive' | 'negative', comment?: string) => void;
   onRegenerate?: () => void;
   chartOpen: boolean;
@@ -21,6 +21,15 @@ interface MessageBubbleProps {
 function UserBubble({ message, me }: { message: ChatMessage; me: MessageBubbleProps['me'] }) {
   return (
     <div style={css('display:flex; flex-direction:row-reverse; gap:14px; align-items:flex-start; margin-left: 20%;')}>
+      {/* Avatar do usuário — foto do Google ou iniciais */}
+      <div style={css('width:38px; height:38px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1)')}>
+        {me?.picture ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={me.picture} alt={me.name || 'Eu'} referrerPolicy="no-referrer" style={css('width:100%; height:100%; object-fit:cover;')} />
+        ) : (
+          <span style={css('font-size:13px; font-weight:700; color:var(--muted-light); letter-spacing:0.5px')}>{initials(me?.name || me?.email || '?')}</span>
+        )}
+      </div>
       <div style={css('flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-end')}>
         <div style={css('display:inline-block; max-width:100%; background:var(--user-bubble); border:1px solid var(--border-subtle); border-radius:24px 6px 24px 24px; padding:12px 18px; font-size:15px; line-height:1.6; white-space:pre-wrap; color:var(--white); box-shadow:0 1px 2px 0 rgba(0,0,0,0.05);')}>
           {message.content}
@@ -43,8 +52,8 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
       onMouseLeave={() => setHovered(false)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <div style={css('width:32px; height:32px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; box-shadow:0 1px 3px rgba(0,0,0,0.1)')}>
-        <img src="/athena-logo.png" alt="Athena" style={css('width:20px; height:20px; object-fit:contain;')} />
+      <div style={css('width:38px; height:38px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; box-shadow:0 1px 3px rgba(0,0,0,0.1)')}>
+        <img src="/athena-logo.png" alt="Athena" style={css('width:26px; height:26px; object-fit:contain;')} />
       </div>
       
       <div style={css('flex:1; min-width:0; max-width: 100%; position:relative')}>
