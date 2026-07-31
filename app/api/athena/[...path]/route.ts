@@ -42,8 +42,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     return NextResponse.json({ error: 'backend_unconfigured', hint: 'defina ATHENA_BACKEND_URL e ATHENA_BACKEND_TOKEN no servidor' }, { status: 503 });
   }
 
-  const session = verify(req.cookies.get(COOKIE_NAME)?.value);
-  if (!session) return NextResponse.json({ error: 'nao_autenticado' }, { status: 401 });
+  const cookieValue = req.cookies.get(COOKIE_NAME)?.value;
+  const session = verify(cookieValue);
+  if (!session) {
+    console.error('[proxy 401]', {
+      endpoint,
+      hasCookie: !!cookieValue,
+      cookieLen: cookieValue?.length || 0,
+      hasSecret: !!process.env.SESSION_SECRET,
+      secretLen: (process.env.SESSION_SECRET || '').length,
+      allCookies: req.cookies.getAll().map(c => c.name),
+    });
+    return NextResponse.json({ error: 'nao_autenticado' }, { status: 401 });
+  }
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
   if (rateLimited(`${ip}:${endpoint}`)) {
