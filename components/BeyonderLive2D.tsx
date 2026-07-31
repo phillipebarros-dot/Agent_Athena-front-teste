@@ -74,13 +74,20 @@ export function BeyonderLive2D({
 
         if (destroyed) return;
 
-        // Criar app PixiJS
+        // Dimensoes fixas baseadas no estado
+        const canvasW = expanded ? 320 : 80;
+        const canvasH = expanded ? 400 : 80;
+
+        // Criar app PixiJS com dimensoes fixas (nao usar resizeTo)
         const app = new PIXI.Application({
           view: canvasRef.current!,
           autoStart: true,
           backgroundAlpha: 0,
-          resizeTo: canvasRef.current!.parentElement || undefined,
+          width: canvasW,
+          height: canvasH,
           antialias: true,
+          resolution: window.devicePixelRatio || 1,
+          autoDensity: true,
         });
 
         appRef.current = app;
@@ -98,16 +105,20 @@ export function BeyonderLive2D({
 
         modelRef.current = model;
 
-        // Escala e posicao
-        const scale = expanded ? 0.35 : 0.18;
-        model.scale.set(scale);
-        model.anchor.set(0.5, 0.5);
+        // Calcular escala para caber no canvas (modelo original e ~2000px)
+        const scaleX = canvasW / model.width;
+        const scaleY = canvasH / model.height;
+        const fitScale = Math.min(scaleX, scaleY) * (expanded ? 0.85 : 0.9);
+        model.scale.set(fitScale);
 
-        // Centralizar
-        const w = app.renderer.width;
-        const h = app.renderer.height;
-        model.x = w / 2;
-        model.y = h / 2;
+        // Centralizar o modelo no canvas
+        model.x = (canvasW - model.width * fitScale) / 2;
+        model.y = (canvasH - model.height * fitScale) / 2 + (expanded ? 20 : 0);
+
+        // Desabilitar event system do PixiJS no modelo (fix isInteractive error)
+        (model as any).eventMode = 'none';
+        (model as any).interactive = false;
+        (model as any).interactiveChildren = false;
 
         app.stage.addChild(model as any);
 

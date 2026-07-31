@@ -195,6 +195,11 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
           model.x = (width - model.width * scale) / 2;
           model.y = (height - model.height * scale) / 2 + 20;
 
+          // Desabilitar event system do PixiJS no modelo (fix isInteractive error)
+          (model as any).eventMode = 'none';
+          (model as any).interactive = false;
+          (model as any).interactiveChildren = false;
+
           app.stage.addChild(model as any);
 
           // Iniciar idle loop
