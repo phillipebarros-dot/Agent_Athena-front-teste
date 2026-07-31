@@ -74,25 +74,30 @@ export default function ChatPage() {
     (async () => {
       try {
         const m = await auth.me();
-        if (!m?.authenticated) { router.replace('/login'); return; }
+        console.log('[AUTH] me() response:', JSON.stringify(m));
+        if (!m?.authenticated) { console.log('[AUTH] NOT authenticated, redirecting to /login'); router.replace('/login'); return; }
+        console.log('[AUTH] Authenticated as:', m.email);
         setMe(m as AuthUser);
-      } catch { router.replace('/login'); return; }
+      } catch (e) { console.error('[AUTH] me() error:', e); router.replace('/login'); return; }
       setChecking(false);
     })();
   }, [router]);
 
   const loadConversations = useCallback(async () => {
+    console.log('[API] loadConversations() called');
     try {
       const r = await api.listConversations();
+      console.log('[API] listConversations() OK:', r.conversations?.length, 'conversations');
       setConversations(r.conversations || []);
       setBackendDown(false);
     } catch (e) {
+      console.error('[API] listConversations() ERROR:', e);
       if (isBackendError(e)) setBackendDown(true);
     }
     setLoadingConvs(false);
   }, []);
 
-  useEffect(() => { if (me) loadConversations(); }, [me, loadConversations]);
+  useEffect(() => { if (me) { console.log('[API] me is set, loading conversations'); loadConversations(); } }, [me, loadConversations]);
 
   // Buscar clientes do backend
   useEffect(() => {
