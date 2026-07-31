@@ -142,110 +142,184 @@ export function BeyonderFloating() {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 0, right: 40,
+      position: 'fixed', bottom: 0, right: 24,
       zIndex: 9999,
       display: 'flex', alignItems: 'flex-end', gap: 0,
     }}>
 
-      {/* ---- BALOES + INPUT (a esquerda do modelo) ---- */}
+      {/* ---- CHAT PANEL (glassmorphism) ---- */}
       {expanded && (
         <div style={{
+          width: 320,
+          marginBottom: 12, marginRight: -8,
+          background: 'rgba(12, 12, 20, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16,
+          boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset',
           display: 'flex', flexDirection: 'column',
-          marginBottom: 20, marginRight: 4,
-          width: 280,
-          animation: 'beyonderBubbleIn 0.25s ease',
+          overflow: 'hidden',
+          animation: 'beyonderPanelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         }}>
+
+          {/* Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 16px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            background: 'rgba(221, 0, 4, 0.08)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: '#22c55e',
+                boxShadow: '0 0 6px rgba(34,197,94,0.5)',
+              }} />
+              <span style={{
+                color: '#e0e0e0', fontSize: 13, fontWeight: 600,
+                letterSpacing: '0.3px',
+              }}>Beyonder</span>
+              <span style={{
+                color: '#666', fontSize: 11, fontWeight: 400,
+              }}>Assistente</span>
+            </div>
+            <button
+              onClick={() => setExpanded(false)}
+              style={{
+                background: 'transparent', border: 'none',
+                color: '#666', fontSize: 16, cursor: 'pointer',
+                width: 24, height: 24, display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                borderRadius: 6, transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { (e.target as HTMLElement).style.color = '#fff'; (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; }}
+              onMouseLeave={e => { (e.target as HTMLElement).style.color = '#666'; (e.target as HTMLElement).style.background = 'transparent'; }}
+            >✕</button>
+          </div>
+
           {/* Mensagens */}
           <div ref={scrollRef} style={{
+            flex: 1,
             display: 'flex', flexDirection: 'column', gap: 8,
-            overflowY: 'auto', maxHeight: 260, padding: '4px 0',
-            scrollbarWidth: 'none',
+            overflowY: 'auto', padding: '12px 14px',
+            minHeight: 160, maxHeight: 280,
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255,255,255,0.08) transparent',
           }}>
             {messages.map((msg, i) => (
               <div key={i} style={{
                 alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '92%',
+                maxWidth: '85%',
                 padding: '10px 14px',
-                borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                borderRadius: msg.role === 'user'
+                  ? '14px 14px 4px 14px'
+                  : '14px 14px 14px 4px',
                 background: msg.role === 'user'
                   ? 'var(--red, #dd0004)'
-                  : 'rgba(20, 20, 30, 0.95)',
-                color: '#e0e0e0', fontSize: 13, lineHeight: 1.5,
-                border: msg.role === 'beyonder' ? '1px solid rgba(255,255,255,0.08)' : 'none',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-                animation: 'beyonderMsgIn 0.2s ease',
+                  : 'rgba(255, 255, 255, 0.04)',
+                color: msg.role === 'user' ? '#fff' : '#d0d0d0',
+                fontSize: 13, lineHeight: 1.55,
+                border: msg.role === 'beyonder'
+                  ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                animation: 'beyonderMsgIn 0.25s ease',
               }}>
                 {msg.text}
               </div>
             ))}
             {thinking && (
               <div style={{
-                padding: '10px 14px', borderRadius: '14px 14px 14px 4px',
-                background: 'rgba(20, 20, 30, 0.95)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-                display: 'flex', gap: 5,
+                padding: '10px 14px',
+                borderRadius: '14px 14px 14px 4px',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                display: 'flex', gap: 5, alignSelf: 'flex-start',
               }}>
                 {[0, 0.2, 0.4].map((d, i) => (
                   <span key={i} style={{
-                    width: 5, height: 5, borderRadius: '50%', background: '#888',
-                    display: 'inline-block', animation: `dotPulse 1.4s infinite ${d}s`,
+                    width: 5, height: 5, borderRadius: '50%',
+                    background: '#888', display: 'inline-block',
+                    animation: `dotPulse 1.4s infinite ${d}s`,
                   }} />
                 ))}
               </div>
             )}
           </div>
 
-          {/* Input */}
+          {/* Input area */}
           <div style={{
-            display: 'flex', gap: 6, marginTop: 8, alignItems: 'center',
+            padding: '10px 14px 12px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            background: 'rgba(0,0,0,0.15)',
           }}>
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Pergunte ao Beyonder..."
-              disabled={thinking}
-              style={{
-                flex: 1, background: 'rgba(20, 20, 30, 0.95)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 10, padding: '9px 12px',
-                color: '#e0e0e0', fontSize: 13, outline: 'none',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-              }}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={thinking || !input.trim()}
-              style={{
-                width: 32, height: 32, borderRadius: '50%', border: 'none',
-                background: input.trim() && !thinking ? 'var(--red, #dd0004)' : 'rgba(255,255,255,0.08)',
-                color: '#fff', fontSize: 14, flexShrink: 0,
-                cursor: input.trim() && !thinking ? 'pointer' : 'default',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >↑</button>
-          </div>
+            <div style={{
+              display: 'flex', gap: 8, alignItems: 'center',
+            }}>
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Pergunte ao Beyonder..."
+                disabled={thinking}
+                style={{
+                  flex: 1, background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 10, padding: '10px 14px',
+                  color: '#e0e0e0', fontSize: 13, outline: 'none',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => { e.target.style.borderColor = 'rgba(221,0,4,0.4)'; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={thinking || !input.trim()}
+                style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  border: 'none', flexShrink: 0,
+                  background: input.trim() && !thinking
+                    ? 'var(--red, #dd0004)'
+                    : 'rgba(255,255,255,0.05)',
+                  color: '#fff',
+                  cursor: input.trim() && !thinking ? 'pointer' : 'default',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s',
+                  boxShadow: input.trim() && !thinking
+                    ? '0 2px 12px rgba(221,0,4,0.3)' : 'none',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 2L11 13" />
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                </svg>
+              </button>
+            </div>
 
-          {/* Link para FAQ */}
-          <button
-            onClick={() => router.push('/faq')}
-            style={{
-              marginTop: 8,
-              background: 'rgba(20, 20, 30, 0.95)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 10, padding: '8px 14px',
-              color: '#999', fontSize: 12, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 6,
-              justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => { (e.target as HTMLElement).style.color = '#dd0004'; }}
-            onMouseLeave={e => { (e.target as HTMLElement).style.color = '#999'; }}
-          >
-            📖 Ver Central de Ajuda completa
-          </button>
+            {/* Link para FAQ */}
+            <button
+              onClick={() => router.push('/faq')}
+              style={{
+                marginTop: 8, width: '100%',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 8, padding: '7px 12px',
+                color: '#666', fontSize: 11, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => {
+                (e.target as HTMLElement).style.color = '#dd0004';
+                (e.target as HTMLElement).style.borderColor = 'rgba(221,0,4,0.2)';
+              }}
+              onMouseLeave={e => {
+                (e.target as HTMLElement).style.color = '#666';
+                (e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
+              }}
+            >
+              📖 Central de Ajuda
+            </button>
+          </div>
         </div>
       )}
 
@@ -278,26 +352,12 @@ export function BeyonderFloating() {
         >
           Beyonder
         </div>
-
-        {/* Fechar quando expandido */}
-        {expanded && (
-          <button
-            onClick={() => setExpanded(false)}
-            style={{
-              position: 'absolute', top: 0, right: 0,
-              width: 20, height: 20, borderRadius: '50%',
-              background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)',
-              color: '#888', fontSize: 10, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >✕</button>
-        )}
       </div>
 
       <style>{`
-        @keyframes beyonderBubbleIn {
-          from { opacity: 0; transform: translateX(15px); }
-          to { opacity: 1; transform: translateX(0); }
+        @keyframes beyonderPanelIn {
+          from { opacity: 0; transform: translateY(12px) scale(0.96); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes beyonderMsgIn {
           from { opacity: 0; transform: translateY(6px); }
@@ -313,3 +373,4 @@ export function BeyonderFloating() {
 }
 
 export default BeyonderFloating;
+
