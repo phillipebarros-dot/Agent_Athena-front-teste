@@ -71,43 +71,77 @@ export function BeyonderFloating() {
   const [currentEmotion, setCurrentEmotion] = useState('neutral');
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
+  // Mensagem de boas-vindas (sem acentos pra evitar encoding)
   useEffect(() => {
     if (expanded && messages.length === 0) {
       setMessages([{
         role: 'beyonder',
-        text: 'Opa! Sou o Beyonder. Posso tirar suas dúvidas sobre a Athena ou te levar pra Central de Ajuda!',
+        text: 'Opa! Sou o Beyonder. Posso tirar suas duvidas sobre a Athena ou te levar pra Central de Ajuda!',
       }]);
+      setCurrentEmotion('greeting');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded]);
 
+  // Cancela audio ao fechar o painel ou desmontar
+  const stopAudio = useCallback(() => {
+    try {
+      if (sourceNodeRef.current) {
+        sourceNodeRef.current.stop();
+        sourceNodeRef.current.disconnect();
+        sourceNodeRef.current = null;
+      }
+    } catch { /* node ja parado */ }
+    setIsSpeaking(false);
+    analyserRef.current = null;
+  }, []);
+
+  // Cleanup no unmount
+  useEffect(() => {
+    return () => { stopAudio(); };
+  }, [stopAudio]);
+
   const playAudioWithLipSync = useCallback(async (base64Audio: string) => {
     try {
+      // Cancela audio anterior se existir
+      stopAudio();
+
       if (!audioContextRef.current) audioContextRef.current = new AudioContext();
       const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') await ctx.resume();
+
       const binaryStr = atob(base64Audio);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       const audioBuffer = await ctx.decodeAudioData(bytes.buffer);
+
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.6;
       analyserRef.current = analyser;
+
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(analyser);
       analyser.connect(ctx.destination);
+      sourceNodeRef.current = source;
+
       setIsSpeaking(true);
       source.start();
-      source.onended = () => { setIsSpeaking(false); analyserRef.current = null; };
+      source.onended = () => {
+        setIsSpeaking(false);
+        analyserRef.current = null;
+        sourceNodeRef.current = null;
+      };
     } catch { setIsSpeaking(false); }
-  }, []);
+  }, [stopAudio]);
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
@@ -185,7 +219,7 @@ export function BeyonderFloating() {
               }}>Assistente</span>
             </div>
             <button
-              onClick={() => setExpanded(false)}
+              onClick={() => { stopAudio(); setExpanded(false); }}
               style={{
                 background: 'transparent', border: 'none',
                 color: '#666', fontSize: 16, cursor: 'pointer',
@@ -326,7 +360,7 @@ export function BeyonderFloating() {
       {/* ---- MODELO LIVE2D (inteiro, sem circulo) ---- */}
       <div style={{ position: 'relative' }}>
         <div
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => { if (expanded) stopAudio(); setExpanded(!expanded); }}
           style={{ cursor: 'pointer' }}
         >
           <BeyonderLive2D
