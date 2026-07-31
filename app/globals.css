@@ -19,9 +19,9 @@
   --magenta:#c4147a; --danger:#dd0004; --grey:#4a4645;
   --user-bubble:#242221; --athena-bubble:#161514; --scrollbar-thumb:#2c2a29;
   --green-dim:#2f7d3a;
-  --bg-quiet:#141312; --bg-raised:#1a1918; --bg-code:#0c0b0b; --border-ghost:rgba(255,255,255,.04);
+  --bg-quiet:#141312; --bg-raised:#1a1918; --bg-code:#0c0b0b; --border-ghost:rgba(0,0,0,.04);
   --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --sidebar-w:260px;
+  --sidebar-w:280px;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-display: 'Oswald', 'Raleway', sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
@@ -32,6 +32,17 @@
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
   --transition-slow: 300ms ease;
+  /* Glassmorphism tokens */
+  --glass: rgba(20,19,18,0.55);
+  --glass-border: rgba(255,255,255,0.06);
+  --glass-blur: blur(16px);
+  --glass-surface: rgba(20,19,18,0.65);
+  --glass-hover: rgba(255,255,255,0.03);
+  /* Elevated shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.1);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.15);
+  --shadow-glow-red: 0 0 30px rgba(221,0,4,.12), 0 0 60px rgba(221,0,4,.06);
 }
 :root.light {
   --page:#eeeae7; --bg-deep:#f4f1ee; --bg-surface:#ffffff; --bg-panel:#f7f4f1;
@@ -48,6 +59,11 @@
   --shadow: 10.67px 21.33px 3.38px rgba(0,0,0,.06), 13.48px 26.97px 7.01px rgba(0,0,0,.08);
   --skeleton-base: #f0ebe7;
   --skeleton-shine: #e0dbd5;
+  --glass: rgba(255,255,255,0.65);
+  --glass-border: rgba(0,0,0,0.06);
+  --glass-surface: rgba(255,255,255,0.75);
+  --glass-hover: rgba(0,0,0,0.02);
+  --shadow-glow-red: 0 0 20px rgba(221,0,4,.08), 0 0 40px rgba(221,0,4,.04);
 }
 
 * { box-sizing: border-box; }
@@ -56,10 +72,12 @@ html, body { margin: 0; padding: 0; background: var(--page); color: var(--white)
 a { color: var(--red); text-decoration: none; }
 a:hover { color: var(--brand-hot); }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 6px; transition: background .2s; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.15); }
 ::-webkit-scrollbar-track { background: transparent; }
 
+/* ─── Keyframe Animations ─── */
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes auraGlow { 0%,100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
@@ -69,6 +87,12 @@ a:hover { color: var(--brand-hot); }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes stagger-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes dashIn { from { stroke-dashoffset: 314; } to { stroke-dashoffset: var(--dash-target, 0); } }
+@keyframes glassIn { from { opacity: 0; transform: translateY(8px) scale(0.98); backdrop-filter: blur(0); }
+  to { opacity: 1; transform: translateY(0) scale(1); backdrop-filter: var(--glass-blur); } }
+@keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes countUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes glowPulse { 0%,100% { box-shadow: 0 0 12px rgba(221,0,4,.08); } 50% { box-shadow: 0 0 24px rgba(221,0,4,.18); } }
 @media (prefers-reduced-motion: reduce) { [data-think-dot] { animation: none !important; opacity: .75 !important; } }
 
 /* ─── Mobile responsive sidebar ─── */
@@ -80,12 +104,13 @@ a:hover { color: var(--brand-hot); }
     inset: 0 !important;
     z-index: 100 !important;
     width: 100% !important;
-    max-width: 300px !important;
+    max-width: 320px !important;
   }
   .hamburger-btn { display: flex !important; }
   .sidebar-backdrop {
     position: fixed; inset: 0; z-index: 99;
-    background: rgba(0,0,0,.6); display: block !important;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+    display: block !important;
   }
 }
 @media (min-width: 769px) {

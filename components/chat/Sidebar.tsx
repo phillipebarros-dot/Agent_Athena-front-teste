@@ -38,10 +38,10 @@ function groupByTime(conversations: Conversation[]) {
   const weekAgo = today - 7 * 86400000;
 
   const groups: { label: string; icon: React.ReactNode; items: Conversation[] }[] = [
-    { label: 'Hoje', icon: <Sparkle size={12} />, items: [] },
-    { label: 'Ontem', icon: <Clock size={12} />, items: [] },
-    { label: 'Esta semana', icon: <CalendarDots size={12} />, items: [] },
-    { label: 'Anteriores', icon: <Archive size={12} />, items: [] },
+    { label: 'Hoje', icon: <Sparkle size={13} />, items: [] },
+    { label: 'Ontem', icon: <Clock size={13} />, items: [] },
+    { label: 'Esta semana', icon: <CalendarDots size={13} />, items: [] },
+    { label: 'Anteriores', icon: <Archive size={13} />, items: [] },
   ];
 
   for (const c of conversations) {
@@ -54,7 +54,7 @@ function groupByTime(conversations: Conversation[]) {
   return groups.filter((g) => g.items.length > 0);
 }
 
-/* ─── Styles (module-like, no inline strings) ─── */
+/* ─── Styles ─── */
 const FALLBACK_CLIENTS = ['O Boticário', 'Eudora', 'Quem disse, Berenice?', 'Todos'];
 
 const s = {
@@ -63,43 +63,44 @@ const s = {
     flexShrink: 0,
     display: 'flex',
     flexDirection: 'column' as const,
-    background: 'rgba(24, 24, 27, 0.65)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
-    borderRight: '1px solid var(--border-faint)',
+    background: 'var(--glass-surface)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    borderRight: '1px solid var(--glass-border)',
     height: '100%',
     overflow: 'hidden',
   },
   header: {
-    padding: '20px 16px 0',
+    padding: '22px 18px 0',
     flexShrink: 0,
   },
   logo: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    marginBottom: '20px',
+    gap: '14px',
+    marginBottom: '22px',
   },
   logoImg: {
-    width: 44,
-    height: 44,
+    width: 56,
+    height: 56,
     objectFit: 'contain' as const,
     flexShrink: 0,
+    filter: 'drop-shadow(0 2px 8px rgba(221,0,4,.2))',
   },
   logoText: {
     fontFamily: 'var(--font-display)',
-    fontSize: '17px',
+    fontSize: '22px',
     fontWeight: 700,
-    letterSpacing: '2.5px',
+    letterSpacing: '3px',
     color: 'var(--white)',
     lineHeight: 1,
   },
   logoSub: {
-    fontSize: '8px',
-    letterSpacing: '1.8px',
+    fontSize: '10px',
+    letterSpacing: '2px',
     color: 'var(--red)',
     fontWeight: 600,
-    marginTop: '3px',
+    marginTop: '4px',
     textTransform: 'uppercase' as const,
   },
   newBtn: {
@@ -107,29 +108,30 @@ const s = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
-    padding: '10px 16px',
+    gap: '9px',
+    padding: '12px 18px',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '12px',
     fontFamily: 'var(--font-body)',
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: 600,
     cursor: 'pointer',
     color: '#fff',
-    background: 'var(--red)',
-    transition: 'all .15s ease',
-    marginBottom: '12px',
+    background: 'linear-gradient(135deg, var(--red), var(--red-dim))',
+    boxShadow: '0 4px 16px rgba(221,0,4,.2)',
+    transition: 'all .2s ease',
+    marginBottom: '14px',
   },
   searchWrap: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '8px 10px',
+    gap: '9px',
+    padding: '9px 12px',
     background: 'var(--bg-input)',
     border: '1px solid var(--border-faint)',
-    borderRadius: '8px',
-    transition: 'border-color .15s ease',
-    marginBottom: '8px',
+    borderRadius: '10px',
+    transition: 'border-color .2s ease, box-shadow .2s ease',
+    marginBottom: '10px',
   },
   searchInput: {
     flex: 1,
@@ -139,25 +141,25 @@ const s = {
     outline: 'none',
     color: 'var(--white)',
     fontFamily: 'var(--font-body)',
-    fontSize: '13px',
+    fontSize: '13.5px',
   },
   divider: {
     height: '1px',
     background: 'var(--border-faint)',
-    margin: '4px 16px',
+    margin: '4px 18px',
     flexShrink: 0,
   },
   nav: {
-    padding: '8px 16px 4px',
+    padding: '8px 18px 4px',
     flexShrink: 0,
   },
   navItem: (active: boolean) => ({
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    padding: '8px 10px',
-    borderRadius: '6px',
-    fontSize: '13px',
+    padding: '9px 11px',
+    borderRadius: '8px',
+    fontSize: '13.5px',
     fontWeight: active ? 600 : 400,
     color: active ? 'var(--white)' : 'var(--muted-light)',
     background: active ? 'var(--bg-panel)' : 'transparent',
@@ -167,21 +169,21 @@ const s = {
     width: '100%',
     textAlign: 'left' as const,
     textDecoration: 'none',
-    transition: 'all .12s ease',
+    transition: 'all .15s ease',
     marginBottom: '2px',
   }),
   clientWrap: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '8px 10px',
+    gap: '9px',
+    padding: '9px 12px',
     background: 'var(--bg-input)',
     border: '1px solid var(--border-faint)',
-    borderRadius: '8px',
+    borderRadius: '10px',
   },
   clientLabel: {
-    fontSize: '9px',
-    letterSpacing: '1.2px',
+    fontSize: '9.5px',
+    letterSpacing: '1.4px',
     textTransform: 'uppercase' as const,
     color: 'var(--muted-dim)',
     fontWeight: 600,
@@ -195,18 +197,18 @@ const s = {
     outline: 'none',
     color: 'var(--white)',
     fontFamily: 'var(--font-body)',
-    fontSize: '12px',
+    fontSize: '12.5px',
     fontWeight: 500,
     cursor: 'pointer',
   },
   sectionLabel: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    padding: '8px 10px 4px',
-    fontSize: '11px',
+    gap: '7px',
+    padding: '10px 11px 5px',
+    fontSize: '11.5px',
     fontWeight: 600,
-    letterSpacing: '0.5px',
+    letterSpacing: '0.6px',
     textTransform: 'uppercase' as const,
     color: 'var(--muted-dim)',
   },
@@ -214,29 +216,29 @@ const s = {
     flex: 1,
     overflowY: 'auto' as const,
     overflowX: 'hidden' as const,
-    padding: '4px 8px',
+    padding: '4px 10px',
   },
   convItem: (active: boolean) => ({
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    padding: '8px 10px',
-    borderRadius: '6px',
+    gap: '11px',
+    padding: '9px 11px',
+    borderRadius: '8px',
     cursor: 'pointer',
     border: 'none',
     fontFamily: 'var(--font-body)',
     width: '100%',
     textAlign: 'left' as const,
     background: active ? 'var(--bg-panel)' : 'transparent',
-    transition: 'background .12s ease',
-    marginBottom: '1px',
+    transition: 'background .15s ease',
+    marginBottom: '2px',
   }),
   convIcon: (active: boolean) => ({
-    width: 28,
-    height: 28,
-    borderRadius: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     flexShrink: 0,
-    background: active ? 'rgba(221,0,4,0.08)' : 'var(--bg-input)',
+    background: active ? 'rgba(221,0,4,0.1)' : 'var(--bg-input)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -246,7 +248,7 @@ const s = {
     whiteSpace: 'nowrap' as const,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    fontSize: '13px',
+    fontSize: '13.5px',
     fontWeight: active ? 600 : 400,
     color: active ? 'var(--white)' : 'var(--muted-light)',
     lineHeight: '1.3',
@@ -254,7 +256,7 @@ const s = {
   convMeta: {
     display: 'flex',
     gap: '6px',
-    marginTop: '1px',
+    marginTop: '2px',
     fontSize: '11px',
     color: 'var(--muted-dim)',
   },
@@ -272,17 +274,17 @@ const s = {
   }),
   footer: {
     flexShrink: 0,
-    padding: '12px 16px 16px',
+    padding: '14px 18px 18px',
     borderTop: '1px solid var(--border-faint)',
   },
   userRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '11px',
   },
   avatar: {
-    width: 34,
-    height: 34,
+    width: 42,
+    height: 42,
     borderRadius: '50%',
     flexShrink: 0,
     background: 'linear-gradient(135deg, var(--red-dim), var(--red))',
@@ -290,12 +292,13 @@ const s = {
     alignItems: 'center',
     justifyContent: 'center',
     fontFamily: 'var(--font-display)',
-    fontSize: '12px',
+    fontSize: '13px',
     fontWeight: 700,
     color: '#fff',
+    overflow: 'hidden',
   },
   userName: {
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: 600,
     color: 'var(--white)',
     whiteSpace: 'nowrap' as const,
@@ -303,23 +306,23 @@ const s = {
     textOverflow: 'ellipsis',
   },
   userEmail: {
-    fontSize: '11px',
+    fontSize: '11.5px',
     color: 'var(--muted-dim)',
     whiteSpace: 'nowrap' as const,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    marginTop: '1px',
+    marginTop: '2px',
   },
   logoutBtn: {
     background: 'none',
     border: '1px solid var(--border-faint)',
-    borderRadius: '6px',
+    borderRadius: '8px',
     color: 'var(--muted-dim)',
     cursor: 'pointer',
-    padding: '6px',
+    padding: '7px',
     display: 'flex',
     flexShrink: 0,
-    transition: 'all .15s ease',
+    transition: 'all .2s ease',
   },
 } as const;
 
@@ -355,15 +358,15 @@ export function Sidebar({
         <button
           onClick={onNewConversation}
           style={s.newBtn}
-          onMouseEnter={(e) => { (e.currentTarget.style.background = 'var(--red-dim)'); (e.currentTarget.style.boxShadow = '0 4px 12px rgba(221,0,4,0.25)'); }}
-          onMouseLeave={(e) => { (e.currentTarget.style.background = 'var(--red)'); (e.currentTarget.style.boxShadow = 'none'); }}
+          onMouseEnter={(e) => { (e.currentTarget.style.background = 'linear-gradient(135deg, var(--red-dim), var(--wine))'); (e.currentTarget.style.boxShadow = '0 6px 20px rgba(221,0,4,0.3)'); (e.currentTarget.style.transform = 'translateY(-1px)'); }}
+          onMouseLeave={(e) => { (e.currentTarget.style.background = 'linear-gradient(135deg, var(--red), var(--red-dim))'); (e.currentTarget.style.boxShadow = '0 4px 16px rgba(221,0,4,0.2)'); (e.currentTarget.style.transform = 'translateY(0)'); }}
         >
-          <Plus size={15} strokeWidth={2.5} /> Nova conversa
+          <Plus size={16} weight="bold" /> Nova conversa
         </button>
 
         {/* Search */}
         <div style={s.searchWrap}>
-          <MagnifyingGlass size={14} color="var(--muted-dim)" />
+          <MagnifyingGlass size={15} color="var(--muted-dim)" />
           <input data-search-input value={search} onChange={(e) => onSearchChange(e.target.value)} placeholder="Buscar conversas… (Ctrl+K)" style={s.searchInput} />
         </div>
       </div>
@@ -389,22 +392,22 @@ export function Sidebar({
           <SidebarSkeleton count={6} />
         ) : backendDown ? (
           <div style={{ padding: '28px 12px', textAlign: 'center' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-              <ChatCircle size={18} color="var(--muted-dim)" />
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <ChatCircle size={20} color="var(--muted-dim)" />
             </div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted-light)', marginBottom: 4 }}>Sem conexão</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--muted-light)', marginBottom: 4 }}>Sem conexão</div>
             <div style={{ fontSize: '12px', color: 'var(--muted-dim)', lineHeight: 1.6 }}>Configure o backend para ver suas conversas aqui.</div>
-            <div style={s.badge('var(--gold)')}>
+            <div style={{ ...s.badge('var(--gold)'), marginTop: 10, display: 'inline-flex' }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--gold)' }} />
               offline
             </div>
           </div>
         ) : groups.length === 0 ? (
           <div style={{ padding: '28px 12px', textAlign: 'center' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-              <ChatCircle size={18} color="var(--muted-dim)" />
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <ChatCircle size={20} color="var(--muted-dim)" />
             </div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted-light)', marginBottom: 4 }}>
+            <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--muted-light)', marginBottom: 4 }}>
               {search ? 'Nenhum resultado' : 'Nenhuma conversa'}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--muted-dim)', lineHeight: 1.6 }}>
@@ -437,11 +440,11 @@ export function Sidebar({
                     onMouseLeave={() => setHovered(null)}
                     style={{
                       ...s.convItem(on),
-                      ...(isHov && !on ? { background: 'var(--bg-input)' } : {}),
+                      ...(isHov && !on ? { background: 'var(--glass-hover)' } : {}),
                     }}
                   >
                     <div style={s.convIcon(on)}>
-                      <ChatCircle size={13} color={on ? 'var(--red)' : 'var(--muted)'} weight={on ? 'fill' : 'regular'} />
+                      <ChatCircle size={14} color={on ? 'var(--red)' : 'var(--muted)'} weight={on ? 'fill' : 'regular'} />
                     </div>
                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                       {editingId === c.conversation_id ? (
@@ -459,8 +462,8 @@ export function Sidebar({
                           onClick={(e) => e.stopPropagation()}
                           style={{
                             width: '100%', background: 'var(--bg-input)', border: '1px solid var(--red-dim)',
-                            borderRadius: 4, padding: '2px 6px', color: 'var(--white)', fontFamily: 'var(--font-body)',
-                            fontSize: '12px', fontWeight: 600, outline: 'none',
+                            borderRadius: 6, padding: '3px 8px', color: 'var(--white)', fontFamily: 'var(--font-body)',
+                            fontSize: '12.5px', fontWeight: 600, outline: 'none',
                           }}
                         />
                       ) : (
@@ -473,16 +476,16 @@ export function Sidebar({
                     </span>
                     {/* Pencil icon on hover */}
                     {isHov && !editingId && onRenameConversation && (
-                      <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                      <span style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
                         <span
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingId(c.conversation_id);
                             setEditVal(c.title || '');
                           }}
-                          style={{ color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
+                          style={{ color: 'var(--muted)', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 4, transition: 'color .15s' }}
                         >
-                          <PencilSimple size={11} />
+                          <PencilSimple size={12} />
                         </span>
                         {onDeleteConversation && (
                           <span
@@ -490,30 +493,30 @@ export function Sidebar({
                               e.stopPropagation();
                               onDeleteConversation(c.conversation_id);
                             }}
-                            style={{ color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
+                            style={{ color: 'var(--muted)', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 4, transition: 'color .15s' }}
                           >
-                            <Trash size={11} />
+                            <Trash size={12} />
                           </span>
                         )}
                       </span>
                     )}
                     {editingId === c.conversation_id && (
-                      <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                      <span style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
                         <span
                           onClick={(e) => {
                             e.stopPropagation();
                             if (editVal.trim()) onRenameConversation?.(c.conversation_id, editVal.trim());
                             setEditingId(null);
                           }}
-                          style={{ color: 'var(--red)', cursor: 'pointer', padding: 2, display: 'flex' }}
+                          style={{ color: 'var(--red)', cursor: 'pointer', padding: 3, display: 'flex' }}
                         >
-                          <Check size={13} strokeWidth={2.5} />
+                          <Check size={14} weight="bold" />
                         </span>
                         <span
                           onClick={(e) => { e.stopPropagation(); setEditingId(null); }}
-                          style={{ color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
+                          style={{ color: 'var(--muted)', cursor: 'pointer', padding: 3, display: 'flex' }}
                         >
-                          <X size={13} />
+                          <X size={14} />
                         </span>
                       </span>
                     )}
@@ -521,7 +524,7 @@ export function Sidebar({
                 );
               })}
 
-              <div style={{ ...s.divider, margin: '6px 4px' }} />
+              <div style={{ ...s.divider, margin: '6px 6px' }} />
             </div>
           ))
         )}
@@ -531,9 +534,9 @@ export function Sidebar({
       {me?.admin && (
         <>
           <div style={s.divider} />
-          <div style={{ padding: '4px 8px' }}>
+          <div style={{ padding: '4px 10px' }}>
             <a href="/admin" style={{ ...s.navItem(false), textDecoration: 'none' }}>
-              <ShieldCheck size={16} color="var(--muted)" />
+              <ShieldCheck size={17} color="var(--muted)" />
               Painel de Auditoria
               <span style={{ ...s.badge('var(--green)'), marginLeft: 'auto' }}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)' }} />
@@ -541,11 +544,11 @@ export function Sidebar({
               </span>
             </a>
             <a href="/admin" style={{ ...s.navItem(false), textDecoration: 'none' }}>
-              <ChartBar size={16} color="var(--muted)" />
+              <ChartBar size={17} color="var(--muted)" />
               Relatórios
             </a>
             <a href="/admin?tab=config" style={{ ...s.navItem(false), textDecoration: 'none' }}>
-              <GearSix size={16} color="var(--muted)" />
+              <GearSix size={17} color="var(--muted)" />
               Configurações
             </a>
           </div>
@@ -553,9 +556,9 @@ export function Sidebar({
       )}
 
       {/* ═══ OpusMúltipla ═══ */}
-      <div style={{ padding: '4px 16px 2px', textAlign: 'center' }}>
+      <div style={{ padding: '6px 18px 4px', textAlign: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/opus-multipla-logo.png" alt="OpusMúltipla" style={{ maxWidth: 85, height: 'auto', opacity: 0.2 }} />
+        <img src="/opus-multipla-logo.png" alt="OpusMúltipla" style={{ maxWidth: 90, height: 'auto', opacity: 0.22 }} />
       </div>
 
       {/* ═══ User footer ═══ */}
@@ -579,7 +582,7 @@ export function Sidebar({
               onMouseEnter={(e) => { (e.currentTarget.style.color = 'var(--white)'); (e.currentTarget.style.borderColor = 'var(--red-dim)'); }}
               onMouseLeave={(e) => { (e.currentTarget.style.color = 'var(--muted-dim)'); (e.currentTarget.style.borderColor = 'var(--border-faint)'); }}
             >
-              {light ? <Moon size={14} /> : <Sun size={14} />}
+              {light ? <Moon size={15} /> : <Sun size={15} />}
             </button>
           )}
           <button
@@ -589,7 +592,7 @@ export function Sidebar({
             onMouseEnter={(e) => { (e.currentTarget.style.color = 'var(--red)'); (e.currentTarget.style.borderColor = 'rgba(221,0,4,0.2)'); }}
             onMouseLeave={(e) => { (e.currentTarget.style.color = 'var(--muted-dim)'); (e.currentTarget.style.borderColor = 'var(--border-faint)'); }}
           >
-            <SignOut size={14} />
+            <SignOut size={15} />
           </button>
         </div>
       </div>

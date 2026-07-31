@@ -22,7 +22,7 @@ function UserBubble({ message, me }: { message: ChatMessage; me: MessageBubblePr
   return (
     <div style={css('display:flex; flex-direction:row-reverse; gap:14px; align-items:flex-start; margin-left: 20%;')}>
       {/* Avatar do usuário — foto do Google ou iniciais */}
-      <div style={css('width:38px; height:38px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1)')}>
+      <div style={css('width:40px; height:40px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; overflow:hidden; box-shadow:var(--shadow-sm)')}>      
         {me?.picture ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={me.picture} alt={me.name || 'Eu'} referrerPolicy="no-referrer" style={css('width:100%; height:100%; object-fit:cover;')} />
@@ -31,7 +31,7 @@ function UserBubble({ message, me }: { message: ChatMessage; me: MessageBubblePr
         )}
       </div>
       <div style={css('flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-end')}>
-        <div style={css('display:inline-block; max-width:100%; background:var(--user-bubble); border:1px solid var(--border-subtle); border-radius:24px 6px 24px 24px; padding:12px 18px; font-size:15px; line-height:1.6; white-space:pre-wrap; color:var(--white); box-shadow:0 1px 2px 0 rgba(0,0,0,0.05);')}>
+        <div style={css('display:inline-block; max-width:100%; background:var(--user-bubble); border:1px solid var(--glass-border); border-radius:24px 6px 24px 24px; padding:13px 20px; font-size:15px; line-height:1.65; white-space:pre-wrap; color:var(--white); box-shadow:var(--shadow-sm);')}>
           {message.content}
         </div>
       </div>
@@ -52,7 +52,7 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
       onMouseLeave={() => setHovered(false)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <div style={css('width:38px; height:38px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; box-shadow:0 1px 3px rgba(0,0,0,0.1)')}>
+      <div style={css('width:40px; height:40px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; box-shadow:var(--shadow-sm), 0 0 12px rgba(221,0,4,0.06)')}>      
         <img src="/athena-logo.png" alt="Athena" style={css('width:26px; height:26px; object-fit:contain;')} />
       </div>
       
