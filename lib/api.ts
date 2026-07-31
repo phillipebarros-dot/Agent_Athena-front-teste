@@ -33,7 +33,15 @@ async function call<T>(endpoint: string, body: unknown, signal?: AbortSignal): P
     signal,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(data?.error || `erro_${res.status}`), { status: res.status, data });
+  if (!res.ok) {
+    // 401 = sessao expirada/invalida → redirecionar para login (evita loop infinito)
+    if (res.status === 401 && typeof window !== 'undefined') {
+      window.location.href = '/login';
+      // Lanca erro silencioso pra parar a cadeia de execucao
+      throw Object.assign(new Error('sessao_expirada'), { status: 401, data, _redirecting: true });
+    }
+    throw Object.assign(new Error(data?.error || `erro_${res.status}`), { status: res.status, data });
+  }
   return data as T;
 }
 
