@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     client_id: GOOGLE_CLIENT_ID(),
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'openid email profile',
+    scope: 'openid email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
     state,
     prompt: 'select_account',
     access_type: 'online',

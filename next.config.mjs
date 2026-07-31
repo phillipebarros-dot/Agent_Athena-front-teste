@@ -1,23 +1,9 @@
 /** @type {import('next').NextConfig} */
 
-// Cabeçalhos de segurança aplicados a todas as respostas.
-// CSP pragmática: funciona com estilo inline + Google Fonts. Pode ser
-// endurecida com nonces depois (ver SECURITY.md).
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https:",
-  "connect-src 'self'",
-  "media-src 'self' data: blob:",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join('; ');
-
+// CSP agora é gerenciado pelo middleware.ts com nonces por request.
+// Outros security headers que nao precisam de nonce ficam aqui como fallback.
 const securityHeaders = [
-  { key: 'Content-Security-Policy', value: csp },
+  // CSP removido — middleware.ts gera com nonce
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },

@@ -87,6 +87,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     if (!body.user_id) body.user_id = session.email;
     if (!body.user_email) body.user_email = session.email;
   }
+  // Injetar Google access_token para export Sheets (cria no Drive do usuario)
+  if (body && typeof body === 'object' && endpoint === 'export' && session.google_access_token) {
+    body.google_access_token = session.google_access_token;
+  }
 
   if (endpoint === 'users') {
     const action = body?.action;

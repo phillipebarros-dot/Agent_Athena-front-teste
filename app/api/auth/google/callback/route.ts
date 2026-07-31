@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
     }
 
     const res = NextResponse.redirect(new URL('/chat', origin));
-    res.cookies.set(COOKIE_NAME, sign({ email, name, picture }), cookieOptions);
+    res.cookies.set(COOKIE_NAME, sign({ email, name, picture, google_access_token: tokens.access_token }), cookieOptions);
     res.cookies.set('oauth_state', '', { httpOnly: true, path: '/', maxAge: 0 });
 
     // Registra/atualiza usuário no BigQuery (athena_users)
