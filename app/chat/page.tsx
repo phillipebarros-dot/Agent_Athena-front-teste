@@ -70,41 +70,29 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auth gate
-  const [authDebug, setAuthDebug] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
       try {
         const m = await auth.me();
-        console.log('[AUTH] me() response:', JSON.stringify(m));
-        if (!m?.authenticated) {
-          setAuthDebug(`me() retornou: ${JSON.stringify(m)}`);
-          return;
-        }
-        console.log('[AUTH] Authenticated as:', m.email);
+        if (!m?.authenticated) { router.replace('/login'); return; }
         setMe(m as AuthUser);
-      } catch (e: any) {
-        setAuthDebug(`me() erro: ${e?.message || String(e)}`);
-        return;
-      }
+      } catch { router.replace('/login'); return; }
       setChecking(false);
     })();
   }, [router]);
 
   const loadConversations = useCallback(async () => {
-    console.log('[API] loadConversations() called');
     try {
       const r = await api.listConversations();
-      console.log('[API] listConversations() OK:', r.conversations?.length, 'conversations');
       setConversations(r.conversations || []);
       setBackendDown(false);
     } catch (e) {
-      console.error('[API] listConversations() ERROR:', e);
       if (isBackendError(e)) setBackendDown(true);
     }
     setLoadingConvs(false);
   }, []);
 
-  useEffect(() => { if (me) { console.log('[API] me is set, loading conversations'); loadConversations(); } }, [me, loadConversations]);
+  useEffect(() => { if (me) loadConversations(); }, [me, loadConversations]);
 
   // Buscar clientes do backend
   useEffect(() => {
@@ -266,29 +254,6 @@ export default function ChatPage() {
     },
   });
 
-  // Se auth falhou, mostra debug na tela (sem redirecionar)
-  if (authDebug) {
-    const storedDebug = typeof window !== 'undefined' ? sessionStorage.getItem('athena_401_debug') : null;
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0f', color: '#fff', fontFamily: 'monospace', padding: 40 }}>
-        <h2 style={{ color: '#ff4444', marginBottom: 20 }}>Debug Auth - Nao redireciona</h2>
-        <div style={{ background: '#1a1a2e', padding: 20, borderRadius: 8, maxWidth: 600, width: '100%', marginBottom: 16 }}>
-          <p style={{ color: '#aaa', marginBottom: 8 }}>auth.me() resultado:</p>
-          <pre style={{ color: '#0f0', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{authDebug}</pre>
-        </div>
-        {storedDebug && (
-          <div style={{ background: '#1a1a2e', padding: 20, borderRadius: 8, maxWidth: 600, width: '100%', marginBottom: 16 }}>
-            <p style={{ color: '#aaa', marginBottom: 8 }}>Ultimo 401 debug:</p>
-            <pre style={{ color: '#ff0', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{storedDebug}</pre>
-          </div>
-        )}
-        <button onClick={() => window.location.href = '/login'} style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '12px 32px', borderRadius: 8, cursor: 'pointer', fontSize: 16, marginTop: 16 }}>
-          Ir para Login
-        </button>
-        <p style={{ color: '#666', marginTop: 16, fontSize: 12 }}>Screenshot esta tela e envie para debug</p>
-      </div>
-    );
-  }
 
   if (checking) {
     return (
