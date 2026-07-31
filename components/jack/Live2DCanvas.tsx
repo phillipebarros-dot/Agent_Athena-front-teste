@@ -159,7 +159,7 @@ const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(
       const init = async () => {
         // Import dinamico para evitar SSR (PixiJS precisa de window/document)
         const PIXI = await import('pixi.js');
-        const { Live2DModel } = await import('pixi-live2d-display');
+        const { Live2DModel } = await import('pixi-live2d-display/cubism4');
 
         // Registrar ticker do Live2D no PixiJS
         Live2DModel.registerTicker(PIXI.Ticker as any);

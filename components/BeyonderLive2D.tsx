@@ -61,12 +61,16 @@ export function BeyonderLive2D({
       try {
         // Dynamic imports para evitar SSR issues
         const PIXI = await import('pixi.js');
-        const { Live2DModel } = await import('pixi-live2d-display');
+        const { Live2DModel } = await import('pixi-live2d-display/cubism4');
 
         // Expor PIXI globalmente para o plugin
         if (typeof window !== 'undefined') {
           (window as any).PIXI = PIXI;
         }
+
+        // Registrar ticker
+        Live2DModel.registerTicker(PIXI.Ticker as any);
+
 
         if (destroyed) return;
 
