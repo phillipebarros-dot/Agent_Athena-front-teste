@@ -82,7 +82,15 @@ export async function GET(req: NextRequest) {
     }
 
     const res = NextResponse.redirect(new URL('/chat', origin));
-    res.cookies.set(COOKIE_NAME, sign({ email, name, picture, google_access_token: tokens.access_token }), cookieOptions);
+    // Sessao principal (email + name + picture) - DEVE ser < 4KB
+    res.cookies.set(COOKIE_NAME, sign({ email, name, picture }), cookieOptions);
+    // Google access token em cookie separado (usado so no export pra Google Sheets)
+    if (tokens.access_token) {
+      res.cookies.set('google_access_token', tokens.access_token, {
+        ...cookieOptions,
+        maxAge: 3600, // 1h (vida util do access token do Google)
+      });
+    }
     res.cookies.set('oauth_state', '', { httpOnly: true, path: '/', maxAge: 0 });
 
     // Registra/atualiza usuário no BigQuery (athena_users)
