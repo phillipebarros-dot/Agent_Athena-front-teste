@@ -354,9 +354,9 @@ export default function ChatPage() {
         )}
 
         {/* Composer */}
-        <div style={css(`padding:14px 24px 22px; flex-shrink:0; display:${welcome ? 'none' : 'block'}`)}>
+        <div style={css(`padding:10px 24px 18px; flex-shrink:0; display:${welcome ? 'none' : 'block'}`)}>
           <div style={css('max-width:760px; margin:0 auto')}>
-            <div style={css('background:var(--bg-input); border:1px solid var(--red-dim); border-radius:14px; padding:12px 16px; box-shadow:0 0 0 3px rgba(196,30,30,.08); position:relative')}>
+            <div style={css(`background:var(--bg-input); border:1px solid ${sending ? 'var(--red-dim)' : 'var(--border)'}; border-radius:14px; padding:12px 16px; ${sending ? 'box-shadow:0 0 0 3px rgba(196,30,30,.08)' : 'box-shadow:none'}; position:relative; transition:border-color .2s, box-shadow .2s`)}>
               <textarea
                 value={input}
                 onChange={(e) => {
