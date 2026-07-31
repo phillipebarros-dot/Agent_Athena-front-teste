@@ -57,7 +57,7 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.05 }}
-        style={css('width:32px; height:32px; object-fit:contain; flex-shrink:0; margin-top:2px;')}
+        style={css('width:38px; height:38px; object-fit:contain; flex-shrink:0; margin-top:2px;')}
       />
       
       <div style={css('flex:1; min-width:0; max-width: 100%; position:relative')}>
