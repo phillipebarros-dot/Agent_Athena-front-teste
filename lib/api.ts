@@ -34,11 +34,11 @@ async function call<T>(endpoint: string, body: unknown, signal?: AbortSignal): P
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    // 401 = sessao expirada/invalida → redirecionar para login (evita loop infinito)
+    // 401 - NÃO redireciona (impede debugging). Salva debug info pra exibir na tela.
     if (res.status === 401 && typeof window !== 'undefined') {
-      window.location.href = '/login';
-      // Lanca erro silencioso pra parar a cadeia de execucao
-      throw Object.assign(new Error('sessao_expirada'), { status: 401, data, _redirecting: true });
+      const debugInfo = JSON.stringify({ endpoint, status: 401, data, ts: new Date().toISOString() });
+      sessionStorage.setItem('athena_401_debug', debugInfo);
+      console.error('[API 401]', debugInfo);
     }
     throw Object.assign(new Error(data?.error || `erro_${res.status}`), { status: res.status, data });
   }

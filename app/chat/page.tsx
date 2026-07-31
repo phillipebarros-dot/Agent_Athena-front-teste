@@ -70,15 +70,22 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auth gate
+  const [authDebug, setAuthDebug] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
       try {
         const m = await auth.me();
         console.log('[AUTH] me() response:', JSON.stringify(m));
-        if (!m?.authenticated) { console.log('[AUTH] NOT authenticated, redirecting to /login'); router.replace('/login'); return; }
+        if (!m?.authenticated) {
+          setAuthDebug(`me() retornou: ${JSON.stringify(m)}`);
+          return;
+        }
         console.log('[AUTH] Authenticated as:', m.email);
         setMe(m as AuthUser);
-      } catch (e) { console.error('[AUTH] me() error:', e); router.replace('/login'); return; }
+      } catch (e: any) {
+        setAuthDebug(`me() erro: ${e?.message || String(e)}`);
+        return;
+      }
       setChecking(false);
     })();
   }, [router]);
@@ -258,6 +265,30 @@ export default function ChatPage() {
       el?.focus();
     },
   });
+
+  // Se auth falhou, mostra debug na tela (sem redirecionar)
+  if (authDebug) {
+    const storedDebug = typeof window !== 'undefined' ? sessionStorage.getItem('athena_401_debug') : null;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0f', color: '#fff', fontFamily: 'monospace', padding: 40 }}>
+        <h2 style={{ color: '#ff4444', marginBottom: 20 }}>Debug Auth - Nao redireciona</h2>
+        <div style={{ background: '#1a1a2e', padding: 20, borderRadius: 8, maxWidth: 600, width: '100%', marginBottom: 16 }}>
+          <p style={{ color: '#aaa', marginBottom: 8 }}>auth.me() resultado:</p>
+          <pre style={{ color: '#0f0', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{authDebug}</pre>
+        </div>
+        {storedDebug && (
+          <div style={{ background: '#1a1a2e', padding: 20, borderRadius: 8, maxWidth: 600, width: '100%', marginBottom: 16 }}>
+            <p style={{ color: '#aaa', marginBottom: 8 }}>Ultimo 401 debug:</p>
+            <pre style={{ color: '#ff0', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{storedDebug}</pre>
+          </div>
+        )}
+        <button onClick={() => window.location.href = '/login'} style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '12px 32px', borderRadius: 8, cursor: 'pointer', fontSize: 16, marginTop: 16 }}>
+          Ir para Login
+        </button>
+        <p style={{ color: '#666', marginTop: 16, fontSize: 12 }}>Screenshot esta tela e envie para debug</p>
+      </div>
+    );
+  }
 
   if (checking) {
     return (

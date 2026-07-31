@@ -5,8 +5,16 @@ import { BACKEND_URL, BACKEND_TOKEN, isAdmin } from '@/lib/config';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const s = verify(req.cookies.get(COOKIE_NAME)?.value);
-  if (!s) return NextResponse.json({ authenticated: false }, { status: 200 });
+  const cookieValue = req.cookies.get(COOKIE_NAME)?.value;
+  const s = verify(cookieValue);
+  if (!s) {
+    const res = NextResponse.json({
+      authenticated: false,
+      _debug: { hasCookie: !!cookieValue, cookieLen: cookieValue?.length || 0, cookieNames: req.cookies.getAll().map(c => c.name) }
+    }, { status: 200 });
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return res;
+  }
 
   let admin = isAdmin(s.email); // fallback hardcoded
   if (BACKEND_URL() && BACKEND_TOKEN()) {
@@ -23,5 +31,7 @@ export async function GET(req: NextRequest) {
     } catch { /* fallback to hardcoded isAdmin */ }
   }
 
-  return NextResponse.json({ authenticated: true, email: s.email, name: s.name, picture: s.picture || '', admin });
+  const res = NextResponse.json({ authenticated: true, email: s.email, name: s.name, picture: s.picture || '', admin });
+  res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  return res;
 }
