@@ -51,10 +51,14 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
       onMouseEnter={() => setHovered(true)} 
       onMouseLeave={() => setHovered(false)}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <div style={css('width:40px; height:40px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; box-shadow:var(--shadow-sm), 0 0 12px rgba(221,0,4,0.06)')}>      
-        <img src="/athena-logo.png" alt="Athena" style={css('width:26px; height:26px; object-fit:contain;')} />
-      </div>
+      <motion.img
+        src="/athena-logo.png"
+        alt="Athena"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.05 }}
+        style={css('width:32px; height:32px; object-fit:contain; flex-shrink:0; margin-top:2px;')}
+      />
       
       <div style={css('flex:1; min-width:0; max-width: 100%; position:relative')}>
         <div style={css(`display:block; max-width:100%; padding:0 0 8px 0;`)}>
