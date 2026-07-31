@@ -210,9 +210,9 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
         )}
 
         {/* Chart */}
-        {table && <AnswerChart table={table} on={chartOpen} onToggle={onToggleChart} />}
+        {table && <div style={css('margin-bottom:12px')}><AnswerChart table={table} on={chartOpen} onToggle={onToggleChart} /></div>}
 
-        {/* Floating Action Bar (visible on hover) */}
+        {/* Action Bar (Regenerar, Ouvir, Copiar, Feedback) */}
         {!message.error && (
           <AnimatePresence>
             {hovered && (
@@ -220,7 +220,7 @@ function AssistantBubble({ message, onSendFeedback, onRegenerate, chartOpen, onT
                 initial={{ opacity: 0, y: -5 }} 
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: 5 }} 
-                style={css('position:absolute; bottom:-16px; left:-8px;')}
+                style={css('position:relative; z-index:10; margin-top:8px;')}
               >
                 <FeedbackActions message={message} onSendFeedback={onSendFeedback} fbOpen={fbOpen} onToggleFb={() => setFbOpen(!fbOpen)} onRegenerate={onRegenerate} />
               </motion.div>
