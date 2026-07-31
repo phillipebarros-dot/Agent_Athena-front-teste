@@ -33,9 +33,9 @@ export function BeyonderLive2D({
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Canvas fixo: 160x300 mostra o personagem inteiro
-  const CANVAS_W = 160;
-  const CANVAS_H = 300;
+  // Canvas largo o suficiente pra modelo inteiro (bracos, cadeira)
+  const CANVAS_W = 220;
+  const CANVAS_H = 320;
 
   // Inicializa UMA VEZ (sem dependencia de expanded)
   useEffect(() => {
@@ -76,7 +76,7 @@ export function BeyonderLive2D({
         // Escala pra caber o modelo INTEIRO no canvas
         const scaleX = CANVAS_W / model.width;
         const scaleY = CANVAS_H / model.height;
-        const fitScale = Math.min(scaleX, scaleY) * 0.92;
+        const fitScale = Math.min(scaleX, scaleY) * 0.78;
         model.scale.set(fitScale);
 
         // Centralizar
