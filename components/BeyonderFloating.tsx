@@ -8,6 +8,47 @@ const BeyonderLive2D = dynamic(
   { ssr: false }
 );
 
+/**
+ * Detecta emocao com base no conteudo do texto.
+ * Retorna uma das 7 expressoes reais do modelo:
+ * smile, angy, worried, blush, aww, oh, ehh
+ */
+function detectEmotion(text: string): string {
+  const t = text.toLowerCase();
+
+  // Surpresa / novidade
+  if (/\b(uau|nossa|caramba|incrivel|impressionante|wow|puxa|eita|oxi)\b/.test(t) ||
+      /[!]{2,}/.test(t)) return 'surprised';
+
+  // Raiva / frustracaoa
+  if (/\b(erro|falha|problema|bug|nao consigo|impossivel|droga|porcaria)\b/.test(t) ||
+      /\b(infelizmente nao|nao foi possivel|nao e possivel)\b/.test(t)) return 'angry';
+
+  // Preocupacao / duvida
+  if (/\b(cuidado|atencao|importante|aviso|alerta|risco|perigoso)\b/.test(t) ||
+      /\b(verifique|confirme|certifique)\b/.test(t)) return 'confused';
+
+  // Vergonha / modestia
+  if (/\b(desculp|perdao|sinto muito|me perdoe|obrigad)\b/.test(t)) return 'shy';
+
+  // Fofura / empatia
+  if (/\b(ajud|aqui pra voce|conte comigo|prazer|bem-vind|fique tranquil)\b/.test(t) ||
+      /\b(nao se preocupe|sem problemas|tudo bem)\b/.test(t)) return 'explaining';
+
+  // Confusao / pensamento
+  if (/\b(hmm|acho que|talvez|depende|nao tenho certeza|pode ser)\b/.test(t) ||
+      /\?{2,}/.test(t)) return 'thinking';
+
+  // Feliz / positivo (default pra respostas normais)
+  if (/\b(sim|claro|com certeza|exato|isso|perfeito|pronto|funciona|sucesso)\b/.test(t) ||
+      /[😊🎉✅👍]/.test(t)) return 'happy';
+
+  // Saudacao
+  if (/\b(ola|oi|bom dia|boa tarde|boa noite|fala|eai)\b/.test(t)) return 'greeting';
+
+  return 'happy';
+}
+
 interface BeyonderMsg {
   role: 'user' | 'beyonder';
   text: string;
@@ -85,12 +126,13 @@ export function BeyonderFloating() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'beyonder', text: data.output || 'Hmm, nao consegui processar.' }]);
-      setCurrentEmotion('happy');
+      const responseText = data.output || 'Hmm, nao consegui processar.';
+      setMessages(prev => [...prev, { role: 'beyonder', text: responseText }]);
+      setCurrentEmotion(detectEmotion(responseText));
       if (data.audio) await playAudioWithLipSync(data.audio);
     } catch {
       setMessages(prev => [...prev, { role: 'beyonder', text: 'Ops, tive um problema. Tenta de novo?' }]);
-      setCurrentEmotion('error');
+      setCurrentEmotion('angry');
     } finally { setThinking(false); }
   }, [input, thinking, playAudioWithLipSync]);
 
