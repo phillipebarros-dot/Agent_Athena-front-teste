@@ -132,6 +132,71 @@ const DomainManager = () => {
   );
 };
 
+/* ─ Synonym Manager (dinâmico via API) ─ */
+const SynonymManager = () => {
+  const [syns, setSyns] = useState<{ from: string; to: string }[]>([]);
+  const [synFrom, setSynFrom] = useState('');
+  const [synTo, setSynTo] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getSynonyms().then((r) => { setSyns(r.synonyms || []); setLoading(false); });
+  }, []);
+
+  const addSyn = async () => {
+    const f = synFrom.trim().toLowerCase(), t = synTo.trim();
+    if (!f || !t) return;
+    try {
+      await api.addSynonym(f, t);
+      setSyns((prev) => [...prev.filter(x => x.from !== f), { from: f, to: t }]);
+      setSynFrom(''); setSynTo('');
+    } catch {}
+  };
+
+  const removeSyn = async (term: string) => {
+    try {
+      await api.removeSynonym(term);
+      setSyns((prev) => prev.filter(x => x.from !== term));
+    } catch {}
+  };
+
+  if (loading) return <div style={css('font-size:12px; color:var(--fg-3)')}>Carregando sinônimos...</div>;
+
+  return (
+    <>
+      <div style={css('display:flex; flex-direction:column; gap:8px')}>
+        <div style={css('font-size:11px; color:var(--fg-3); margin-bottom:4px')}>{syns.length} termo(s) mapeado(s):</div>
+        {syns.map((t, i) => (
+          <div key={i} style={css('display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; font-size:12px')}>
+            <span style={css('color:var(--muted-light); flex:1')}>{t.from}</span>
+            <span style={css('color:var(--fg-3)')}>→</span>
+            <span style={css('color:var(--green); flex:1; text-align:right')}>{t.to}</span>
+            <button onClick={() => removeSyn(t.from)} style={css('background:none; border:none; color:var(--fg-3); cursor:pointer; padding:2px; display:flex')}>
+              {ic('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', 11)}
+            </button>
+          </div>
+        ))}
+        {syns.length === 0 && <div style={css('font-size:12px; color:var(--fg-3)')}>Nenhum sinônimo cadastrado.</div>}
+        <div style={css('display:flex; gap:6px; margin-top:6px')}>
+          <input
+            value={synFrom} onChange={(e) => setSynFrom(e.target.value)}
+            placeholder="termo do usuário"
+            style={css('flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--white); font-size:12px; font-family:var(--font-body); outline:none')}
+          />
+          <input
+            value={synTo} onChange={(e) => setSynTo(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addSyn(); }}
+            placeholder="mapeia para"
+            style={css('flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--white); font-size:12px; font-family:var(--font-body); outline:none')}
+          />
+          <button onClick={addSyn} disabled={!synFrom.trim() || !synTo.trim()} style={css('padding:6px 12px; border-radius:6px; border:none; background:var(--red); color:#fff; font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-body); opacity:' + (!synFrom.trim() || !synTo.trim() ? '.4' : '1'))}>+</button>
+        </div>
+      </div>
+      <div style={css('font-size:11.5px; color:var(--fg-3); margin-top:10px; line-height:1.6')}>Sinônimos são usados para mapear termos informais para nomes oficiais no BigQuery.</div>
+    </>
+  );
+};
+
 export default function AdminPage() {
   return <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--page)', color: 'var(--fg-3)', fontFamily: 'var(--font-body)', fontSize: 14 }}><KpiSkeleton count={5} /></div>}><AdminPageInner /></Suspense>;
 }
@@ -712,36 +777,7 @@ function AdminPageInner() {
 
                     {/* Dicionário de Sinônimos */}
                     <Panel title="Dicionário de sinônimos" hint="termos mapeados e não reconhecidos" delay={0.35}>
-                      <div style={css('display:flex; flex-direction:column; gap:8px')}>
-                        <div style={css('font-size:11px; color:var(--fg-3); margin-bottom:4px')}>Termos mapeados automaticamente:</div>
-                        {[
-                          { from: 'rádio atlântida', to: 'RD ATLÂNTIDA FM' },
-                          { from: 'globo', to: 'REDE GLOBO' },
-                          { from: 'band', to: 'REDE BANDEIRANTES' },
-                          { from: 'ooh', to: 'MÍDIA EXTERIOR' },
-                          { from: 'digital', to: 'INTERNET' },
-                        ].map((t, i) => (
-                          <div key={i} style={css('display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; font-size:12px')}>
-                            <span style={css('color:var(--muted-light); flex:1')}>{t.from}</span>
-                            <span style={css('color:var(--fg-3)')}>→</span>
-                            <span style={css('color:var(--green); flex:1; text-align:right')}>{t.to}</span>
-                            <button style={css('background:none; border:none; color:var(--fg-3); cursor:pointer; padding:2px; display:flex')}>
-                              {ic('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', 11)}
-                            </button>
-                          </div>
-                        ))}
-                        <div style={css('display:flex; gap:6px; margin-top:6px')}>
-                          <input
-                            placeholder="termo do usuário"
-                            style={css('flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--white); font-size:12px; font-family:var(--font-body); outline:none')}
-                          />
-                          <input
-                            placeholder="mapeia para"
-                            style={css('flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--white); font-size:12px; font-family:var(--font-body); outline:none')}
-                          />
-                          <button style={css('padding:6px 12px; border-radius:6px; border:none; background:var(--red); color:#fff; font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-body)')}>+</button>
-                        </div>
-                      </div>
+                      <SynonymManager />
                     </Panel>
                   </>
                 )}

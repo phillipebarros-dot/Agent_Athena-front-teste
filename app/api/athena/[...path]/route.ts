@@ -92,7 +92,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
   const { path } = await ctx.params;
   const endpoint = (path || []).join('/');
 
-  if (!['settings/domains'].includes(endpoint)) {
+  if (!['settings/domains', 'settings/synonyms'].includes(endpoint)) {
     return NextResponse.json({ error: 'endpoint_nao_permitido' }, { status: 404 });
   }
   if (!BACKEND_URL || !BACKEND_TOKEN) {
