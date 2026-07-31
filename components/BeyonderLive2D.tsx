@@ -71,8 +71,8 @@ export function BeyonderLive2D({
 
         if (destroyed) return;
 
-        const canvasW = expanded ? 320 : 80;
-        const canvasH = expanded ? 180 : 80;
+        const canvasW = expanded ? 200 : 120;
+        const canvasH = expanded ? 320 : 180;
 
         const app = new PIXI.Application({
           view: canvasRef.current!,
@@ -243,20 +243,14 @@ export function BeyonderLive2D({
     };
   }, [speaking, loaded, analyserNode]);
 
-  const containerStyle: React.CSSProperties = expanded
-    ? {
-        width: 320, height: 180,
-        position: 'relative', cursor: 'default',
-        transition: 'all 0.3s ease',
-      }
-    : {
-        width: 80, height: 80,
-        position: 'relative', cursor: 'pointer',
-        borderRadius: '50%', overflow: 'hidden',
-        boxShadow: '0 4px 20px rgba(221, 0, 4, 0.3)',
-        border: '2px solid var(--red-dim, rgba(221,0,4,0.4))',
-        transition: 'all 0.3s ease',
-      };
+  const containerStyle: React.CSSProperties = {
+    width: expanded ? 200 : 120,
+    height: expanded ? 320 : 180,
+    position: 'relative',
+    cursor: expanded ? 'default' : 'pointer',
+    transition: 'all 0.3s ease',
+    /* SEM circulo, SEM borda, SEM overflow hidden */
+  };
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -269,8 +263,8 @@ export function BeyonderLive2D({
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: expanded ? 'transparent' : 'var(--bg-surface, #1a1a2e)',
-            borderRadius: expanded ? 12 : '50%',
+            background: 'transparent',
+            borderRadius: 0,
           }}>
             <div style={{
               width: 24, height: 24, border: '3px solid var(--red, #dd0004)',
@@ -283,9 +277,9 @@ export function BeyonderLive2D({
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: expanded ? 'transparent' : 'var(--bg-surface, #1a1a2e)',
+            background: 'transparent',
             fontSize: 10, color: 'var(--muted, #888)',
-            borderRadius: expanded ? 12 : '50%', padding: 8, textAlign: 'center',
+            borderRadius: 0, padding: 8, textAlign: 'center',
           }}>
             Beyonder offline
           </div>

@@ -12,40 +12,46 @@ interface BeyonderMsg {
   text: string;
 }
 
-interface BeyonderFloatingProps {
-  emotion?: string;
-  speaking?: boolean;
-}
-
 /**
- * BeyonderFloating - Widget flutuante do assistente Beyonder.
+ * BeyonderFloating - Beyonder sentado livre no canto inferior direito.
  *
- * Minimizado: icone circular 80px com modelo Live2D.
- * Expandido: painel 360x520 com modelo + chat + input.
- * O Beyonder responde perguntas sobre a plataforma Athena.
+ * Minimizado: modelo Live2D completo, sem circulo, sem borda, livre.
+ * Expandido: modelo grande + painel de chat ao lado esquerdo + balao de fala.
  */
-export function BeyonderFloating({ emotion = 'neutral' }: BeyonderFloatingProps) {
+export function BeyonderFloating() {
   const [expanded, setExpanded] = useState(false);
   const [messages, setMessages] = useState<BeyonderMsg[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [currentEmotion, setCurrentEmotion] = useState(emotion);
+  const [currentEmotion, setCurrentEmotion] = useState('neutral');
+  const [showBubble, setShowBubble] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const bubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-scroll no chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Saudacao inicial ao expandir
+  // Mostrar balao apos 2s no minimizado
+  useEffect(() => {
+    if (!expanded && messages.length === 0) {
+      bubbleTimerRef.current = setTimeout(() => setShowBubble(true), 2000);
+    } else {
+      setShowBubble(false);
+    }
+    return () => { if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current); };
+  }, [expanded, messages.length]);
+
+  // Saudacao ao expandir
   useEffect(() => {
     if (expanded && messages.length === 0) {
       setMessages([{
         role: 'beyonder',
-        text: 'Opa! Sou o Beyonder, assistente da plataforma Athena. Me pergunta qualquer coisa sobre as funcionalidades!',
+        text: 'Opa! Sou o Beyonder. Me pergunta qualquer coisa sobre as funcionalidades da Athena!',
       }]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,18 +59,14 @@ export function BeyonderFloating({ emotion = 'neutral' }: BeyonderFloatingProps)
 
   const playAudioWithLipSync = useCallback(async (base64Audio: string) => {
     try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext();
-      }
+      if (!audioContextRef.current) audioContextRef.current = new AudioContext();
       const ctx = audioContextRef.current;
 
-      // Decodificar audio
       const binaryStr = atob(base64Audio);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       const audioBuffer = await ctx.decodeAudioData(bytes.buffer);
 
-      // Criar analyser pra lip sync
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.6;
@@ -77,13 +79,9 @@ export function BeyonderFloating({ emotion = 'neutral' }: BeyonderFloatingProps)
 
       setIsSpeaking(true);
       source.start();
-
-      source.onended = () => {
-        setIsSpeaking(false);
-        analyserRef.current = null;
-      };
+      source.onended = () => { setIsSpeaking(false); analyserRef.current = null; };
     } catch (err) {
-      console.error('Erro ao reproduzir audio:', err);
+      console.error('Erro audio:', err);
       setIsSpeaking(false);
     }
   }, []);
@@ -108,15 +106,11 @@ export function BeyonderFloating({ emotion = 'neutral' }: BeyonderFloatingProps)
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      setMessages(prev => [...prev, { role: 'beyonder', text: data.output || 'Hmm, nao consegui processar isso.' }]);
+      setMessages(prev => [...prev, { role: 'beyonder', text: data.output || 'Hmm, nao consegui processar.' }]);
       setCurrentEmotion('happy');
 
-      // TTS com lip sync
-      if (data.audio) {
-        await playAudioWithLipSync(data.audio);
-      }
-    } catch (err) {
-      console.error('Beyonder chat error:', err);
+      if (data.audio) await playAudioWithLipSync(data.audio);
+    } catch {
       setMessages(prev => [...prev, { role: 'beyonder', text: 'Ops, tive um problema. Tenta de novo?' }]);
       setCurrentEmotion('error');
     } finally {
@@ -125,121 +119,96 @@ export function BeyonderFloating({ emotion = 'neutral' }: BeyonderFloatingProps)
   }, [input, thinking, playAudioWithLipSync]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }, [sendMessage]);
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: expanded ? 20 : 24,
-        right: expanded ? 20 : 24,
-        zIndex: 9999,
-        transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}
-    >
-      {expanded ? (
-        /* ---- PAINEL EXPANDIDO ---- */
+    <div style={{
+      position: 'fixed',
+      bottom: 0,
+      right: expanded ? 20 : 16,
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'flex-end',
+      gap: 0,
+      transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+    }}>
+
+      {/* ---- CHAT PANEL (aparece a esquerda do modelo quando expandido) ---- */}
+      {expanded && (
         <div style={{
-          width: 360, height: 540,
-          display: 'flex', flexDirection: 'column',
-          background: 'linear-gradient(165deg, #0f0f1a 0%, #1a1028 50%, #0f0f1a 100%)',
-          border: '1px solid rgba(221, 0, 4, 0.2)',
-          borderRadius: 20,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(221,0,4,0.08)',
+          width: 340,
+          height: 420,
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'rgba(10, 10, 18, 0.95)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '16px 16px 16px 4px',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+          marginBottom: 40,
+          animation: 'beyonderChatIn 0.3s ease',
           overflow: 'hidden',
-          animation: 'beyonderFadeIn 0.3s ease',
         }}>
           {/* Header */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 16px',
+            padding: '10px 14px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
-            background: 'rgba(0,0,0,0.3)',
+            background: 'rgba(0,0,0,0.4)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
                 width: 8, height: 8, borderRadius: '50%',
                 background: thinking ? '#f59e0b' : '#22c55e',
                 boxShadow: `0 0 6px ${thinking ? '#f59e0b' : '#22c55e'}`,
-                animation: thinking ? 'pulse 1.5s infinite' : 'none',
               }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#e0e0e0', letterSpacing: '0.3px' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#ccc', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                 Beyonder
               </span>
             </div>
             <button
               onClick={() => setExpanded(false)}
               style={{
-                width: 28, height: 28, borderRadius: '50%',
+                width: 24, height: 24, borderRadius: '50%',
                 border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.05)',
-                color: '#888', fontSize: 14, cursor: 'pointer',
+                background: 'transparent', color: '#666',
+                fontSize: 12, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s',
               }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
-            >
-              ✕
-            </button>
+            >✕</button>
           </div>
 
-          {/* Modelo Live2D */}
+          {/* Mensagens */}
           <div style={{
-            height: 180, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'radial-gradient(circle at 50% 80%, rgba(221,0,4,0.06) 0%, transparent 70%)',
-          }}>
-            <BeyonderLive2D
-              emotion={currentEmotion}
-              speaking={isSpeaking}
-              expanded={true}
-              analyserNode={analyserRef.current}
-            />
-          </div>
-
-          {/* Area de mensagens */}
-          <div style={{
-            flex: 1, overflowY: 'auto', padding: '12px 14px',
-            display: 'flex', flexDirection: 'column', gap: 10,
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255,255,255,0.1) transparent',
+            flex: 1, overflowY: 'auto', padding: '12px',
+            display: 'flex', flexDirection: 'column', gap: 8,
+            scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent',
           }}>
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                style={{
-                  alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '85%',
-                  padding: '10px 14px',
-                  borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                  background: msg.role === 'user'
-                    ? 'linear-gradient(135deg, #dd0004 0%, #b30003 100%)'
-                    : 'rgba(255,255,255,0.06)',
-                  color: '#e8e8e8',
-                  fontSize: 13, lineHeight: 1.5,
-                  border: msg.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.06)',
-                  animation: 'beyonderMsgIn 0.25s ease',
-                }}
-              >
+              <div key={i} style={{
+                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                maxWidth: '88%',
+                padding: '9px 13px',
+                borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+                background: msg.role === 'user'
+                  ? 'var(--red, #dd0004)'
+                  : 'rgba(255,255,255,0.07)',
+                color: '#e0e0e0', fontSize: 13, lineHeight: 1.5,
+                animation: 'beyonderMsgIn 0.2s ease',
+              }}>
                 {msg.text}
               </div>
             ))}
             {thinking && (
               <div style={{
-                alignSelf: 'flex-start', maxWidth: '85%',
-                padding: '10px 14px', borderRadius: '14px 14px 14px 4px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                display: 'flex', gap: 4, alignItems: 'center',
+                alignSelf: 'flex-start', padding: '10px 14px',
+                borderRadius: '12px 12px 12px 4px',
+                background: 'rgba(255,255,255,0.07)',
+                display: 'flex', gap: 5,
               }}>
-                <span style={{ animation: 'dotPulse 1.4s infinite', animationDelay: '0s', width: 6, height: 6, borderRadius: '50%', background: '#888', display: 'inline-block' }} />
-                <span style={{ animation: 'dotPulse 1.4s infinite', animationDelay: '0.2s', width: 6, height: 6, borderRadius: '50%', background: '#888', display: 'inline-block' }} />
-                <span style={{ animation: 'dotPulse 1.4s infinite', animationDelay: '0.4s', width: 6, height: 6, borderRadius: '50%', background: '#888', display: 'inline-block' }} />
+                <span style={{ ...dotStyle, animationDelay: '0s' }} />
+                <span style={{ ...dotStyle, animationDelay: '0.2s' }} />
+                <span style={{ ...dotStyle, animationDelay: '0.4s' }} />
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -247,9 +216,8 @@ export function BeyonderFloating({ emotion = 'neutral' }: BeyonderFloatingProps)
 
           {/* Input */}
           <div style={{
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderTop: '1px solid rgba(255,255,255,0.06)',
-            background: 'rgba(0,0,0,0.2)',
             display: 'flex', gap: 8, alignItems: 'center',
           }}>
             <input
@@ -259,83 +227,125 @@ export function BeyonderFloating({ emotion = 'neutral' }: BeyonderFloatingProps)
               placeholder="Pergunte ao Beyonder..."
               disabled={thinking}
               style={{
-                flex: 1, background: 'rgba(255,255,255,0.06)',
+                flex: 1, background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 12, padding: '10px 14px',
-                color: '#e0e0e0', fontSize: 13,
-                outline: 'none', transition: 'border 0.2s',
+                borderRadius: 10, padding: '9px 12px',
+                color: '#e0e0e0', fontSize: 13, outline: 'none',
               }}
-              onFocus={e => { (e.target as HTMLElement).style.borderColor = 'rgba(221,0,4,0.4)'; }}
-              onBlur={e => { (e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
             />
             <button
               onClick={sendMessage}
               disabled={thinking || !input.trim()}
               style={{
-                width: 36, height: 36, borderRadius: '50%',
-                border: 'none',
+                width: 32, height: 32, borderRadius: '50%', border: 'none',
                 background: input.trim() && !thinking ? 'var(--red, #dd0004)' : 'rgba(255,255,255,0.06)',
-                color: '#fff', fontSize: 16, cursor: input.trim() && !thinking ? 'pointer' : 'default',
+                color: '#fff', fontSize: 14, cursor: input.trim() && !thinking ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s',
                 flexShrink: 0,
               }}
-            >
-              ↑
-            </button>
+            >↑</button>
           </div>
         </div>
-      ) : (
-        /* ---- ICONE MINIMIZADO ---- */
-        <>
-          <div onClick={() => setExpanded(true)} style={{
-            width: 80, height: 80, cursor: 'pointer', position: 'relative',
-          }}>
-            <BeyonderLive2D
-              emotion={currentEmotion}
-              speaking={isSpeaking}
-              expanded={false}
-            />
+      )}
+
+      {/* ---- MODELO LIVE2D (sempre visivel, sem circulo) ---- */}
+      <div style={{ position: 'relative' }}>
+
+        {/* Balao de fala no minimizado */}
+        {!expanded && showBubble && (
+          <div style={{
+            position: 'absolute',
+            bottom: expanded ? 'auto' : '65%',
+            right: '105%',
+            minWidth: 200, maxWidth: 260,
+            padding: '10px 14px',
+            background: 'rgba(10, 10, 18, 0.92)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '12px 12px 4px 12px',
+            fontSize: 12, lineHeight: 1.5, color: '#d0d0d0',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            animation: 'beyonderBubbleIn 0.3s ease',
+            cursor: 'pointer',
+          }}
+          onClick={() => { setShowBubble(false); setExpanded(true); }}
+          >
+            Estou aqui para tirar dúvidas sobre as funções do Agent Athena! 💡
+            {/* Seta apontando pra direita (pro modelo) */}
+            <div style={{
+              position: 'absolute', right: -6, bottom: 14,
+              width: 0, height: 0,
+              borderTop: '6px solid transparent',
+              borderBottom: '6px solid transparent',
+              borderLeft: '6px solid rgba(10, 10, 18, 0.92)',
+            }} />
           </div>
+        )}
+
+        <div
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            width: expanded ? 200 : 120,
+            height: expanded ? 320 : 180,
+            cursor: 'pointer',
+            transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+            /* SEM circulo, SEM borda, SEM overflow hidden */
+          }}
+        >
+          <BeyonderLive2D
+            emotion={currentEmotion}
+            speaking={isSpeaking}
+            expanded={expanded}
+            analyserNode={analyserRef.current}
+          />
+        </div>
+
+        {/* Label BEYONDER (minimizado) */}
+        {!expanded && (
           <div
             onClick={() => setExpanded(true)}
             style={{
-              position: 'absolute', bottom: -8, left: '50%',
+              position: 'absolute', bottom: 2, left: '50%',
               transform: 'translateX(-50%)',
               background: 'var(--red, #dd0004)',
-              color: '#fff', fontSize: 8, fontWeight: 700,
-              padding: '2px 6px', borderRadius: 4,
-              whiteSpace: 'nowrap', letterSpacing: '0.5px',
+              color: '#fff', fontSize: 7, fontWeight: 700,
+              padding: '2px 8px', borderRadius: 4,
+              whiteSpace: 'nowrap', letterSpacing: '0.8px',
               textTransform: 'uppercase', cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(221,0,4,0.4)',
             }}
           >
             Beyonder
           </div>
-        </>
-      )}
+        )}
+      </div>
 
-      {/* Animacoes CSS */}
+      {/* Animacoes */}
       <style>{`
-        @keyframes beyonderFadeIn {
-          from { opacity: 0; transform: translateY(20px) scale(0.95); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+        @keyframes beyonderChatIn {
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
         }
         @keyframes beyonderMsgIn {
-          from { opacity: 0; transform: translateY(8px); }
+          from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes beyonderBubbleIn {
+          from { opacity: 0; transform: translateX(10px) scale(0.95); }
+          to { opacity: 1; transform: translateX(0) scale(1); }
         }
         @keyframes dotPulse {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
           40% { opacity: 1; transform: scale(1.1); }
         }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
       `}</style>
     </div>
   );
 }
+
+const dotStyle: React.CSSProperties = {
+  width: 5, height: 5, borderRadius: '50%',
+  background: '#888', display: 'inline-block',
+  animation: 'dotPulse 1.4s infinite',
+};
 
 export default BeyonderFloating;
