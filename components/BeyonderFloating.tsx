@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 const BeyonderLive2D = dynamic(
@@ -15,11 +16,12 @@ interface BeyonderMsg {
 /**
  * BeyonderFloating - Beyonder Live2D inteiro no canto inferior direito.
  *
- * - Modelo completo (sentado na cadeira), sem circulo, sem borda
- * - Ao clicar: balao de fala sai DELE (ao lado esquerdo) + input embaixo do balao
- * - Sem painel de chat separado -- tudo sao baloes do modelo
+ * - Modelo completo, sem circulo, sem corte
+ * - Clica: baloes de fala + input + link pra FAQ
+ * - Pode direcionar pra pagina /faq com todos os topicos
  */
 export function BeyonderFloating() {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [messages, setMessages] = useState<BeyonderMsg[]>([]);
   const [input, setInput] = useState('');
@@ -30,17 +32,15 @@ export function BeyonderFloating() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll nos baloes
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  // Saudacao ao expandir
   useEffect(() => {
     if (expanded && messages.length === 0) {
       setMessages([{
         role: 'beyonder',
-        text: 'Estou aqui para tirar dúvidas sobre as funções do Agent Athena! Me pergunta qualquer coisa.',
+        text: 'Opa! Sou o Beyonder. Posso tirar suas dúvidas sobre a Athena ou te levar pra Central de Ajuda!',
       }]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,37 +100,37 @@ export function BeyonderFloating() {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 0, right: 12,
+      position: 'fixed', bottom: 0, right: 24,
       zIndex: 9999,
       display: 'flex', alignItems: 'flex-end', gap: 0,
     }}>
 
-      {/* ---- BALOES DE FALA (saem do modelo, a esquerda dele) ---- */}
+      {/* ---- BALOES + INPUT (a esquerda do modelo) ---- */}
       {expanded && (
         <div style={{
           display: 'flex', flexDirection: 'column',
-          marginBottom: 60, marginRight: -8,
-          maxWidth: 300, maxHeight: 380,
+          marginBottom: 20, marginRight: 4,
+          width: 280,
           animation: 'beyonderBubbleIn 0.25s ease',
         }}>
-          {/* Mensagens como baloes */}
+          {/* Mensagens */}
           <div ref={scrollRef} style={{
             display: 'flex', flexDirection: 'column', gap: 8,
-            overflowY: 'auto', maxHeight: 300, padding: '4px 0',
+            overflowY: 'auto', maxHeight: 260, padding: '4px 0',
             scrollbarWidth: 'none',
           }}>
             {messages.map((msg, i) => (
               <div key={i} style={{
                 alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '90%',
+                maxWidth: '92%',
                 padding: '10px 14px',
                 borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                 background: msg.role === 'user'
                   ? 'var(--red, #dd0004)'
-                  : 'rgba(10, 10, 18, 0.92)',
+                  : 'rgba(20, 20, 30, 0.95)',
                 color: '#e0e0e0', fontSize: 13, lineHeight: 1.5,
-                border: msg.role === 'beyonder' ? '1px solid rgba(255,255,255,0.1)' : 'none',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                border: msg.role === 'beyonder' ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
                 animation: 'beyonderMsgIn 0.2s ease',
               }}>
                 {msg.text}
@@ -139,9 +139,9 @@ export function BeyonderFloating() {
             {thinking && (
               <div style={{
                 padding: '10px 14px', borderRadius: '14px 14px 14px 4px',
-                background: 'rgba(10, 10, 18, 0.92)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                background: 'rgba(20, 20, 30, 0.95)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
                 display: 'flex', gap: 5,
               }}>
                 {[0, 0.2, 0.4].map((d, i) => (
@@ -154,7 +154,7 @@ export function BeyonderFloating() {
             )}
           </div>
 
-          {/* Input embaixo dos baloes */}
+          {/* Input */}
           <div style={{
             display: 'flex', gap: 6, marginTop: 8, alignItems: 'center',
           }}>
@@ -165,12 +165,11 @@ export function BeyonderFloating() {
               placeholder="Pergunte ao Beyonder..."
               disabled={thinking}
               style={{
-                flex: 1,
-                background: 'rgba(10, 10, 18, 0.92)',
+                flex: 1, background: 'rgba(20, 20, 30, 0.95)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 10, padding: '9px 12px',
                 color: '#e0e0e0', fontSize: 13, outline: 'none',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
               }}
             />
             <button
@@ -185,36 +184,74 @@ export function BeyonderFloating() {
               }}
             >↑</button>
           </div>
+
+          {/* Link para FAQ */}
+          <button
+            onClick={() => router.push('/faq')}
+            style={{
+              marginTop: 8,
+              background: 'rgba(20, 20, 30, 0.95)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 10, padding: '8px 14px',
+              color: '#999', fontSize: 12, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              justifyContent: 'center',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => { (e.target as HTMLElement).style.color = '#dd0004'; }}
+            onMouseLeave={e => { (e.target as HTMLElement).style.color = '#999'; }}
+          >
+            📖 Ver Central de Ajuda completa
+          </button>
         </div>
       )}
 
-      {/* ---- MODELO LIVE2D (sempre visivel, inteiro, sem circulo) ---- */}
-      <div
-        onClick={() => setExpanded(!expanded)}
-        style={{ cursor: 'pointer', position: 'relative' }}
-      >
-        <BeyonderLive2D
-          emotion={currentEmotion}
-          speaking={isSpeaking}
-          analyserNode={analyserRef.current}
-        />
+      {/* ---- MODELO LIVE2D (inteiro, sem circulo) ---- */}
+      <div style={{ position: 'relative' }}>
+        <div
+          onClick={() => setExpanded(!expanded)}
+          style={{ cursor: 'pointer' }}
+        >
+          <BeyonderLive2D
+            emotion={currentEmotion}
+            speaking={isSpeaking}
+            analyserNode={analyserRef.current}
+          />
+        </div>
 
         {/* Label BEYONDER */}
-        <div style={{
-          position: 'absolute', bottom: 4, left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--red, #dd0004)',
-          color: '#fff', fontSize: 7, fontWeight: 700,
-          padding: '2px 8px', borderRadius: 4,
-          whiteSpace: 'nowrap', letterSpacing: '0.8px',
-          textTransform: 'uppercase',
-          boxShadow: '0 2px 8px rgba(221,0,4,0.4)',
-        }}>
+        <div
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            position: 'absolute', bottom: 4, left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--red, #dd0004)',
+            color: '#fff', fontSize: 7, fontWeight: 700,
+            padding: '2px 8px', borderRadius: 4,
+            whiteSpace: 'nowrap', letterSpacing: '0.8px',
+            textTransform: 'uppercase', cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(221,0,4,0.4)',
+          }}
+        >
           Beyonder
         </div>
+
+        {/* Fechar quando expandido */}
+        {expanded && (
+          <button
+            onClick={() => setExpanded(false)}
+            style={{
+              position: 'absolute', top: 0, right: 0,
+              width: 20, height: 20, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)',
+              color: '#888', fontSize: 10, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >✕</button>
+        )}
       </div>
 
-      {/* Animacoes */}
       <style>{`
         @keyframes beyonderBubbleIn {
           from { opacity: 0; transform: translateX(15px); }
