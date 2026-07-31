@@ -45,7 +45,7 @@ export function WelcomeScreen({ userName, onSend, suggestions, backendDown }: We
         })()}
       </div>
       <div style={css('font-size:14.5px; color:var(--muted-light); margin-top:14px; text-align:center; max-width:480px; line-height:1.7; text-wrap:pretty; animation: slideUp 0.5s ease 0.1s both')}>
-        Pergunte sobre investimento, inserções, PIs, audiência ou tabelas de preço. Consulto o Publi e as bases Kantar, nunca a web aberta.
+        Consulto dados de investimento, PIs, audiencia TV/radio (IBOPE), comportamento e consumo (TGI), tarefas do ERP e tabelas de preco. Fontes: Publi, Kantar e bases internas.
       </div>
 
       {/* Composer com titulo "Como posso ajudar" — sem duplicação */}

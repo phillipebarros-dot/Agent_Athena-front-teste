@@ -18,6 +18,10 @@ const SUGGESTIONS = [
   'Inserções da RD Atlântida FM em abril e maio',
   'Tabela de preços de TV para a RPC, 30 segundos',
   'PIs emitidos em Santa Catarina neste mês',
+  'Perfil de consumo de cosméticos no target mulheres AB 25+ (TGI)',
+  'Audiência de TV top 10 programas Grande São Paulo (IBOPE)',
+  'Tarefas abertas no ERP para O Boticário este mês',
+  'Ranking de rádio por ouvintes/minuto em Curitiba',
 ];
 
 export default function ChatPage() {
@@ -106,7 +110,11 @@ export default function ChatPage() {
       let msgs = (r.messages || []).filter((m) => m.role !== 'system_summary') as ChatMessage[];
       // FIX B1: merge pending messages que chegaram enquanto estava em outra conversa
       if (pendingMsgsRef.current[id]) {
-        msgs = [...msgs, ...pendingMsgsRef.current[id]];
+        const existingIds = new Set(msgs.map(m => m.message_id));
+        const newPending = pendingMsgsRef.current[id].filter(m => !existingIds.has(m.message_id));
+        if (newPending.length > 0) {
+          msgs = [...msgs, ...newPending];
+        }
         delete pendingMsgsRef.current[id];
       }
       setMessages(msgs);
@@ -140,7 +148,10 @@ export default function ChatPage() {
     const now = new Date().toISOString();
     const userMsg: ChatMessage = { message_id: `local_u_${Date.now()}`, conversation_id: convId, user_id: me?.email || 'me', role: 'user', content: msg, timestamp: now };
     setMessages((cur) => [...cur, userMsg]);
+    // Persist user message — await para garantir que history() retorne essa msg ao trocar de conversa
     api.saveMessage({ conversation_id: convId, role: 'user', content: msg }).catch(() => {});
+    // Guarda no pendingMsgsRef para merge ao voltar (bug Caroline: "Olá eu sou o Athena")
+    pendingMsgsRef.current[convId] = [...(pendingMsgsRef.current[convId] || []), userMsg];
 
     // A3: criar AbortController para esta conversa
     const controller = new AbortController();
@@ -384,7 +395,7 @@ export default function ChatPage() {
                 }}
                 rows={1}
                 disabled={backendDown}
-                placeholder={backendDown ? 'Backend não conectado' : 'Pergunte sobre inserções, investimento, PIs ou tabelas de preço…'}
+                placeholder={backendDown ? 'Backend não conectado' : 'Pergunte sobre investimento, PIs, audiência, TGI, tarefas ou tabelas de preço…'}
                 style={css('width:100%; resize:none; min-height:26px; max-height:160px; background:transparent; border:none; outline:none; color:var(--white); font-family:var(--font-body); font-size:14.5px; line-height:1.6')}
               />
               {/* A4: Autocomplete dropdown */}
