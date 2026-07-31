@@ -28,7 +28,7 @@ async function call<T>(endpoint: string, body: unknown, signal?: AbortSignal): P
   const res = await fetch(`/api/athena/${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
+    credentials: 'include',
     body: JSON.stringify(body ?? {}),
     signal,
   });
@@ -86,7 +86,7 @@ export const api = {
   upload: async (file: File): Promise<{ filename: string; type: string; text: string; tables?: any[]; tables_count?: number; pages?: number; sheets_count?: number }> => {
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch('/api/athena/upload', { method: 'POST', credentials: 'same-origin', body: form });
+    const res = await fetch('/api/athena/upload', { method: 'POST', credentials: 'include', body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw Object.assign(new Error(data?.detail || `erro_${res.status}`), { status: res.status, data });
     return data;
@@ -95,9 +95,9 @@ export const api = {
 
 // sessão
 export const auth = {
-  me: () => fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()),
-  login: (email?: string) => fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(email ? { email } : {}) }).then(async (r) => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) })),
-  logout: () => fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }),
+  me: () => fetch('/api/auth/me', { credentials: 'include' }).then((r) => r.json()),
+  login: (email?: string) => fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(email ? { email } : {}) }).then(async (r) => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) })),
+  logout: () => fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }),
 };
 
 /** true quando o backend ainda não está configurado, o app cai no modo mock. */
