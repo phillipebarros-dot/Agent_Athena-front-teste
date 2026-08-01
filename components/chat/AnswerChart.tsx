@@ -341,27 +341,40 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
 
   const segments = useMemo(() => {
     let cumulative = 0;
-    return bars.map((b, i) => {
+    const segs = bars.map((b, i) => {
       const pct = total > 0 ? (Math.abs(b.val) / total) * 100 : 0;
       const start = cumulative;
       cumulative += pct;
       return { ...b, pct, start, color: colors[i % colors.length] };
     });
+    // Clamp last segment to exactly 100% to avoid floating-point gaps
+    if (segs.length > 0 && cumulative > 0 && cumulative < 100.5) {
+      const last = segs[segs.length - 1];
+      last.pct += (100 - cumulative);
+    }
+    return segs;
   }, [bars, total, colors]);
 
-  const size = 160;
-  const cx = size / 2, cy = size / 2, r = 60;
+  const size = 180;
+  const cx = size / 2, cy = size / 2, r = 68;
 
   function arcPath(startPct: number, endPct: number) {
-    const startAngle = (startPct / 100) * 360 - 90;
-    const endAngle = (endPct / 100) * 360 - 90;
+    // Clamp to avoid overshoot
+    const sP = Math.max(0, Math.min(100, startPct));
+    const eP = Math.max(0, Math.min(100, endPct));
+    if (eP - sP >= 99.99) {
+      // Full circle — draw as circle not arc
+      return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z`;
+    }
+    const startAngle = (sP / 100) * 360 - 90;
+    const endAngle = (eP / 100) * 360 - 90;
     const startRad = (startAngle * Math.PI) / 180;
     const endRad = (endAngle * Math.PI) / 180;
     const x1 = cx + r * Math.cos(startRad);
     const y1 = cy + r * Math.sin(startRad);
     const x2 = cx + r * Math.cos(endRad);
     const y2 = cy + r * Math.sin(endRad);
-    const largeArc = endPct - startPct > 50 ? 1 : 0;
+    const largeArc = (eP - sP) > 50 ? 1 : 0;
     return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
   }
 
@@ -383,18 +396,19 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
             style={{
               opacity: animated ? 1 : 0,
               transition: `opacity 0.3s ease ${i * 0.08}s`,
+              cursor: 'pointer',
             }}
           >
             <title>{`${seg.label}: ${seg.raw} (${seg.pct.toFixed(1)}%)`}</title>
           </path>
         ))}
       </svg>
-      <div style={css('display:flex; flex-direction:column; gap:6px')}>
+      <div style={css('display:flex; flex-direction:column; gap:5px; max-height:200px; overflow-y:auto')}>
         {segments.map((seg, i) => (
           <div key={i} style={css('display:flex; align-items:center; gap:8px')}>
             <div style={{ width: 10, height: 10, borderRadius: 3, background: seg.color, flexShrink: 0 }} />
-            <span style={css('font-size:11px; color:var(--muted-light)')}>{seg.label}</span>
-            <span style={css('font-family:var(--font-mono); font-size:10.5px; color:var(--muted)')}>{seg.raw}</span>
+            <span style={css('font-size:11px; color:var(--muted-light); max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap')}>{seg.label}</span>
+            <span style={css('font-family:var(--font-mono); font-size:10.5px; color:var(--muted); white-space:nowrap')}>{seg.raw} ({seg.pct.toFixed(1)}%)</span>
           </div>
         ))}
       </div>
@@ -405,12 +419,23 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
 // ── Line Chart com animação ──
 function LineChart({ bars, max, min, colors }: { bars: Bar[]; max: number; min: number; colors: string[] }) {
   const [animated, setAnimated] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
 
   const lineColor = colors[0] || '#C41E1E';
-  const w = 500, h = 160, padX = 40, padY = 20;
-  const plotW = w - padX * 2, plotH = h - padY * 2;
+  // Dynamic width: wider for more points so labels don't overlap
+  const pointSpacing = Math.max(50, Math.min(80, 600 / bars.length));
+  const w = Math.max(500, bars.length * pointSpacing + 100);
+  const h = 220, padX = 60, padY = 30, padBottom = 60;
+  const plotW = w - padX * 2, plotH = h - padY - padBottom;
   const range = Math.max(1, max - min);
+
+  // Smart Y-axis formatting
+  const formatVal = (v: number) => {
+    if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(v) >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+    return v.toFixed(0);
+  };
 
   const points = bars.map((b, i) => ({
     x: padX + (bars.length > 1 ? (i / (bars.length - 1)) * plotW : plotW / 2),
@@ -419,31 +444,30 @@ function LineChart({ bars, max, min, colors }: { bars: Bar[]; max: number; min: 
   }));
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const areaPath = linePath + ` L ${points[points.length - 1].x} ${h - padY} L ${points[0].x} ${h - padY} Z`;
+  const areaPath = linePath + ` L ${points[points.length - 1].x} ${h - padBottom} L ${points[0].x} ${h - padBottom} Z`;
   const pathLength = 1200;
 
   return (
     <div style={css('overflow-x:auto')}>
-      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', maxWidth: w, height: 'auto' }}>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', maxWidth: w, height: 'auto' }}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        {/* Y-axis grid lines + labels */}
         {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
           const y = padY + plotH * (1 - pct);
           const val = min + range * pct;
           return (
             <g key={i}>
               <line x1={padX} y1={y} x2={w - padX} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3" />
-              <text x={padX - 6} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize="9" fontFamily="var(--font-mono)">
-                {val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0)}
+              <text x={padX - 8} y={y + 4} textAnchor="end" fill="var(--muted)" fontSize="10" fontFamily="var(--font-mono)">
+                {formatVal(val)}
               </text>
             </g>
           );
         })}
-        <path d={areaPath} fill={`${lineColor}15`} style={{ opacity: animated ? 1 : 0, transition: 'opacity 0.8s ease 0.5s' }} />
-        <defs>
-          <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={lineColor} />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-        </defs>
+        {/* Area fill */}
+        <path d={areaPath} fill={`${lineColor}12`} style={{ opacity: animated ? 1 : 0, transition: 'opacity 0.8s ease 0.5s' }} />
+        {/* Line */}
         <path
           d={linePath}
           fill="none"
@@ -455,19 +479,49 @@ function LineChart({ bars, max, min, colors }: { bars: Bar[]; max: number; min: 
           strokeDashoffset={animated ? 0 : pathLength}
           style={{ transition: `stroke-dashoffset 1.2s ease-out` }}
         />
-        {points.map((p, i) => (
-          <g key={i} style={{ opacity: animated ? 1 : 0, transition: `opacity 0.3s ease ${0.3 + i * 0.08}s` }}>
-            <circle cx={p.x} cy={p.y} r="4" fill={lineColor} stroke="var(--bg-card)" strokeWidth="2">
-              <title>{`${p.label}: ${p.raw}`}</title>
-            </circle>
-            <text x={p.x} y={h - 4} textAnchor="middle" fill="var(--muted-dim)" fontSize="9" fontFamily="var(--font-body)">
-              {p.label.length > 8 ? p.label.slice(0, 7) + '…' : p.label}
-            </text>
-            <text x={p.x} y={p.y - 8} textAnchor="middle" fill="var(--muted)" fontSize="8.5" fontFamily="var(--font-mono)">
-              {p.raw}
-            </text>
-          </g>
-        ))}
+        {/* Data points + X labels */}
+        {points.map((p, i) => {
+          const isHovered = hoverIdx === i;
+          // Show label for every Nth point to avoid crowding
+          const showLabel = bars.length <= 12 || i % Math.ceil(bars.length / 12) === 0 || i === bars.length - 1;
+          return (
+            <g key={i}
+              style={{ opacity: animated ? 1 : 0, transition: `opacity 0.3s ease ${0.3 + i * 0.05}s` }}
+              onMouseEnter={() => setHoverIdx(i)}
+            >
+              {/* Hover vertical guide line */}
+              {isHovered && (
+                <line x1={p.x} y1={padY} x2={p.x} y2={h - padBottom} stroke="var(--muted)" strokeWidth="0.5" strokeDasharray="4,4" />
+              )}
+              {/* Hover tooltip — value shown only on hover */}
+              {isHovered && (
+                <g>
+                  <rect
+                    x={p.x - 50} y={p.y - 28} width={100} height={20} rx={6}
+                    fill="var(--bg-surface)" stroke="var(--border)" strokeWidth="0.5"
+                  />
+                  <text x={p.x} y={p.y - 14} textAnchor="middle" fill="var(--fg-1)" fontSize="10" fontFamily="var(--font-mono)" fontWeight="600">
+                    {p.raw}
+                  </text>
+                </g>
+              )}
+              {/* Circle point */}
+              <circle cx={p.x} cy={p.y} r={isHovered ? 6 : 4} fill={lineColor} stroke="var(--bg-card)" strokeWidth="2" style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}>
+                <title>{`${p.label}: ${p.raw}`}</title>
+              </circle>
+              {/* X-axis label — rotated 45deg for readability */}
+              {showLabel && (
+                <text
+                  x={p.x} y={h - padBottom + 14}
+                  textAnchor="end" fill="var(--muted-dim)" fontSize="9.5" fontFamily="var(--font-body)"
+                  transform={`rotate(-45, ${p.x}, ${h - padBottom + 14})`}
+                >
+                  {p.label.length > 14 ? p.label.slice(0, 13) + '…' : p.label}
+                </text>
+              )}
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
