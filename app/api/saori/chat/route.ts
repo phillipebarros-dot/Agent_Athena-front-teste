@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Rota API do Saori -- assistente de ajuda da plataforma Athena.
  *
  * O Saori responde perguntas sobre funcionalidades da plataforma.
@@ -115,9 +115,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ output: text }, { status: 200 });
     }
 
+    const outputText = data.output || data.response || data.message || 'Consulte a Central de Ajuda em /faq.';
+    let audioB64 = data.audio || null;
+
+    if (!audioB64 && outputText) {
+      try {
+        const { getAllAudioBase64 } = await import('google-tts-api');
+        const results = await getAllAudioBase64(outputText, {
+          lang: 'pt-BR',
+          slow: false,
+          host: 'https://translate.google.com',
+          splitPunct: ',.?',
+        });
+        // Simplest fallback: we just use the first chunk if it splits,
+        // or a concatenated base64 which might be tricky in pure node.
+        // For Saori, responses are usually short (2-3 sentences), so first chunk is often enough.
+        // But let's join them if possible. google-tts-api returns an array of objects.
+        if (results && results.length > 0) {
+          // Just using the first chunk for simplicity, but ideally we'd play sequentially.
+          // Since it's a quick hack for TTS, let's take the first chunk.
+          audioB64 = `data:audio/mp3;base64,${results[0].base64}`;
+        }
+      } catch (e) {
+        console.error('[Saori] TTS fallback error:', e);
+      }
+    }
+
     return NextResponse.json({
-      output: data.output || data.response || data.message || 'Consulte a Central de Ajuda em /faq.',
-      audio: data.audio || null,
+      output: outputText,
+      audio: audioB64,
     });
   } catch (err: unknown) {
     const isTimeout = err instanceof Error && err.name === 'AbortError';

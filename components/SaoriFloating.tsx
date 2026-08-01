@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
+import { motion, AnimatePresence } from 'framer-motion';
+import { LifeBuoy } from 'lucide-react';
 /**
  * Detecta emoção com base no conteúdo do texto.
  * Retorna uma das emoções mapeadas para emoji.
@@ -33,18 +34,7 @@ function detectEmotion(text: string): string {
   return 'happy';
 }
 
-/** Mapeamento emoção → emoji */
-const EMOTION_EMOJI: Record<string, string> = {
-  happy: '😊',
-  greeting: '👋',
-  thinking: '🤔',
-  explaining: '💡',
-  surprised: '😲',
-  confused: '🧐',
-  angry: '😤',
-  shy: '😅',
-  neutral: '✦',
-};
+
 
 interface SaoriMsg {
   role: 'user' | 'saori';
@@ -185,30 +175,35 @@ export function SaoriFloating() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }, [sendMessage]);
 
-  const emoji = EMOTION_EMOJI[currentEmotion] || EMOTION_EMOJI.neutral;
+
 
   return (
     <div style={{
-      position: 'fixed', bottom: 0, right: 24,
+      position: 'fixed', bottom: 24, right: 24,
       zIndex: 9999,
-      display: 'flex', alignItems: 'flex-end', gap: 0,
+      display: 'flex', alignItems: 'flex-end', gap: 16,
     }}>
 
       {/* ---- CHAT PANEL (glassmorphism) ---- */}
       {expanded && (
-        <div style={{
-          width: 320,
-          marginBottom: 12, marginRight: -8,
-          background: 'rgba(12, 12, 20, 0.85)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 16,
-          boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset',
-          display: 'flex', flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'saoriPanelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}>
+        <motion.div
+          initial={{ opacity: 0, y: 12, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.96 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          style={{
+            width: 320,
+            marginBottom: 12,
+            background: 'rgba(12, 12, 20, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 16,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
 
           {/* Header */}
           <div style={{
@@ -350,7 +345,7 @@ export function SaoriFloating() {
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.06)',
                 borderRadius: 8, padding: '7px 12px',
-                color: '#666', fontSize: 11, cursor: 'pointer',
+                color: '#666', fontSize: 12, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 6,
                 justifyContent: 'center',
                 transition: 'all 0.2s',
@@ -364,10 +359,10 @@ export function SaoriFloating() {
                 (e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
               }}
             >
-              📖 Central de Ajuda
+              <LifeBuoy size={14} /> Central de Ajuda
             </button>
           </div>
-        </div>
+          </motion.div>
       )}
 
       {/* ---- LOGO ATHENA COM EMOJI + 3D ---- */}
@@ -384,65 +379,76 @@ export function SaoriFloating() {
           marginBottom: 12,
         }}
       >
-        {/* Emoji flutuante */}
-        <div style={{
-          position: 'absolute',
-          top: -8, right: -4,
-          fontSize: 20,
-          zIndex: 2,
-          animation: 'emojiFloat 2s ease-in-out infinite',
-          transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          transform: isSpeaking ? 'scale(1.3)' : 'scale(1)',
-          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-        }}>
-          {emoji}
-        </div>
+        {/* Container da logo com Framer Motion (Live2D-like) */}
+        <motion.div
+          animate={{
+            y: isSpeaking || currentEmotion === 'explaining' ? [0, -8, 0] 
+             : currentEmotion === 'surprised' ? [0, -12, 0]
+             : currentEmotion === 'shy' ? [0, 4, 0]
+             : [0, -4, 0],
+            x: currentEmotion === 'angry' ? [0, -4, 4, -4, 4, 0] : 0,
+            scale: currentEmotion === 'surprised' ? [1, 1.1, 1] 
+                 : currentEmotion === 'shy' ? 0.95 
+                 : isSpeaking ? [1, 1.05, 1] 
+                 : (isHovered ? 1.08 : 1),
+            rotateZ: currentEmotion === 'confused' ? [0, 10, -10, 0] 
+                   : (isHovered && !isSpeaking ? [0, -4, 2, 0] : 0),
+          }}
+          transition={{
+            y: { duration: currentEmotion === 'surprised' ? 0.6 : (isSpeaking || currentEmotion === 'explaining' ? 1.2 : 3), repeat: Infinity, ease: 'easeInOut' },
+            x: { duration: 0.4, repeat: currentEmotion === 'angry' ? Infinity : 0, ease: 'easeInOut' },
+            scale: { duration: isSpeaking || currentEmotion === 'surprised' ? 1 : 0.3, repeat: isSpeaking || currentEmotion === 'surprised' ? Infinity : 0, ease: 'easeInOut' },
+            rotateZ: { duration: currentEmotion === 'confused' ? 2 : 0.4, repeat: currentEmotion === 'confused' ? Infinity : 0, ease: 'easeInOut' }
+          }}
+          style={{
+            width: 80, height: 80,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative',
+            zIndex: 1,
+            transformStyle: 'preserve-3d',
+            transform: isHovered
+              ? `rotateY(${mousePos.x * 0.8}deg) rotateX(${mousePos.y * 0.8}deg)`
+              : 'rotateY(0) rotateX(0)',
+          }}
+        >
+          {/* Indicador de speaking (Aura brilhante) */}
+          <AnimatePresence>
+            {(isSpeaking || currentEmotion === 'angry' || currentEmotion === 'surprised') && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ 
+                  opacity: currentEmotion === 'angry' ? [0.6, 1, 0.6] : [0.4, 0.8, 0.4], 
+                  scale: currentEmotion === 'surprised' ? [1, 1.3, 1] : [1, 1.2, 1] 
+                }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: currentEmotion === 'angry' ? 0.5 : 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                style={{
+                  position: 'absolute',
+                  inset: -12,
+                  borderRadius: '50%',
+                  background: currentEmotion === 'angry' 
+                    ? 'radial-gradient(circle, rgba(221,0,4,0.6) 0%, rgba(221,0,4,0) 70%)'
+                    : 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%)',
+                  pointerEvents: 'none',
+                  zIndex: -1,
+                }}
+              />
+            )}
+          </AnimatePresence>
 
-        {/* Container 3D da logo */}
-        <div style={{
-          width: 72, height: 72,
-          borderRadius: 20,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(12, 12, 20, 0.75)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: `1.5px solid ${expanded ? 'rgba(221,0,4,0.3)' : 'rgba(255,255,255,0.08)'}`,
-          boxShadow: isHovered
-            ? `0 12px 40px rgba(221,0,4,0.25), 0 4px 16px rgba(0,0,0,0.4), ${mousePos.x * 0.5}px ${mousePos.y * -0.5}px 20px rgba(221,0,4,0.1)`
-            : '0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04) inset',
-          transition: 'border-color 0.3s, box-shadow 0.3s',
-          transformStyle: 'preserve-3d' as const,
-          transform: isHovered
-            ? `rotateY(${mousePos.x}deg) rotateX(${mousePos.y}deg) scale(1.08)`
-            : 'rotateY(0) rotateX(0) scale(1)',
-          animation: isSpeaking
-            ? 'logoPulse 1s ease-in-out infinite'
-            : 'logoFloat 3s ease-in-out infinite',
-        }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/athena-logo.png"
             alt="Saori"
             style={{
-              width: 44, height: 44,
+              width: 72, height: 72,
               objectFit: 'contain',
-              filter: `drop-shadow(0 2px 8px rgba(221,0,4,${isHovered ? '0.4' : '0.15'}))`,
+              filter: `drop-shadow(0 12px 32px rgba(221,0,4,${isHovered || currentEmotion === 'angry' ? '0.6' : '0.25'})) drop-shadow(0 4px 12px rgba(0,0,0,0.5))`,
               transition: 'filter 0.3s',
-              transform: 'translateZ(8px)',
+              transform: 'translateZ(12px)',
             }}
           />
-        </div>
-
-        {/* Indicador de speaking (ring pulsante) */}
-        {isSpeaking && (
-          <div style={{
-            position: 'absolute', inset: -6,
-            borderRadius: 24,
-            border: '2px solid rgba(221,0,4,0.3)',
-            animation: 'speakRing 1.5s ease-out infinite',
-            pointerEvents: 'none',
-          }} />
-        )}
+        </motion.div>
       </div>
 
       <style>{`
