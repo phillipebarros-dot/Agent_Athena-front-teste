@@ -12,6 +12,8 @@ import { SidebarSkeleton, HistorySkeleton } from '@/components/chat/SkeletonLoad
 import { useKeyboardShortcuts } from '@/lib/shortcuts';
 import { ContextBar } from '@/components/chat/ContextBar';
 import { SaoriFloating } from '@/components/SaoriFloating';
+import { SidebarNavigationSlim } from '@/components/application/app-navigation/sidebar-navigation/sidebar-slim';
+import { navItems, footerItems } from '@/components/application/app-navigation/config';
 import type { ChatMessage, Conversation, AuthUser } from '@/lib/types';
 
 const SUGGESTIONS = [
@@ -302,6 +304,9 @@ export default function ChatPage() {
 
   return (
     <div style={css('display:flex; height:100vh; min-height:640px; background:var(--bg-deep); color:var(--white); font-family:var(--font-body); overflow:hidden')}>
+
+      {/* Sidebar de navegação slim (ícones) */}
+      <SidebarNavigationSlim items={navItems} footerItems={footerItems} />
 
       {/* Backdrop for mobile sidebar */}
       {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}

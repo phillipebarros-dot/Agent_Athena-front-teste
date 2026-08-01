@@ -60,7 +60,7 @@ const Panel = ({ title, hint, children, extra, delay = 0 }: any) => (
       minWidth: 0,
       transition: 'border-color .25s ease, box-shadow .25s ease',
     }}
-    whileHover={{ borderColor: 'rgba(221,0,4,0.12)' }}
+    whileHover={{ borderColor: 'rgba(74,144,217,0.2)' }}
   >
     <div style={css('display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:18px')}>
       <div style={css('min-width:0')}>
@@ -130,7 +130,7 @@ const DomainManager = () => {
         <button
           onClick={addDomain}
           disabled={!newDomain.trim().includes('.')}
-          style={css(`padding:8px 16px; border-radius:8px; border:none; font-size:12px; font-weight:600; cursor:${newDomain.trim().includes('.') ? 'pointer' : 'default'}; background:${newDomain.trim().includes('.') ? 'var(--red)' : 'var(--border)'}; color:#fff; transition:all .2s`)}
+          style={css(`padding:8px 16px; border-radius:8px; border:none; font-size:12px; font-weight:600; cursor:${newDomain.trim().includes('.') ? 'pointer' : 'default'}; background:${newDomain.trim().includes('.') ? '#4A90D9' : 'var(--border)'}; color:#fff; transition:all .2s`)}
         >Adicionar</button>
       </div>
       <div style={css('font-size:11.5px; color:var(--fg-3); margin-top:10px; line-height:1.6')}>Gerenciado dinamicamente. Alterações aplicam imediatamente sem redeploy.</div>
@@ -195,7 +195,7 @@ const SynonymManager = () => {
             placeholder="mapeia para"
             style={css('flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--white); font-size:12px; font-family:var(--font-body); outline:none')}
           />
-          <button onClick={addSyn} disabled={!synFrom.trim() || !synTo.trim()} style={css('padding:6px 12px; border-radius:6px; border:none; background:var(--red); color:#fff; font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-body); opacity:' + (!synFrom.trim() || !synTo.trim() ? '.4' : '1'))}>+</button>
+          <button onClick={addSyn} disabled={!synFrom.trim() || !synTo.trim()} style={css('padding:6px 12px; border-radius:6px; border:none; background:#4A90D9; color:#fff; font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-body); opacity:' + (!synFrom.trim() || !synTo.trim() ? '.4' : '1'))}>+</button>
         </div>
       </div>
       <div style={css('font-size:11.5px; color:var(--fg-3); margin-top:10px; line-height:1.6')}>Sinônimos são usados para mapear termos informais para nomes oficiais no BigQuery.</div>
@@ -252,8 +252,9 @@ function AdminPageInner() {
     setLoading(true);
     const r = await Promise.allSettled([
       api.audit('kpis'), api.audit('top_users'), api.listUsers(),
+      api.audit('all_conversations'), api.audit('recent_activity'), api.audit('recent_feedback'),
     ]);
-    const [k, tu, usr] = r;
+    const [k, tu, usr, cv, act, fb] = r;
     if (k.status === 'fulfilled') setKpis(k.value.data);
     if (tu.status === 'fulfilled') setTopUsers(tu.value.data || []);
     if (usr.status === 'fulfilled') {
@@ -262,6 +263,9 @@ function AdminPageInner() {
       usersData.forEach((u) => { newRoleMap[u.email] = u.role || 'Mídia'; });
       setRoleMap(newRoleMap);
     }
+    if (cv.status === 'fulfilled') setConvs(cv.value.data || []);
+    if (act.status === 'fulfilled') setActivity(act.value.data || []);
+    if (fb.status === 'fulfilled') setFeedback(fb.value.data || []);
     if (r.every((x) => x.status === 'rejected')) {
       setBackendDown(r.some((x: any) => isBackendError(x.reason)));
     } else setBackendDown(false);
@@ -497,7 +501,7 @@ function AdminPageInner() {
                               </div>
                             </div>
                             <div style={css('display:flex; gap:20px')}>
-                              <span style={css('display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--fg-2)')}><span style={css('width:9px; height:9px; border-radius:3px; background:var(--red)')} />{fmtNum(pos)} úteis</span>
+                              <span style={css('display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--fg-2)')}><span style={css('width:9px; height:9px; border-radius:3px; background:#4A90D9')} />{fmtNum(pos)} úteis</span>
                               <span style={css('display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--fg-2)')}><span style={css('width:9px; height:9px; border-radius:3px; background:var(--sunk); border:1px solid var(--border)')} />{fmtNum(neg)} correções</span>
                             </div>
                           </div>
@@ -525,7 +529,7 @@ function AdminPageInner() {
                           const peak = byHour.reduce((best, b) => b.v > best.v ? b : best, { h: -1, v: 0, ht: 0 });
                           return peak.v > 0 ? (
                             <div style={css('margin-top:8px; font-size:10.5px; color:var(--fg-3)')}>
-                              Pico: <span style={{ color: 'var(--red)', fontWeight: 700, fontFamily: DISP }}>{peak.h}h</span> ({fmtNum(peak.v)} msgs)
+                              Pico: <span style={{ color: '#4A90D9', fontWeight: 700, fontFamily: DISP }}>{peak.h}h</span> ({fmtNum(peak.v)} msgs)
                             </div>
                           ) : null;
                         })()}
@@ -550,14 +554,14 @@ function AdminPageInner() {
                             const pct = Math.round(num(u.message_count) / maxUser * 100);
                             return (
                               <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 + i * 0.06 }} style={css('display:flex; align-items:center; gap:8px')}>
-                                <span style={{ width: 18, height: 18, borderRadius: 5, background: i < 3 ? 'var(--red)' : 'var(--sunk)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: i < 3 ? '#fff' : 'var(--fg-3)', fontFamily: DISP, flexShrink: 0 }}>{i + 1}</span>
+                                <span style={{ width: 18, height: 18, borderRadius: 5, background: i < 3 ? '#4A90D9' : 'var(--sunk)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: i < 3 ? '#fff' : 'var(--fg-3)', fontFamily: DISP, flexShrink: 0 }}>{i + 1}</span>
                                 <span style={css('font-size:11.5px; color:var(--fg-2); width:85px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{shortName(u.user_id)}</span>
                                 <span style={css('flex:1; min-width:0; height:7px; border-radius:4px; background:var(--sunk); overflow:hidden')}>
                                   <motion.span
                                     initial={{ width: '0%' }}
                                     animate={{ width: `${pct}%` }}
                                     transition={{ delay: 0.4 + i * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                                    style={{ display: 'block', height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, var(--red), var(--wine))', opacity: 1 - i * 0.1 }}
+                                    style={{ display: 'block', height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, #4A90D9, #3670B0)', opacity: 1 - i * 0.1 }}
                                   />
                                 </span>
                                 <span style={css('font-family:' + DISP + '; font-size:11px; width:38px; text-align:right; flex-shrink:0; color:var(--fg-2)')}>{fmtNum(u.message_count)}</span>
@@ -574,10 +578,10 @@ function AdminPageInner() {
                         <div style={css('display:flex; flex-direction:column')}>
                           {feedback.slice(0, 8).map((f, i) => { const neg = f.rating === 'negative'; return (
                             <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.04 }} style={css('display:flex; gap:14px; padding:13px 0; border-top:1px dashed var(--dash)')}>
-                              <span style={css(`width:24px; height:24px; border-radius:7px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:${neg ? 'var(--red)' : 'var(--green)'}; background:${neg ? 'var(--red-glow)' : 'rgba(63,185,80,.12)'}`)}>{ic(neg ? '<path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/>' : '<path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>', 13, 2)}</span>
+                              <span style={css(`width:24px; height:24px; border-radius:7px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:${neg ? '#F5A623' : 'var(--green)'}; background:${neg ? 'rgba(245,166,35,.12)' : 'rgba(63,185,80,.12)'}`)}>{ic(neg ? '<path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/>' : '<path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>', 13, 2)}</span>
                               <div style={css('flex:1; min-width:0')}>
                                 <div style={css('font-size:13px; color:var(--fg); line-height:1.5')}>{f.user_query || '(sem pergunta registrada)'}</div>
-                                {f.comment && <div style={css(`font-size:12px; color:${neg ? 'var(--red)' : 'var(--fg-2)'}; margin-top:4px`)}>&ldquo;{f.comment}&rdquo;</div>}
+                                {f.comment && <div style={css(`font-size:12px; color:${neg ? '#F5A623' : 'var(--fg-2)'}; margin-top:4px`)}>&ldquo;{f.comment}&rdquo;</div>}
                                 <div style={css('font-size:11px; color:var(--fg-3); margin-top:4px')}>{shortName(f.user_id)} · {relativeTime(f.timestamp)}</div>
                               </div>
                             </motion.div>
