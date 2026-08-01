@@ -36,13 +36,29 @@ export function parseTable(md: string): ParsedTable | null {
         if (r.length >= 2) rows.push(r);
       }
       if (rows.length < 2) return null;
+
+      // Detectar coluna de valores numéricos (da direita pra esquerda)
       let valueCol = -1;
       for (let c = headers.length - 1; c >= 1; c--) {
         const ok = rows.filter((r) => !Number.isNaN(toNum(r[c]))).length;
         if (ok >= Math.ceil(rows.length * 0.6)) { valueCol = c; break; }
       }
       if (valueCol < 0) return null;
-      return { headers, rows, labelCol: 0, valueCol };
+
+      // Detectar coluna de label inteligente:
+      // Se col 0 é numérica/índice (ex: "1", "2", "3"), usar col 1 como label
+      let labelCol = 0;
+      if (headers.length >= 3) {
+        const col0AllNumeric = rows.every(r => {
+          const v = r[0]?.trim();
+          return /^\d+$/.test(v); // apenas dígitos puros = índice
+        });
+        if (col0AllNumeric && valueCol !== 1) {
+          labelCol = 1; // pular coluna de índice
+        }
+      }
+
+      return { headers, rows, labelCol, valueCol };
     }
   }
   return null;
@@ -134,33 +150,91 @@ function BarChart({ bars, max }: { bars: { label: string; raw: string; val: numb
   );
 }
 
-// ── Horizontal Bar Chart ──
+// ── Horizontal Bar Chart (premium redesign) ──
 function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; val: number }[]; max: number }) {
+  // Calcula largura max das labels (adapta ao conteudo)
+  const maxLabelLen = Math.max(...bars.map(b => b.label.length));
+  const labelWidth = Math.min(220, Math.max(100, maxLabelLen * 7 + 20));
+
   return (
-    <div style={css('display:flex; flex-direction:column; gap:8px')}>
-      {bars.map((b, i) => (
-        <div key={i} style={css('display:flex; align-items:center; gap:10px')}>
-          <span style={css('font-size:11px; color:var(--muted-light); min-width:120px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; flex-shrink:0')}>{b.label}</span>
-          <div style={css('flex:1; height:22px; background:var(--bg-surface); border-radius:6px; overflow:hidden; position:relative')}>
-            <div
-              title={`${b.label}: ${b.raw}`}
-              style={{
-                height: '100%',
-                width: `${Math.max(3, Math.round((Math.abs(b.val) / max) * 100))}%`,
-                borderRadius: '6px',
-                background: CHART_COLORS[i % CHART_COLORS.length],
-                transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingRight: '6px',
-              }}
-            >
-              <span style={css('font-family:var(--font-mono); font-size:9.5px; color:#fff; font-weight:600; text-shadow:0 1px 2px rgba(0,0,0,.3)')}>{b.raw}</span>
+    <div style={css('display:flex; flex-direction:column; gap:6px')}>
+      {bars.map((b, i) => {
+        const pct = max > 0 ? Math.max(2, Math.round((Math.abs(b.val) / max) * 100)) : 2;
+        const isSmall = pct < 25;
+        // Gradient suave vermelho Athena → tons mais claros por posição
+        const hue = 4; // vermelho
+        const sat = 75 - (i * 2);
+        const light = 48 + (i * 1.5);
+        const barColor = `hsl(${hue}, ${Math.max(sat, 55)}%, ${Math.min(light, 62)}%)`;
+
+        return (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '3px 0',
+            transition: 'background .15s ease',
+            borderRadius: 6,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.03)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            {/* Label */}
+            <span style={{
+              fontSize: 12, color: 'var(--fg-2)',
+              width: labelWidth, minWidth: labelWidth, maxWidth: labelWidth,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              textAlign: 'right', flexShrink: 0,
+              fontFamily: 'var(--font-body)', fontWeight: 500,
+            }} title={b.label}>
+              {b.label}
+            </span>
+
+            {/* Bar container */}
+            <div style={{
+              flex: 1, height: 28,
+              background: 'var(--bg-surface)',
+              borderRadius: 8, overflow: 'visible',
+              position: 'relative',
+              display: 'flex', alignItems: 'center',
+            }}>
+              {/* Bar fill */}
+              <div
+                title={`${b.label}: ${b.raw}`}
+                style={{
+                  height: '100%',
+                  width: `${pct}%`,
+                  borderRadius: 8,
+                  background: `linear-gradient(90deg, ${barColor}, ${barColor}dd)`,
+                  transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  paddingRight: isSmall ? 0 : 10,
+                  boxShadow: `0 2px 8px ${barColor}30`,
+                }}
+              >
+                {/* Value inside bar (only when bar is wide enough) */}
+                {!isSmall && (
+                  <span style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11, color: '#fff', fontWeight: 600,
+                    textShadow: '0 1px 2px rgba(0,0,0,.3)',
+                    whiteSpace: 'nowrap',
+                  }}>{b.raw}</span>
+                )}
+              </div>
+
+              {/* Value outside bar (when bar is too small) */}
+              {isSmall && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11, color: 'var(--muted-light)', fontWeight: 500,
+                  marginLeft: 8, whiteSpace: 'nowrap',
+                }}>{b.raw}</span>
+              )}
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

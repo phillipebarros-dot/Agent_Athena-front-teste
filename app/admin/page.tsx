@@ -399,7 +399,7 @@ function AdminPageInner() {
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={loadAll}
+            onClick={() => { loadedTabsRef.current.clear(); loadCoreData(); loadTabData(tab); }}
             style={{
               height: 36, padding: '0 15px', border: '1px solid var(--border)', borderRadius: 10,
               background: 'var(--bg-card)', fontSize: 12.5, color: 'var(--fg-2)', cursor: 'pointer',
