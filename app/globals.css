@@ -87,6 +87,19 @@ a:hover { color: var(--brand-hot); }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes stagger-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+button:focus { outline:none; }
+button:focus-visible { outline: 2px solid var(--red); outline-offset:2px; }
+
+/* Remove a seta nativa dos selects de forma garantida em todos os navegadores */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+select::-ms-expand {
+  display: none;
+}
+
 @keyframes dashIn { from { stroke-dashoffset: 314; } to { stroke-dashoffset: var(--dash-target, 0); } }
 @keyframes glassIn { from { opacity: 0; transform: translateY(8px) scale(0.98); backdrop-filter: blur(0); }
   to { opacity: 1; transform: translateY(0) scale(1); backdrop-filter: var(--glass-blur); } }
