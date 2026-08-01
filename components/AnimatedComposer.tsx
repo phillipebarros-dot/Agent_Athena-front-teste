@@ -99,15 +99,15 @@ export function AnimatedComposer({ onSend, prompts = [], disabled, userName }: {
           </div>
         </motion.div>
 
-        {/* Suggestion chips com glassmorphism */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 20 }}>
+        {/* Suggestion chips — grid 2 colunas alinhado */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 20 }}>
           <AnimatePresence>
             {prompts.map((p, i) => (
               <motion.button key={p} type="button" onClick={() => fire(p)} disabled={disabled}
                 initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.4 + i * 0.1, type: 'spring', stiffness: 300, damping: 25 }}
                 whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,.3), 0 0 0 1px rgba(221,0,4,.15)' }}
                 style={{
-                  maxWidth: 300, textAlign: 'left', padding: '10px 15px', borderRadius: 12,
+                  textAlign: 'left', padding: '12px 16px', borderRadius: 12,
                   border: '1px solid var(--glass-border)',
                   background: 'var(--glass)',
                   backdropFilter: 'blur(8px)',
@@ -115,6 +115,8 @@ export function AnimatedComposer({ onSend, prompts = [], disabled, userName }: {
                   color: 'var(--muted-light)', fontFamily: "'Raleway',sans-serif", fontSize: 12.5, lineHeight: 1.5,
                   cursor: disabled ? 'default' : 'pointer',
                   transition: 'border-color .2s ease',
+                  minHeight: 52,
+                  display: 'flex', alignItems: 'center',
                 }}>
                 {p}
               </motion.button>

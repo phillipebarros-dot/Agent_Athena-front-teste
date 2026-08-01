@@ -68,6 +68,11 @@ export default function ChatPage() {
   const [attachedFile, setAttachedFile] = useState<{ file: File; extractedText: string; filename: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // TTS: audio toggle + playback
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Auth gate
   useEffect(() => {
@@ -173,7 +178,7 @@ export default function ChatPage() {
     }
 
     try {
-      const r = await api.chat({ message: enrichedMsg, conversation_id: convId, client }, controller.signal);
+      const r = await api.chat({ message: enrichedMsg, conversation_id: convId, client, is_audio: ttsEnabled }, controller.signal);
       const bot: ChatMessage = { message_id: `local_a_${Date.now()}`, conversation_id: convId, user_id: 'athena', role: 'assistant', content: r.output || '', timestamp: new Date().toISOString(), sources: (r as any).sources || undefined, query: (r as any).query || undefined, attachment: r.attachment || undefined };
 
       // FIX B1: só adiciona mensagem se ainda estiver na mesma conversa
@@ -192,6 +197,27 @@ export default function ChatPage() {
         return currentActiveId;
       });
 
+      // TTS: tocar audio da resposta
+      if (r.audio && ttsEnabled) {
+        try {
+          if (!audioContextRef.current) audioContextRef.current = new AudioContext();
+          const ctx = audioContextRef.current;
+          if (ctx.state === 'suspended') await ctx.resume();
+          const bin = atob(r.audio);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const buf = await ctx.decodeAudioData(bytes.buffer);
+          // Para audio anterior
+          try { sourceNodeRef.current?.stop(); sourceNodeRef.current?.disconnect(); } catch {}
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(ctx.destination);
+          sourceNodeRef.current = src;
+          setIsPlaying(true);
+          src.start();
+          src.onended = () => { setIsPlaying(false); sourceNodeRef.current = null; };
+        } catch (audioErr) { console.warn('TTS playback error:', audioErr); }
+      }
       api.saveMessage({ conversation_id: convId!, role: 'assistant', content: r.output || '' }).catch(() => {});
       if (isNew) loadConversations();
       // Compactação automática — evita perda de contexto (bug Victor)
@@ -465,7 +491,18 @@ export default function ChatPage() {
                 }
                 setUploading(false);
               }} />
-              <div style={css('display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border)')}>                {/* Attach button */}
+              <div style={css('display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border)')}>
+                {/* TTS toggle */}
+                <B t="button" onClick={() => { setTtsEnabled(!ttsEnabled); if (isPlaying) { try { sourceNodeRef.current?.stop(); sourceNodeRef.current?.disconnect(); } catch {} setIsPlaying(false); sourceNodeRef.current = null; } }} c={`width:36px; height:36px; border:1px solid ${ttsEnabled ? 'var(--red-dim)' : 'var(--border)'}; border-radius:9px; color:${ttsEnabled ? 'var(--red)' : 'var(--muted)'}; cursor:pointer; display:flex; align-items:center; justify-content:center; background:${ttsEnabled ? 'rgba(196,30,30,.08)' : 'transparent'}; transition:all .2s`} h="border-color:var(--red-dim); color:var(--white)" title={ttsEnabled ? 'Desativar voz (TTS)' : 'Ativar voz (TTS)'}>
+                  <IC s={16} d={ttsEnabled ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>' : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>'} w={1.8} />
+                </B>
+                {/* Stop audio button */}
+                {isPlaying && (
+                  <B t="button" onClick={() => { try { sourceNodeRef.current?.stop(); sourceNodeRef.current?.disconnect(); } catch {} setIsPlaying(false); sourceNodeRef.current = null; }} c="width:36px; height:36px; border:1px solid var(--red-dim); border-radius:9px; color:var(--red); cursor:pointer; display:flex; align-items:center; justify-content:center; background:rgba(196,30,30,.08); transition:all .2s; animation:pulse 1.5s infinite" h="background:rgba(196,30,30,.15)" title="Parar audio">
+                    <IC s={14} d='<rect x="6" y="6" width="12" height="12" rx="2"/>' stroke="var(--red)" w={2} />
+                  </B>
+                )}
+                {/* Attach button */}
                 <B t="button" onClick={() => fileInputRef.current?.click()} c="width:36px; height:36px; border:1px solid var(--border); border-radius:9px; color:var(--muted-light); cursor:pointer; display:flex; align-items:center; justify-content:center; background:transparent; transition:all .2s" h="border-color:var(--red-dim); color:var(--white)" title="Anexar documento (PDF, Excel, CSV)">
                   <IC s={16} d='<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>' w={1.8} />
                 </B>
