@@ -212,37 +212,89 @@ function useStaggeredReveal(count: number, on: boolean) {
   return visible;
 }
 
-// ── Bar Chart (vertical) com animação ──
+// ── Bar Chart (vertical) — SVG premium com hover tooltip ──
 function BarChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: string[] }) {
   const [animated, setAnimated] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
 
+  const barWidth = Math.max(16, Math.min(36, 500 / bars.length - 6));
+  const gap = Math.max(4, Math.min(12, 300 / bars.length));
+  const w = Math.max(400, bars.length * (barWidth + gap) + 100);
+  const h = 240, padX = 55, padY = 24, padBottom = 56;
+  const plotW = w - padX - 20, plotH = h - padY - padBottom;
+
+  const formatVal = (v: number) => {
+    if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(v) >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+    return v.toFixed(0);
+  };
+
   return (
-    <div style={css('display:flex; align-items:stretch; gap:10px; height:200px')}>
-      {bars.map((b, i) => {
-        const pct = max > 0 ? Math.max(4, Math.round((Math.abs(b.val) / max) * 100)) : 4;
-        const color = colors[i % colors.length];
-        return (
-          <div key={i} style={css('flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:5px; min-width:0')}>
-            <span style={css("font-family:var(--font-mono); font-size:10px; color:var(--muted); white-space:nowrap")}>{b.raw}</span>
-            <div style={css('width:100%; height:150px; display:flex; align-items:flex-end; justify-content:center')}>
-              <div
-                title={`${b.label}: ${b.raw}`}
-                style={{
-                  width: '100%',
-                  maxWidth: '36px',
-                  height: animated ? `${pct}%` : '0%',
-                  borderRadius: '6px 6px 2px 2px',
-                  background: `linear-gradient(180deg, ${color}, ${color}cc)`,
-                  transition: `height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.06}s`,
-                  boxShadow: `0 2px 12px ${color}30`,
-                }}
+    <div style={css('overflow-x:auto')}>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', maxWidth: w, height: 'auto' }}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        {/* Y-axis grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
+          const y = padY + plotH * (1 - pct);
+          return (
+            <g key={i}>
+              <line x1={padX} y1={y} x2={w - 20} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3" opacity={0.5} />
+              <text x={padX - 8} y={y + 4} textAnchor="end" fill="var(--muted)" fontSize="10" fontFamily="var(--font-mono)">
+                {formatVal(max * pct)}
+              </text>
+            </g>
+          );
+        })}
+        {/* Bars */}
+        {bars.map((b, i) => {
+          const barH = max > 0 ? (Math.abs(b.val) / max) * plotH : 2;
+          const x = padX + i * (barWidth + gap) + gap / 2;
+          const y = padY + plotH - barH;
+          const color = colors[i % colors.length];
+          const isHovered = hoverIdx === i;
+          const showLabel = bars.length <= 14 || i % Math.ceil(bars.length / 14) === 0 || i === bars.length - 1;
+          return (
+            <g key={i} onMouseEnter={() => setHoverIdx(i)} style={{ cursor: 'pointer' }}>
+              {/* Bar */}
+              <rect
+                x={x} y={animated ? y : padY + plotH}
+                width={barWidth} height={animated ? Math.max(2, barH) : 0}
+                rx={4} ry={4}
+                fill={color}
+                opacity={isHovered ? 1 : 0.85}
+                style={{ transition: `y 0.6s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s, height 0.6s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s, opacity 0.15s ease` }}
               />
-            </div>
-            <span style={css('font-size:9.5px; color:var(--muted-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; text-align:center')}>{b.label}</span>
-          </div>
-        );
-      })}
+              {/* Glow on hover */}
+              {isHovered && (
+                <rect x={x - 1} y={y - 1} width={barWidth + 2} height={Math.max(2, barH) + 2} rx={5} fill="none" stroke={color} strokeWidth="1.5" opacity={0.5} />
+              )}
+              {/* Hover tooltip */}
+              {isHovered && (
+                <g>
+                  <rect x={x + barWidth / 2 - 55} y={y - 30} width={110} height={22} rx={6}
+                    fill="var(--bg-surface)" stroke="var(--border)" strokeWidth="0.5" />
+                  <text x={x + barWidth / 2} y={y - 15} textAnchor="middle" fill="var(--fg-1)" fontSize="10.5" fontFamily="var(--font-mono)" fontWeight="600">
+                    {b.raw}
+                  </text>
+                </g>
+              )}
+              {/* X-axis label — rotated */}
+              {showLabel && (
+                <text
+                  x={x + barWidth / 2} y={padY + plotH + 14}
+                  textAnchor="end" fill="var(--muted-dim)" fontSize="9" fontFamily="var(--font-body)"
+                  transform={`rotate(-45, ${x + barWidth / 2}, ${padY + plotH + 14})`}
+                >
+                  {b.label.length > 16 ? b.label.slice(0, 15) + '…' : b.label}
+                </text>
+              )}
+              <title>{`${b.label}: ${b.raw}`}</title>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
@@ -334,10 +386,17 @@ function HorizontalChart({ bars, max, colors }: { bars: Bar[]; max: number; colo
   );
 }
 
-// ── Pie Chart com animação ──
+// ── Donut Chart premium com hover highlight ──
 function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors: string[] }) {
   const [animated, setAnimated] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
+
+  const formatTotal = (v: number) => {
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+    return v.toFixed(0);
+  };
 
   const segments = useMemo(() => {
     let cumulative = 0;
@@ -347,7 +406,6 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
       cumulative += pct;
       return { ...b, pct, start, color: colors[i % colors.length] };
     });
-    // Clamp last segment to exactly 100% to avoid floating-point gaps
     if (segs.length > 0 && cumulative > 0 && cumulative < 100.5) {
       const last = segs[segs.length - 1];
       last.pct += (100 - cumulative);
@@ -355,60 +413,91 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
     return segs;
   }, [bars, total, colors]);
 
-  const size = 180;
-  const cx = size / 2, cy = size / 2, r = 68;
+  const size = 220;
+  const cx = size / 2, cy = size / 2;
+  const outerR = 90, innerR = 55; // Donut
 
-  function arcPath(startPct: number, endPct: number) {
-    // Clamp to avoid overshoot
+  function donutArc(startPct: number, endPct: number, hover: boolean) {
     const sP = Math.max(0, Math.min(100, startPct));
     const eP = Math.max(0, Math.min(100, endPct));
+    const r = hover ? outerR + 4 : outerR;
+    const ir = hover ? innerR - 2 : innerR;
     if (eP - sP >= 99.99) {
-      // Full circle — draw as circle not arc
-      return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z`;
+      return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} A ${r} ${r} 0 0 1 ${cx} ${cy - r} Z M ${cx} ${cy - ir} A ${ir} ${ir} 0 1 0 ${cx - 0.01} ${cy - ir} A ${ir} ${ir} 0 0 0 ${cx} ${cy - ir} Z`;
     }
-    const startAngle = (sP / 100) * 360 - 90;
-    const endAngle = (eP / 100) * 360 - 90;
-    const startRad = (startAngle * Math.PI) / 180;
-    const endRad = (endAngle * Math.PI) / 180;
-    const x1 = cx + r * Math.cos(startRad);
-    const y1 = cy + r * Math.sin(startRad);
-    const x2 = cx + r * Math.cos(endRad);
-    const y2 = cy + r * Math.sin(endRad);
-    const largeArc = (eP - sP) > 50 ? 1 : 0;
-    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    const s1 = ((sP / 100) * 360 - 90) * Math.PI / 180;
+    const e1 = ((eP / 100) * 360 - 90) * Math.PI / 180;
+    const la = (eP - sP) > 50 ? 1 : 0;
+    const ox1 = cx + r * Math.cos(s1), oy1 = cy + r * Math.sin(s1);
+    const ox2 = cx + r * Math.cos(e1), oy2 = cy + r * Math.sin(e1);
+    const ix1 = cx + ir * Math.cos(e1), iy1 = cy + ir * Math.sin(e1);
+    const ix2 = cx + ir * Math.cos(s1), iy2 = cy + ir * Math.sin(s1);
+    return `M ${ox1} ${oy1} A ${r} ${r} 0 ${la} 1 ${ox2} ${oy2} L ${ix1} ${iy1} A ${ir} ${ir} 0 ${la} 0 ${ix2} ${iy2} Z`;
   }
+
+  const hoverSeg = hoverIdx !== null ? segments[hoverIdx] : null;
 
   return (
     <div style={{
-      ...css('display:flex; align-items:center; gap:24px; flex-wrap:wrap; justify-content:center') as any,
+      ...css('display:flex; align-items:center; gap:28px; flex-wrap:wrap; justify-content:center') as any,
       opacity: animated ? 1 : 0,
-      transform: animated ? 'scale(1)' : 'scale(0.8)',
+      transform: animated ? 'scale(1)' : 'scale(0.85)',
       transition: 'opacity 0.5s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
     }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        {/* Background ring */}
+        <circle cx={cx} cy={cy} r={(outerR + innerR) / 2} fill="none" stroke="var(--bg-surface)" strokeWidth={outerR - innerR} />
+        {/* Segments */}
         {segments.map((seg, i) => (
           <path
             key={i}
-            d={arcPath(seg.start, seg.start + seg.pct)}
+            d={donutArc(seg.start, seg.start + seg.pct, hoverIdx === i)}
             fill={seg.color}
+            fillRule="evenodd"
             stroke="var(--bg-card)"
-            strokeWidth="2"
+            strokeWidth="1.5"
+            onMouseEnter={() => setHoverIdx(i)}
             style={{
-              opacity: animated ? 1 : 0,
-              transition: `opacity 0.3s ease ${i * 0.08}s`,
+              opacity: animated ? (hoverIdx !== null && hoverIdx !== i ? 0.5 : 1) : 0,
+              transition: `opacity 0.25s ease ${i * 0.05}s, d 0.2s ease`,
               cursor: 'pointer',
+              filter: hoverIdx === i ? `drop-shadow(0 2px 8px ${seg.color}66)` : 'none',
             }}
           >
             <title>{`${seg.label}: ${seg.raw} (${seg.pct.toFixed(1)}%)`}</title>
           </path>
         ))}
+        {/* Center label */}
+        <text x={cx} y={cy - 6} textAnchor="middle" fill="var(--fg-1)" fontSize="16" fontFamily="var(--font-mono)" fontWeight="700">
+          {hoverSeg ? `${hoverSeg.pct.toFixed(1)}%` : formatTotal(total)}
+        </text>
+        <text x={cx} y={cy + 12} textAnchor="middle" fill="var(--muted)" fontSize="9" fontFamily="var(--font-body)">
+          {hoverSeg ? (hoverSeg.label.length > 18 ? hoverSeg.label.slice(0, 17) + '…' : hoverSeg.label) : 'Total'}
+        </text>
       </svg>
-      <div style={css('display:flex; flex-direction:column; gap:5px; max-height:200px; overflow-y:auto')}>
+      {/* Legend */}
+      <div style={css('display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto; padding-right:4px')}>
         {segments.map((seg, i) => (
-          <div key={i} style={css('display:flex; align-items:center; gap:8px')}>
-            <div style={{ width: 10, height: 10, borderRadius: 3, background: seg.color, flexShrink: 0 }} />
-            <span style={css('font-size:11px; color:var(--muted-light); max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap')}>{seg.label}</span>
-            <span style={css('font-family:var(--font-mono); font-size:10.5px; color:var(--muted); white-space:nowrap')}>{seg.raw} ({seg.pct.toFixed(1)}%)</span>
+          <div key={i}
+            onMouseEnter={() => setHoverIdx(i)}
+            onMouseLeave={() => setHoverIdx(null)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '3px 6px',
+              borderRadius: 6, cursor: 'pointer',
+              background: hoverIdx === i ? 'rgba(255,255,255,.05)' : 'transparent',
+              transition: 'background 0.15s ease',
+            }}
+          >
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: seg.color, flexShrink: 0,
+              boxShadow: hoverIdx === i ? `0 0 6px ${seg.color}88` : 'none' }} />
+            <span style={css('font-size:11px; color:var(--muted-light); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap')}
+              title={seg.label}
+            >{seg.label}</span>
+            <span style={css('font-family:var(--font-mono); font-size:10px; color:var(--muted); white-space:nowrap; margin-left:auto')}>
+              {seg.pct.toFixed(1)}%
+            </span>
           </div>
         ))}
       </div>
