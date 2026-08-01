@@ -334,10 +334,12 @@ export default function ChatPage() {
     const idx = messages.findIndex(x => x.message_id === assistantMsg.message_id);
     const prevUser = [...messages].slice(0, idx).reverse().find(m => m.role === 'user');
     if (!prevUser) return;
-    // Remove the old assistant response
-    setMessages(cur => cur.filter(m => m.message_id !== assistantMsg.message_id));
+    const originalText = prevUser.content;
+    // Remove BOTH the old user message AND the old assistant response
+    // (send() will re-create the user message, avoiding duplicates)
+    setMessages(cur => cur.filter(m => m.message_id !== assistantMsg.message_id && m.message_id !== prevUser.message_id));
     // Re-send the original question
-    await send(prevUser.content);
+    await send(originalText);
   }
 
 
