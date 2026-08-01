@@ -18,9 +18,9 @@ const DISP = "'Oswald',sans-serif";
 const dayKey = (iso?: string) => (iso ? new Date(iso).toISOString().slice(0, 10) : '');
 const hourOf = (iso?: string) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.getHours() : -1; };
 
-/* ─── Chart helpers (monocromático, nível senior) ─── */
-const CHART_COLORS = ['#333333', '#555555', '#777777', '#999999', '#BBBBBB'];
-const BAR_COLOR = 'var(--red)'; // Untitled UI mix: base clean + brand color
+/* ─── Chart helpers (paleta premium, sem vermelho) ─── */
+const CHART_COLORS = ['#4A90D9', '#50C878', '#F5A623', '#9B59B6', '#1ABC9C'];
+const BAR_COLOR = '#4A90D9'; // Azul premium
 
 const ROLES = ['Administrador', 'Planejamento', 'Mídia', 'Atendimento'];
 const PERMS: { label: string; roles: string[] }[] = [

@@ -61,8 +61,8 @@ export function SaoriFloating() {
   // Efeitos 3D suaves e realistas com framer-motion springs
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 150, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 150, damping: 20 });
+  const springX = useSpring(mouseX, { stiffness: 400, damping: 15 });
+  const springY = useSpring(mouseY, { stiffness: 400, damping: 15 });
   const rotateX = useTransform(springY, [-1, 1], [15, -15]);
   const rotateY = useTransform(springX, [-1, 1], [-15, 15]);
 
@@ -239,7 +239,7 @@ export function SaoriFloating() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '12px 16px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
-            background: 'rgba(221, 0, 4, 0.08)',
+            background: 'rgba(255, 255, 255, 0.03)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
@@ -288,7 +288,7 @@ export function SaoriFloating() {
                   ? '14px 14px 4px 14px'
                   : '14px 14px 14px 4px',
                 background: msg.role === 'user'
-                  ? 'var(--red, #dd0004)'
+                  ? 'rgba(255,255,255,0.12)'
                   : 'rgba(255, 255, 255, 0.04)',
                 color: msg.role === 'user' ? '#fff' : '#d0d0d0',
                 fontSize: 13, lineHeight: 1.55,
@@ -340,7 +340,7 @@ export function SaoriFloating() {
                   color: '#e0e0e0', fontSize: 13, outline: 'none',
                   transition: 'border-color 0.2s',
                 }}
-                onFocus={e => { e.target.style.borderColor = 'rgba(221,0,4,0.4)'; }}
+                onFocus={e => { e.target.style.borderColor = 'rgba(255,255,255,0.25)'; }}
                 onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
               />
               <button
@@ -350,14 +350,14 @@ export function SaoriFloating() {
                   width: 36, height: 36, borderRadius: 10,
                   border: 'none', flexShrink: 0,
                   background: input.trim() && !thinking
-                    ? 'var(--red, #dd0004)'
+                    ? 'rgba(255,255,255,0.15)'
                     : 'rgba(255,255,255,0.05)',
                   color: '#fff',
                   cursor: input.trim() && !thinking ? 'pointer' : 'default',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.2s',
                   boxShadow: input.trim() && !thinking
-                    ? '0 2px 12px rgba(221,0,4,0.3)' : 'none',
+                    ? '0 2px 12px rgba(255,255,255,0.08)' : 'none',
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -381,8 +381,8 @@ export function SaoriFloating() {
                 transition: 'all 0.2s',
               }}
               onMouseEnter={e => {
-                (e.target as HTMLElement).style.color = '#dd0004';
-                (e.target as HTMLElement).style.borderColor = 'rgba(221,0,4,0.2)';
+                (e.target as HTMLElement).style.color = '#e0e0e0';
+                (e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,0.15)';
               }}
               onMouseLeave={e => {
                 (e.target as HTMLElement).style.color = '#666';
@@ -453,7 +453,7 @@ export function SaoriFloating() {
                   inset: -12,
                   borderRadius: '50%',
                   background: currentEmotion === 'angry' 
-                    ? 'radial-gradient(circle, rgba(221,0,4,0.6) 0%, rgba(221,0,4,0) 70%)'
+                    ? 'radial-gradient(circle, rgba(255,120,50,0.5) 0%, rgba(255,120,50,0) 70%)'
                     : 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%)',
                   pointerEvents: 'none',
                   zIndex: -1,
@@ -469,7 +469,7 @@ export function SaoriFloating() {
             style={{
               width: 72, height: 72,
               objectFit: 'contain',
-              filter: `drop-shadow(0 12px 32px rgba(221,0,4,${isHovered || currentEmotion === 'angry' ? '0.6' : '0.25'})) drop-shadow(0 4px 12px rgba(0,0,0,0.5))`,
+              filter: `drop-shadow(0 12px 32px rgba(255,255,255,${isHovered || currentEmotion === 'angry' ? '0.2' : '0.08'})) drop-shadow(0 4px 12px rgba(0,0,0,0.5))`,
               transition: 'filter 0.3s',
               transform: 'translateZ(12px)',
             }}
@@ -495,8 +495,8 @@ export function SaoriFloating() {
           50% { transform: translateY(-4px) rotateY(0) rotateX(0) scale(1); }
         }
         @keyframes logoPulse {
-          0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(221,0,4,0.15); }
-          50% { transform: scale(1.06); box-shadow: 0 6px 28px rgba(221,0,4,0.35); }
+          0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(255,255,255,0.06); }
+          50% { transform: scale(1.06); box-shadow: 0 6px 28px rgba(255,255,255,0.12); }
         }
         @keyframes emojiFloat {
           0%, 100% { transform: translateY(0); }

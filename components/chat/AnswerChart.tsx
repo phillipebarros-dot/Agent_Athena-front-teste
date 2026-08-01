@@ -87,10 +87,9 @@ export function parseTable(md: string): ParsedTable | null {
   return null;
 }
 
-// Paleta vibrante com 12 cores distintas
+// Paleta premium — sem vermelho, cores elegantes e contrastadas
 const CHART_COLORS = [
-  '#E8453C', // vermelho athena
-  '#4A90D9', // azul
+  '#4A90D9', // azul principal
   '#50C878', // verde esmeralda
   '#F5A623', // laranja
   '#9B59B6', // roxo
@@ -101,6 +100,7 @@ const CHART_COLORS = [
   '#E67E22', // tangerina
   '#8E44AD', // roxo escuro
   '#16A085', // verde-azulado
+  '#F39C12', // dourado
 ];
 
 type ChartType = 'bar' | 'horizontal' | 'pie' | 'line';
