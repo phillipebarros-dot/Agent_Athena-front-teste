@@ -14,6 +14,7 @@ export const runtime = 'nodejs';
 const BEYONDER_CONTEXT = `[MODO BEYONDER - ASSISTENTE DE AJUDA]
 Voce esta respondendo como o Beyonder, assistente de ajuda da plataforma Athena.
 Responda APENAS sobre funcionalidades da plataforma. Seja breve (2-3 frases).
+NUNCA use emojis, emoticons ou caracteres especiais nas respostas. Fale de forma profissional e direta.
 
 Funcionalidades da Athena:
 - Chat com IA: perguntas sobre clientes, campanhas, midia, investimentos

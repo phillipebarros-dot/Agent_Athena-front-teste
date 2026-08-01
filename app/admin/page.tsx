@@ -239,21 +239,17 @@ function AdminPageInner() {
     })();
   }, [router]);
 
-  const loadAll = useCallback(async () => {
+  const loadedTabsRef = React.useRef<Set<string>>(new Set());
+
+  // Carregar KPIs e top users primeiro (dados leves, essenciais)
+  const loadCoreData = useCallback(async () => {
     setLoading(true);
     const r = await Promise.allSettled([
-      api.audit('kpis'), api.audit('top_users'), api.audit('recent_activity'),
-      api.audit('recent_feedback'), api.audit('all_conversations'), api.listUsers(),
-      api.audit('system_stats'), api.audit('mcp_health'),
+      api.audit('kpis'), api.audit('top_users'), api.listUsers(),
     ]);
-    const [k, tu, act, fb, cv, usr, ss, mh] = r;
+    const [k, tu, usr] = r;
     if (k.status === 'fulfilled') setKpis(k.value.data);
     if (tu.status === 'fulfilled') setTopUsers(tu.value.data || []);
-    if (act.status === 'fulfilled') setActivity(act.value.data || []);
-    if (fb.status === 'fulfilled') setFeedback(fb.value.data || []);
-    if (cv.status === 'fulfilled') setConvs(cv.value.data || []);
-    if (ss.status === 'fulfilled') setSystemStats(ss.value.data);
-    if (mh.status === 'fulfilled') setMcpHealth(mh.value.data);
     if (usr.status === 'fulfilled') {
       const usersData = usr.value.users || [];
       const newRoleMap: Record<string, string> = {};
@@ -264,8 +260,33 @@ function AdminPageInner() {
       setBackendDown(r.some((x: any) => isBackendError(x.reason)));
     } else setBackendDown(false);
     setLoading(false);
+    loadedTabsRef.current.add('visao');
   }, []);
-  useEffect(() => { if (me) loadAll(); }, [me, loadAll]);
+
+  // Lazy load por aba
+  const loadTabData = useCallback(async (tabId: string) => {
+    if (loadedTabsRef.current.has(tabId)) return;
+    loadedTabsRef.current.add(tabId);
+    try {
+      if (tabId === 'conversas') {
+        const [act, cv] = await Promise.allSettled([
+          api.audit('recent_activity'), api.audit('all_conversations'),
+        ]);
+        if (act.status === 'fulfilled') setActivity(act.value.data || []);
+        if (cv.status === 'fulfilled') setConvs(cv.value.data || []);
+      } else if (tabId === 'config') {
+        const [ss, mh, fb] = await Promise.allSettled([
+          api.audit('system_stats'), api.audit('mcp_health'), api.audit('recent_feedback'),
+        ]);
+        if (ss.status === 'fulfilled') setSystemStats(ss.value.data);
+        if (mh.status === 'fulfilled') setMcpHealth(mh.value.data);
+        if (fb.status === 'fulfilled') setFeedback(fb.value.data || []);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => { if (me) loadCoreData(); }, [me, loadCoreData]);
+  useEffect(() => { if (me && !loading) loadTabData(tab); }, [me, tab, loading, loadTabData]);
 
   async function openConv(c: any) {
     setDrawer(c); setDrawerMsgs(null);
