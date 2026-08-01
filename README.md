@@ -1,8 +1,8 @@
-# Athena Frontend - Interface de Inteligencia de Midia
+# Athena Frontend - Interface de Inteligencia de Midia (v3.2.0)
 
 **Autor**: Phillipe Barros ([@phillipebarros-dot](https://github.com/phillipebarros-dot))  
 **Organizacao**: Opus Multipla / Grupo OM  
-**Versao**: 3.1.0 | **Licenca**: Proprietaria
+**Versao**: 3.2.0 | **Licenca**: Proprietaria
 
 Frontend do assistente Athena. Interface de chat inteligente para consulta de dados de midia, planejamento e investimento publicitario. Aplicacao Next.js 14 com autenticacao Google OAuth 2.0, proxy server-side seguro e design system proprio. Inclui o assistente virtual Beyonder (Live2D) para guiar usuarios.
 
@@ -36,10 +36,11 @@ Frontend do assistente Athena. Interface de chat inteligente para consulta de da
 | Estilos | CSS Variables | - | Design system proprio (sem Tailwind) |
 | Fontes | Google Fonts | Inter + DM Sans | Tipografia premium |
 | Markdown | Renderizacao propria | - | Parser GFM com tabelas |
-| Graficos | Chart.js | via canvas | Visualizacao de dados |
-| Live2D | pixi-live2d-display | + PixiJS v7 | Assistente Beyonder (VTuber) |
+| Graficos | SVG custom | inline | Visualizacao premium (bar, horizontal, pie, line) |
+| Live2D | pixi-live2d-display | + PixiJS v7 | Assistente Beyonder (VTuber, sem audio/emoji) |
 | Lip Sync | Web Audio API | AnalyserNode | Sincronizacao boca/audio |
-| Voz TTS | OpenAI TTS | tts-1-hd, voz onyx | Voz masculina grave e natural |
+| Voz TTS | Gemini 2.5 Flash TTS | voz Charon | Ultra-realista, masculina grave, emocoes naturais |
+| TTS Fallback | Google Cloud Neural2 + OpenAI | pt-BR-Neural2-B / onyx | Fallback em cadeia 3 provedores |
 | Voz STT | Web Speech API | - | Ditado por voz (Chrome) |
 | CSP | Nonce per-request | middleware.ts | Content Security Policy |
 | Infra | Google Cloud Run | - | Serverless containers |
@@ -82,7 +83,9 @@ Next.js 14 (Cloud Run)
 - Envio de mensagens: Texto livre com contexto de cliente e ciclo
 - Respostas em Markdown: Tabelas GFM, listas, negrito, codigo
 - Tabelas interativas: Renderizacao rica com headers estilizados
-- Graficos automaticos: Botao "Ver em grafico" converte tabela em Chart.js
+- Graficos automaticos: Botao "Ver em grafico" com deteccao inteligente (barras, horizontal, pizza, linha)
+- Label inteligente: Detecta e ignora colunas de indice numerico, exibe nome real
+- Design premium: Gradiente harmonioso, hover effects, valores fora de barras pequenas
 - Chips de sugestao: 8 prompts predefinidos na tela inicial
 - Regenerar resposta: Botao para refazer a ultima consulta
 - Feedback: Like/dislike com comentario por mensagem
@@ -104,9 +107,12 @@ Next.js 14 (Cloud Run)
 - PDF: Gera HTML formatado e abre impressao
 - Google Sheets: Cria planilha nativa no Drive do usuario (botao verde)
 
-### Voz
+### Voz (Gemini TTS Ultra-Realista)
+- TTS automatico: Respostas lidas em voz alta com Gemini 2.5 Flash TTS (voz Charon, masculina grave)
+- Toggle TTS: Botao de volume no compositor para ativar/desativar voz
+- Parar audio: Botao pulsante para interromper reproducao
+- Fallback 3 niveis: Gemini TTS → Google Cloud Neural2 → OpenAI TTS
 - Ditado: Botao de microfone no compositor (Web Speech API, Chrome)
-- Ouvir resposta: Botao de alto-falante converte texto em audio (OpenAI TTS)
 
 ### Upload de Documentos
 - PDF: Extrai texto e usa como contexto da pergunta
@@ -117,11 +123,15 @@ Next.js 14 (Cloud Run)
 - Cliente: Seletor no sidebar (Boticario, Eudora, etc.)
 - Persistente: Contexto acompanha todas as mensagens da conversa
 
-### Admin Dashboard
+### Admin Dashboard (Lazy Load Otimizado)
 - Auditoria: Log de todas as consultas com query SQL, tokens, timestamp
+- KPIs: Mensagens, conversas ativas, usuarios, assertividade, feedback +/-
 - Dominios: Gerenciar dominios de e-mail permitidos para login
 - Sinonimos: Mapear termos de busca para nomes do Publi
-- Usuarios: Lista de usuarios com role (user/admin)
+- Usuarios e Permissoes: Roles (Admin, Planejamento, Midia, Atendimento)
+- System Stats: CPU, memoria, MCP health
+- Lazy Load: Carrega dados por aba sob demanda (3 requests iniciais em vez de 8)
+- Graficos de atividade: Spark bars por dia, distribuicao por hora
 
 ---
 
@@ -133,11 +143,12 @@ O Beyonder e um personagem Live2D integrado ao frontend que funciona como assist
 - Modelo Live2D Cubism renderizado via PixiJS no navegador
 - 7 expressoes emocionais: feliz, bravo, preocupado, envergonhado, fofo, surpreso, confuso
 - Lip sync em tempo real: Web Audio API analisa volume do audio TTS e sincroniza com a boca
-- Voz masculina grave: OpenAI TTS modelo tts-1-hd com voz "onyx"
+- Respostas texto-only: Sem audio TTS no Beyonder (economia de quota)
+- Sem emojis: Prompt proibe emojis para respostas profissionais
 - Baloes de fala: Efeito typewriter com animacao de entrada/saida
 - Deteccao de emocao: Analisa o contexto da resposta e muda expressao automaticamente
 - Animacoes idle: Respiracao, piscar, fisica de gravata e cadarco
-- Input por voz: Web Speech API para ditado (Chrome)
+- Redireciona para /faq: Orienta usuarios a Central de Ajuda completa
 
 ### Quando o Beyonder aparece
 - Primeira vez que o usuario acessa o sistema
@@ -159,15 +170,16 @@ O Beyonder e um personagem Live2D integrado ao frontend que funciona como assist
 | Componente | Arquivo | Descricao |
 |-----------|---------|-----------|
 | Sidebar | components/chat/Sidebar.tsx | Lista de conversas, busca, acoes |
+| NavRail | components/chat/NavRail.tsx | Sidebar slim com icones (UntitledUI style) |
 | MessageBubble | components/chat/MessageBubble.tsx | Bolha de mensagem (user/assistant) |
 | MessageList | components/chat/MessageList.tsx | Lista scrollavel de mensagens |
 | ContextBar | components/chat/ContextBar.tsx | Barra de contexto fixado |
-| ChatComposer | components/chat/ChatComposer.tsx | Area de input + mic + upload |
+| AnimatedComposer | components/AnimatedComposer.tsx | Composer da WelcomeScreen com sugestoes grid 2col |
 | WelcomeScreen | components/chat/WelcomeScreen.tsx | Tela inicial com chips de sugestao |
-| TableChart | components/chat/TableChart.tsx | Grafico Chart.js de uma tabela |
+| AnswerChart | components/chat/AnswerChart.tsx | Graficos SVG premium (bar/horizontal/pie/line) |
+| BeyonderFloating | components/BeyonderFloating.tsx | Assistente Live2D flutuante |
 | Live2DCanvas | components/jack/Live2DCanvas.tsx | Renderizador Live2D (PixiJS) |
-| SpeechBubble | components/jack/SpeechBubble.tsx | Balao de fala typewriter |
-| IC | components/ui/IC.tsx | Icone SVG inline (sem biblioteca) |
+| IC | lib/dc.tsx | Icone SVG inline + design components |
 
 ---
 
