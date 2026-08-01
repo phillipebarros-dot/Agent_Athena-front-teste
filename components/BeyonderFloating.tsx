@@ -370,22 +370,6 @@ export function BeyonderFloating() {
           />
         </div>
 
-        {/* Label BEYONDER */}
-        <div
-          onClick={() => setExpanded(!expanded)}
-          style={{
-            position: 'absolute', bottom: 4, left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'var(--red, #dd0004)',
-            color: '#fff', fontSize: 7, fontWeight: 700,
-            padding: '2px 8px', borderRadius: 4,
-            whiteSpace: 'nowrap', letterSpacing: '0.8px',
-            textTransform: 'uppercase', cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(221,0,4,0.4)',
-          }}
-        >
-          Beyonder
-        </div>
       </div>
 
       <style>{`
