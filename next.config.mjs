@@ -1,3 +1,5 @@
+import withSerwistInit from '@serwist/next';
+
 /** @type {import('next').NextConfig} */
 
 // CSP agora é gerenciado pelo middleware.ts com nonces por request.
@@ -18,8 +20,15 @@ const nextConfig = {
   productionBrowserSourceMaps: false, // não expõe o .tsx no DevTools
   poweredByHeader: false,
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/(.*)', headers: securityHeaders },
+    ];
   },
 };
 
-export default nextConfig;
+const withSerwist = withSerwistInit({
+  swSrc: 'sw.ts',
+  swDest: 'public/sw.js',
+});
+
+export default withSerwist(nextConfig);

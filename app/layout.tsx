@@ -25,6 +25,19 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'Athena, OpusMúltipla',
   description: 'Assistente de mídia da OpusMúltipla',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Athena',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport = {
+  themeColor: '#141312',
 };
 
 import { cookies } from 'next/headers';

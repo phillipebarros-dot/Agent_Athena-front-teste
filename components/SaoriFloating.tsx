@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { LifeBuoy } from 'lucide-react';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 /**
  * Detecta emoção com base no conteúdo do texto.
  * Retorna uma das emoções mapeadas para emoji.
@@ -57,7 +57,15 @@ export function SaoriFloating() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState('neutral');
   const [isHovered, setIsHovered] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  
+  // Efeitos 3D suaves e realistas com framer-motion springs
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 150, damping: 20 });
+  const springY = useSpring(mouseY, { stiffness: 150, damping: 20 });
+  const rotateX = useTransform(springY, [-1, 1], [15, -15]);
+  const rotateY = useTransform(springX, [-1, 1], [-15, 15]);
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
@@ -86,13 +94,15 @@ export function SaoriFloating() {
     const rect = logoRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
     const y = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2);
-    setMousePos({ x: x * 12, y: y * -12 });
-  }, []);
+    mouseX.set(x);
+    mouseY.set(y);
+  }, [mouseX, mouseY]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    setMousePos({ x: 0, y: 0 });
-  }, []);
+    mouseX.set(0);
+    mouseY.set(0);
+  }, [mouseX, mouseY]);
 
   // Cancela audio ao fechar ou desmontar
   const stopAudio = useCallback(() => {
@@ -111,37 +121,56 @@ export function SaoriFloating() {
     return () => { stopAudio(); };
   }, [stopAudio]);
 
-  const playAudioWithLipSync = useCallback(async (base64Audio: string) => {
+  const playAudioWithLipSync = useCallback(async (base64Audio: string | string[]) => {
     try {
       stopAudio();
       if (!audioContextRef.current) audioContextRef.current = new AudioContext();
       const ctx = audioContextRef.current;
       if (ctx.state === 'suspended') await ctx.resume();
 
-      const binaryStr = atob(base64Audio);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-      const audioBuffer = await ctx.decodeAudioData(bytes.buffer);
+      const chunks = Array.isArray(base64Audio) ? base64Audio : [base64Audio];
+      if (chunks.length === 0) return;
 
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.6;
       analyserRef.current = analyser;
-
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(analyser);
       analyser.connect(ctx.destination);
-      sourceNodeRef.current = source;
 
+      let startTime = ctx.currentTime;
       setIsSpeaking(true);
-      source.start();
-      source.onended = () => {
-        setIsSpeaking(false);
-        analyserRef.current = null;
-        sourceNodeRef.current = null;
-      };
-    } catch { setIsSpeaking(false); }
+
+      for (let i = 0; i < chunks.length; i++) {
+        const b64 = chunks[i].replace(/^data:audio\/\w+;base64,/, '');
+        const binaryStr = atob(b64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let j = 0; j < binaryStr.length; j++) bytes[j] = binaryStr.charCodeAt(j);
+        
+        try {
+          const audioBuffer = await ctx.decodeAudioData(bytes.buffer);
+          const source = ctx.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(analyser);
+          
+          source.start(startTime);
+          startTime += audioBuffer.duration;
+          
+          if (i === 0) sourceNodeRef.current = source;
+          if (i === chunks.length - 1) {
+            source.onended = () => {
+              setIsSpeaking(false);
+              analyserRef.current = null;
+              sourceNodeRef.current = null;
+            };
+          }
+        } catch (err) {
+          console.error('[Saori] Erro ao decodificar chunk:', err);
+        }
+      }
+    } catch (e) {
+      console.error('[Saori] Audio play error:', e);
+      setIsSpeaking(false);
+    }
   }, [stopAudio]);
 
   const sendMessage = useCallback(async () => {
@@ -226,6 +255,7 @@ export function SaoriFloating() {
                 color: '#666', fontSize: 11, fontWeight: 400,
               }}>Guia da Sabedoria</span>
             </div>
+
             <button
               onClick={() => { stopAudio(); setExpanded(false); }}
               style={{
@@ -359,7 +389,7 @@ export function SaoriFloating() {
                 (e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
               }}
             >
-              <LifeBuoy size={14} /> Central de Ajuda
+              <Sparkles size={14} /> Central de Ajuda
             </button>
           </div>
           </motion.div>
@@ -382,23 +412,20 @@ export function SaoriFloating() {
         {/* Container da logo com Framer Motion (Live2D-like) */}
         <motion.div
           animate={{
-            y: isSpeaking || currentEmotion === 'explaining' ? [0, -8, 0] 
-             : currentEmotion === 'surprised' ? [0, -12, 0]
-             : currentEmotion === 'shy' ? [0, 4, 0]
-             : [0, -4, 0],
-            x: currentEmotion === 'angry' ? [0, -4, 4, -4, 4, 0] : 0,
-            scale: currentEmotion === 'surprised' ? [1, 1.1, 1] 
-                 : currentEmotion === 'shy' ? 0.95 
-                 : isSpeaking ? [1, 1.05, 1] 
-                 : (isHovered ? 1.08 : 1),
-            rotateZ: currentEmotion === 'confused' ? [0, 10, -10, 0] 
-                   : (isHovered && !isSpeaking ? [0, -4, 2, 0] : 0),
+            y: isSpeaking || currentEmotion === 'explaining' ? [0, -10, 0] 
+             : currentEmotion === 'surprised' ? [0, -16, 0]
+             : currentEmotion === 'shy' ? [0, 6, 0]
+             : [0, -6, 0],
+            x: currentEmotion === 'angry' ? [0, -6, 6, -6, 6, 0] : 0,
+            scale: currentEmotion === 'surprised' ? [1, 1.15, 1] 
+                 : currentEmotion === 'shy' ? 0.92 
+                 : isSpeaking ? [1, 1.06, 1] 
+                 : (isHovered ? 1.1 : 1),
           }}
           transition={{
-            y: { duration: currentEmotion === 'surprised' ? 0.6 : (isSpeaking || currentEmotion === 'explaining' ? 1.2 : 3), repeat: Infinity, ease: 'easeInOut' },
-            x: { duration: 0.4, repeat: currentEmotion === 'angry' ? Infinity : 0, ease: 'easeInOut' },
-            scale: { duration: isSpeaking || currentEmotion === 'surprised' ? 1 : 0.3, repeat: isSpeaking || currentEmotion === 'surprised' ? Infinity : 0, ease: 'easeInOut' },
-            rotateZ: { duration: currentEmotion === 'confused' ? 2 : 0.4, repeat: currentEmotion === 'confused' ? Infinity : 0, ease: 'easeInOut' }
+            y: { duration: currentEmotion === 'surprised' ? 0.5 : (isSpeaking || currentEmotion === 'explaining' ? 1.5 : 4), repeat: Infinity, ease: 'easeInOut' },
+            x: { duration: 0.35, repeat: currentEmotion === 'angry' ? Infinity : 0, ease: 'easeInOut' },
+            scale: { duration: isSpeaking || currentEmotion === 'surprised' ? 1.2 : 0.4, repeat: isSpeaking || currentEmotion === 'surprised' ? Infinity : 0, ease: 'easeInOut' },
           }}
           style={{
             width: 80, height: 80,
@@ -406,9 +433,8 @@ export function SaoriFloating() {
             position: 'relative',
             zIndex: 1,
             transformStyle: 'preserve-3d',
-            transform: isHovered
-              ? `rotateY(${mousePos.x * 0.8}deg) rotateX(${mousePos.y * 0.8}deg)`
-              : 'rotateY(0) rotateX(0)',
+            rotateX: isHovered ? rotateX : 0,
+            rotateY: isHovered ? rotateY : 0,
           }}
         >
           {/* Indicador de speaking (Aura brilhante) */}

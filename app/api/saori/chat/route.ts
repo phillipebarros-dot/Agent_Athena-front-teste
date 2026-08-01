@@ -132,9 +132,7 @@ export async function POST(req: NextRequest) {
         // For Saori, responses are usually short (2-3 sentences), so first chunk is often enough.
         // But let's join them if possible. google-tts-api returns an array of objects.
         if (results && results.length > 0) {
-          // Just using the first chunk for simplicity, but ideally we'd play sequentially.
-          // Since it's a quick hack for TTS, let's take the first chunk.
-          audioB64 = `data:audio/mp3;base64,${results[0].base64}`;
+          audioB64 = results.map(r => r.base64);
         }
       } catch (e) {
         console.error('[Saori] TTS fallback error:', e);

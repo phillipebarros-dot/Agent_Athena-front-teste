@@ -35,3 +35,28 @@ export function shortName(nameOrEmail?: string | null): string {
   const base = nameOrEmail.includes('@') ? nameOrEmail.split('@')[0].replace(/[._-]/g, ' ') : nameOrEmail;
   return base.split(/\s+/).slice(0, 2).map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
 }
+
+/** Exporta um array de objetos para um arquivo CSV. */
+export function downloadCSV(data: any[], filename: string) {
+  if (!data || !data.length) return;
+  const headers = Object.keys(data[0]);
+  const rows = data.map((obj) =>
+    headers.map((h) => {
+      let val = obj[h];
+      if (val === null || val === undefined) val = '';
+      const str = String(val).replace(/"/g, '""');
+      return str.includes(',') || str.includes('\\n') || str.includes('"') ? `"${str}"` : str;
+    }).join(',')
+  );
+  
+  const csvContent = [headers.join(','), ...rows].join('\\n');
+  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' }); // UTF-8 BOM
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}

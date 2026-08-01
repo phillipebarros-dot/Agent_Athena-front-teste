@@ -5,10 +5,12 @@ import { api, auth, isBackendError } from '@/lib/api';
 import type { AthenaUser } from '@/lib/types';
 import { B, IC, css } from '@/lib/dc';
 import { useTheme } from '@/lib/theme';
-import { Sidebar } from '@/components/chat/Sidebar';
-import { relativeTime, fmtNum, initials, shortName } from '@/lib/format';
+import { SidebarNavigationSlim } from '@/components/application/app-navigation/sidebar-navigation/sidebar-slim';
+import { navItems, footerItems } from '@/components/application/app-navigation/config';
+import { relativeTime, fmtNum, initials, shortName, downloadCSV } from '@/lib/format';
 import { KpiSkeleton } from '@/components/chat/SkeletonLoaders';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 
 const ic = (d: string, s = 15, w = 1.7) => <IC s={s} d={d} w={w} />;
 const num = (v: any) => { const n = Number(v || 0); return Number.isNaN(n) ? 0 : n; };
@@ -17,8 +19,8 @@ const dayKey = (iso?: string) => (iso ? new Date(iso).toISOString().slice(0, 10)
 const hourOf = (iso?: string) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.getHours() : -1; };
 
 /* ─── Chart helpers (monocromático, nível senior) ─── */
-const barOpacity = (pct: number) => Math.max(0.2, Math.min(1, pct / 100));
-const BAR_COLOR = 'var(--red)';  // #DD0004
+const CHART_COLORS = ['#333333', '#555555', '#777777', '#999999', '#BBBBBB'];
+const BAR_COLOR = 'var(--red)'; // Untitled UI mix: base clean + brand color
 
 const ROLES = ['Administrador', 'Planejamento', 'Mídia', 'Atendimento'];
 const PERMS: { label: string; roles: string[] }[] = [
@@ -355,27 +357,9 @@ function AdminPageInner() {
     { id: 'config', label: 'Configurações', d: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' },
   ];
 
-  const dashTarget = assert != null ? (1 - assert / 100) * 314 : 314;
-
   return (
     <div style={css('display:flex; height:100vh; min-height:640px; background:var(--page); color:var(--fg); font-family:var(--font-body); overflow:hidden')}>
-      <Sidebar
-        me={me}
-        conversations={[]}
-        activeId={null}
-        search=""
-        onSearchChange={() => {}}
-        client=""
-        onClientChange={() => {}}
-        onSelectConversation={() => {}}
-        onNewConversation={() => router.push('/chat')}
-        onLogout={logout}
-        backendDown={false}
-        light={light}
-        onToggleTheme={toggle}
-      />
-
-      {/* MAIN */}
+      <SidebarNavigationSlim items={navItems} footerItems={footerItems} />
       <main style={css('flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden')}>
         {/* ─── Tab Header with animated indicator ─── */}
         <header style={css('height:64px; flex-shrink:0; display:flex; align-items:center; gap:6px; padding:0 24px; background:var(--glass-surface); backdrop-filter:var(--glass-blur); border-bottom:1px solid var(--glass-border); z-index:3')}>
@@ -480,49 +464,17 @@ function AdminPageInner() {
                                 </div>
                               ))}
                             </div>
-                            {/* Chart with Y-axis + grid lines */}
-                            <div style={css('display:flex; gap:0; height:160px')}>
-                              {/* Y-axis labels */}
-                              <div style={css('width:30px; flex-shrink:0; display:flex; flex-direction:column; justify-content:space-between; padding:0 4px 0 0')}>
-                                <span style={css('font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3); text-align:right')}>{byDay.max || ''}</span>
-                                <span style={css('font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3); text-align:right')}>{byDay.max ? Math.round(byDay.max / 2) : ''}</span>
-                                <span style={css('font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3); text-align:right')}>0</span>
-                              </div>
-                              {/* Bar area */}
-                              <div style={css('flex:1; position:relative; display:flex; align-items:flex-end; gap:5px; border-left:1px solid var(--border-faint); border-bottom:1px solid var(--border-faint)')}>
-                                {/* Grid lines */}
-                                {[25, 50, 75].map(p => (
-                                  <div key={p} style={{ position: 'absolute', left: 0, right: 0, bottom: `${p}%`, height: 0, borderTop: '1px dashed var(--border-faint)', pointerEvents: 'none' }} />
-                                ))}
-                                {/* Average line */}
-                                {(() => {
-                                  const avg = byDay.days.reduce((a, d) => a + d.v, 0) / Math.max(1, byDay.days.length);
-                                  const avgPct = byDay.max > 0 ? Math.round(avg / byDay.max * 100) : 0;
-                                  return avgPct > 5 ? (
-                                    <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${avgPct}%`, height: 0, borderTop: '1.5px dashed rgba(221,0,4,0.35)', zIndex: 2, pointerEvents: 'none' }}>
-                                      <span style={{ position: 'absolute', right: 2, top: -13, fontSize: 8, color: 'var(--red)', fontWeight: 600, fontFamily: DISP, opacity: 0.7 }}>média</span>
-                                    </div>
-                                  ) : null;
-                                })()}
-                                {/* Bars */}
-                                {byDay.days.map((d, i) => {
-                                  const opacity = byDay.max > 0 ? barOpacity((d.v / byDay.max) * 100) : 0.2;
-                                  return (
-                                    <div key={i} title={`${d.label}: ${d.v} conversas`} style={css('flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0')}>
-                                      <motion.div
-                                        initial={{ scaleY: 0 }}
-                                        animate={{ scaleY: 1 }}
-                                        transition={{ delay: 0.2 + i * 0.04, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                                        style={{ width: '100%', maxWidth: 26, height: `${Math.max(2, d.h)}%`, borderRadius: '4px 4px 0 0', background: `linear-gradient(180deg, var(--red), var(--wine))`, opacity, transformOrigin: 'bottom' }}
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                            {/* X-axis labels */}
-                            <div style={css('display:flex; gap:5px; margin-top:6px; padding-left:30px')}>
-                              {byDay.days.map((d, i) => <span key={i} style={css('flex:1; text-align:center; font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3); min-width:0; white-space:nowrap; overflow:hidden')}>{d.label}</span>)}
+                            {/* Chart with Recharts */}
+                            <div style={css('height:160px; width:100%; margin-top:8px')}>
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={byDay.days} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-faint)" />
+                                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--fg-3)', fontFamily: DISP }} />
+                                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--fg-3)', fontFamily: DISP }} />
+                                  <Tooltip cursor={{ fill: 'var(--glass-hover)' }} contentStyle={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--fg)' }} />
+                                  <Bar dataKey="v" fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
                             </div>
                           </>
                         )}
@@ -531,16 +483,14 @@ function AdminPageInner() {
                         {totalFb === 0 ? <Empty msg="Sem feedback ainda." /> : (
                           <div style={css('display:flex; flex-direction:column; align-items:center; gap:18px')}>
                             <div style={css('position:relative; width:160px; height:160px')}>
-                              <svg viewBox="0 0 120 120" style={css('width:100%; height:100%; transform:rotate(-90deg)')}>
-                                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--sunk)" strokeWidth="14" />
-                                <motion.circle
-                                  cx="60" cy="60" r="50" fill="none" stroke="var(--red)" strokeWidth="14" strokeLinecap="round"
-                                  initial={{ strokeDasharray: '0 314' }}
-                                  animate={{ strokeDasharray: `${(assert || 0) / 100 * 314} 314` }}
-                                  transition={{ delay: 0.3, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-                                  style={{ filter: 'drop-shadow(0 0 6px rgba(221,0,4,.3))' }}
-                                />
-                              </svg>
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie data={[{ name: 'Útil', value: pos }, { name: 'Correções', value: neg }]} cx="50%" cy="50%" innerRadius={50} outerRadius={65} paddingAngle={2} dataKey="value" stroke="none">
+                                    <Cell fill={CHART_COLORS[0]} />
+                                    <Cell fill="var(--sunk)" />
+                                  </Pie>
+                                </PieChart>
+                              </ResponsiveContainer>
                               <div style={css('position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center')}>
                                 <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }} style={css('font-family:' + DISP + '; font-size:34px; font-weight:600')}>{assert}%</motion.span>
                                 <span style={css('font-size:10.5px; color:var(--fg-3)')}>útil</span>
@@ -558,25 +508,16 @@ function AdminPageInner() {
                     {/* Charts row 2 */}
                     <div style={css('display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; align-items:start')}>
                       <Panel title="Atividade por hora" hint="últimas 24h" delay={0.2}>
-                        <div style={css('display:flex; gap:0; height:130px')}>
-                          <div style={css('flex:1; position:relative; display:flex; align-items:flex-end; gap:2px; border-bottom:1px solid var(--border-faint)')}>
-                            {/* Grid lines */}
-                            {[50].map(p => (
-                              <div key={p} style={{ position: 'absolute', left: 0, right: 0, bottom: `${p}%`, height: 0, borderTop: '1px dashed var(--border-faint)', pointerEvents: 'none' }} />
-                            ))}
-                            {byHour.map((b, i) => {
-                              const opacity = barOpacity(b.ht);
-                              return (
-                                <motion.div
-                                  key={i} title={`${b.h}h: ${b.v} msgs`}
-                                  initial={{ scaleY: 0 }}
-                                  animate={{ scaleY: 1 }}
-                                  transition={{ delay: 0.3 + i * 0.015, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                                  style={{ flex: 1, height: `${Math.max(3, b.ht)}%`, borderRadius: '2px 2px 0 0', background: 'linear-gradient(180deg, var(--red), var(--wine))', opacity: b.v ? opacity : 0.08, transformOrigin: 'bottom' }}
-                                />
-                              );
-                            })}
-                          </div>
+                        <div style={css('height:130px; width:100%; margin-top:8px')}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={byHour} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-faint)" />
+                              <XAxis dataKey="h" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--fg-3)', fontFamily: DISP }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--fg-3)', fontFamily: DISP }} />
+                              <Tooltip cursor={{ fill: 'var(--glass-hover)' }} contentStyle={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--fg)' }} />
+                              <Bar dataKey="v" fill={BAR_COLOR} radius={[2, 2, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
                         <div style={css('display:flex; justify-content:space-between; margin-top:8px; font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3)')}><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
                         {/* Peak indicator */}
@@ -590,22 +531,16 @@ function AdminPageInner() {
                         })()}
                       </Panel>
                       <Panel title="Mensagens por conversa" hint="distribuição" delay={0.25}>
-                        <div style={css('display:flex; align-items:flex-end; gap:10px; height:130px')}>
-                          {msgDist.map((b, i) => {
-                            const opacity = barOpacity(b.h);
-                            return (
-                              <div key={i} style={css('flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:5px; min-width:0')}>
-                                <span style={css('font-family:' + DISP + '; font-size:10px; color:var(--fg-2)')}>{b.v}</span>
-                                <motion.div
-                                  initial={{ scaleY: 0 }}
-                                  animate={{ scaleY: 1 }}
-                                  transition={{ delay: 0.3 + i * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                                  style={{ width: '100%', maxWidth: 34, height: `${Math.max(3, b.h)}%`, borderRadius: '4px 4px 0 0', background: 'linear-gradient(180deg, var(--red), var(--wine))', opacity, transformOrigin: 'bottom' }}
-                                />
-                                <span style={css('font-family:' + DISP + '; font-size:9px; color:var(--fg-3)')}>{b.label}</span>
-                              </div>
-                            );
-                          })}
+                        <div style={css('height:130px; width:100%; margin-top:8px')}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={msgDist} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-faint)" />
+                              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--fg-3)', fontFamily: DISP }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--fg-3)', fontFamily: DISP }} />
+                              <Tooltip cursor={{ fill: 'var(--glass-hover)' }} contentStyle={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--fg)' }} />
+                              <Bar dataKey="v" fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
                       </Panel>
                       <Panel title="Top usuários" hint="por mensagens" delay={0.3}>
@@ -661,8 +596,16 @@ function AdminPageInner() {
                 {tab === 'conversas' && (
                   <Panel title="Todas as conversas" hint="clique numa linha para ver as mensagens reais" extra={
                     <div style={css('display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--sunk); border-radius:10px; flex-shrink:0')}>
+                      <button 
+                        onClick={() => downloadCSV(filteredConvs, 'conversas_athena')}
+                        style={css('background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:6px; color:var(--fg-2); font-size:12px; font-weight:600')}
+                      >
+                        <IC s={14} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" w={2} stroke="var(--fg-2)" />
+                        CSV
+                      </button>
+                      <div style={css('width:1px; height:16px; background:var(--border)')} />
                       <IC s={14} d='<circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/>' w={2} stroke="var(--fg-3)" />
-                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filtrar" style={css('background:transparent; border:none; outline:none; color:var(--fg); font-family:var(--font-body); font-size:13px; width:200px; max-width:40vw')} />
+                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filtrar" style={css('background:transparent; border:none; outline:none; color:var(--fg); font-family:var(--font-body); font-size:13px; width:160px; max-width:40vw')} />
                     </div>
                   }>
                     <div style={css('overflow-x:auto')}>
@@ -769,7 +712,7 @@ function AdminPageInner() {
                           { label: 'Backend', value: backendDown ? 'Offline' : 'Conectado', ok: !backendDown },
                           { label: 'Google OAuth', value: 'Configurado no servidor', ok: true },
                           { label: 'TTS (Text-to-Speech)', value: 'Disponível via api.tts()', ok: true },
-                          { label: 'Export (Sheets/CSV)', value: 'Backend stub — pendente', ok: false },
+                          { label: 'Export (Sheets/CSV)', value: 'Disponível no painel', ok: true },
                         ].map((item, i) => (
                           <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.05 }} style={css('display:flex; align-items:center; gap:14px; padding:12px 0; border-top:1px dashed var(--dash)')}>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: item.ok ? 'var(--green)' : 'var(--red)', boxShadow: item.ok ? '0 0 8px rgba(63,185,80,.3)' : '0 0 8px rgba(221,0,4,.3)' }} />

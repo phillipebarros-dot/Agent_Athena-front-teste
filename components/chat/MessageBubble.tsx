@@ -43,6 +43,7 @@ function UserBubble({ message, me }: { message: ChatMessage; me: MessageBubblePr
 function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen, onToggleChart }: MessageBubbleProps) {
   const [fbOpen, setFbOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [driveError, setDriveError] = useState(false);
   const table = !message.error ? parseTable(message.content) : null;
 
   return (
@@ -208,6 +209,7 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
             </button>
             <button
               onClick={async () => {
+                setDriveError(false);
                 try {
                   const data = table.rows.map(r => {
                     const obj: Record<string, string> = {};
@@ -221,7 +223,7 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
                   } else if (result && (result as any).message) {
                     const rmsg = (result as any).message || '';
                     if (rmsg.includes('quota') || rmsg.includes('storage') || rmsg.includes('403')) {
-                      alert('⚠️ Armazenamento do Google Drive cheio!\n\nLibere espaço no Drive ou exporte como XLSX/CSV (que faz download direto, sem precisar de Drive).');
+                      setDriveError(true);
                     } else {
                       alert(rmsg);
                     }
@@ -229,7 +231,7 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
                 } catch (err: any) {
                   const msg = err?.message || String(err) || '';
                   if (msg.includes('quota') || msg.includes('storage') || msg.includes('403')) {
-                    alert('⚠️ Armazenamento do Google Drive cheio!\n\nLibere espaço no Drive ou exporte como XLSX/CSV (que faz download direto, sem precisar de Drive).');
+                    setDriveError(true);
                   } else {
                     alert('Erro ao criar planilha: ' + (msg.slice(0, 120) || 'verifique sua conexão.'));
                   }
@@ -242,6 +244,11 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
               <IC s={13} d='<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>' stroke="currentColor" />
               Sheets
             </button>
+            {driveError && (
+              <span style={css('font-size:11px; color:var(--red); display:flex; align-items:center; gap:4px')}>
+                ⚠️ Drive cheio. Use XLSX.
+              </span>
+            )}
           </div>
         )}
 

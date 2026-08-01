@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/api';
+import { BookOpen } from 'lucide-react';
 
 const css = (s: string) => {
   const obj: Record<string, string> = {};
@@ -139,8 +140,8 @@ export default function GuidePage() {
           <button onClick={() => router.push('/chat')} style={css('background:none; border:none; color:var(--muted-light); cursor:pointer; font-size:14px; display:flex; align-items:center; gap:6px')}>
             ← Voltar ao Chat
           </button>
-          <h1 style={css('font-size:20px; font-weight:700; color:var(--white); margin:0')}>
-            📖 Guia da Athena
+          <h1 style={css('font-size:20px; font-weight:700; color:var(--white); margin:0; display:flex; align-items:center; gap:8px')}>
+            <BookOpen size={22} /> Guia da Athena
           </h1>
         </div>
         <input

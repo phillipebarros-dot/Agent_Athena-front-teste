@@ -208,6 +208,8 @@ const s = {
     fontSize: '12.5px',
     fontWeight: 500,
     cursor: 'pointer',
+    appearance: 'none',
+    WebkitAppearance: 'none',
   },
   sectionLabel: {
     display: 'flex',
