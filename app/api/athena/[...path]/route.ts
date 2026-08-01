@@ -100,9 +100,36 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     if (!body.user_id) body.user_id = session.email;
     if (!body.user_email) body.user_email = session.email;
   }
-  // Injetar Google access_token para export Sheets (agora em cookie separado)
+  // Injetar Google access_token para export Sheets — com auto-refresh via refresh_token
   if (body && typeof body === 'object' && endpoint === 'export') {
-    const gat = req.cookies.get('google_access_token')?.value;
+    let gat = req.cookies.get('google_access_token')?.value;
+    const grt = req.cookies.get('google_refresh_token')?.value;
+
+    // Se access_token expirou mas temos refresh_token, renova automaticamente
+    if (!gat && grt) {
+      try {
+        const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = await import('@/lib/config');
+        const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: GOOGLE_CLIENT_ID(),
+            client_secret: GOOGLE_CLIENT_SECRET(),
+            refresh_token: grt,
+            grant_type: 'refresh_token',
+          }),
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          gat = refreshData.access_token;
+          // Flag pra setar cookie na response depois
+          (body as any).__new_access_token = gat;
+        }
+      } catch (e) {
+        console.error('Falha ao renovar Google access_token:', e);
+      }
+    }
+
     if (gat) body.google_access_token = gat;
   }
 
@@ -149,10 +176,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
+    // Limpar flags internas antes de enviar ao backend
+    const { __new_access_token: _nat, ...cleanBody } = body || {};
     const res = await fetch(`${BACKEND_URL().replace(/\/$/, '')}/${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN()}` },
-      body: JSON.stringify(body),
+      body: JSON.stringify(cleanBody),
       signal: controller.signal,
     });
     const text = await res.text();
@@ -172,7 +201,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
       }
     }
 
-    return new NextResponse(text, { status: res.status, headers: { 'Content-Type': res.headers.get('content-type') || 'application/json' } });
+    const resp = new NextResponse(text, { status: res.status, headers: { 'Content-Type': res.headers.get('content-type') || 'application/json' } });
+    // Se renovamos o access_token via refresh_token, salvar no cookie
+    if (body?.__new_access_token && endpoint === 'export') {
+      resp.cookies.set('google_access_token', body.__new_access_token, {
+        httpOnly: true, secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax', path: '/', maxAge: 3600,
+      });
+    }
+    return resp;
   } catch {
     return NextResponse.json({ error: 'backend_indisponivel' }, { status: 502 });
   } finally {

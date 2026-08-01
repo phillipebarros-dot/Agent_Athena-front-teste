@@ -91,11 +91,18 @@ export async function GET(req: NextRequest) {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
     res.cookies.set(COOKIE_NAME, sessionToken, cookieOptions);
-    // Google access token em cookie separado (usado so no export pra Google Sheets)
+    // Google access token em cookie separado (usado no export pra Google Sheets)
     if (tokens.access_token) {
       res.cookies.set('google_access_token', tokens.access_token, {
         ...cookieOptions,
-        maxAge: 3600,
+        maxAge: 3600, // 1h (limite do Google)
+      });
+    }
+    // Refresh token — permanente (30 dias), permite renovar access_token automaticamente
+    if (tokens.refresh_token) {
+      res.cookies.set('google_refresh_token', tokens.refresh_token, {
+        ...cookieOptions,
+        maxAge: 30 * 24 * 3600, // 30 dias
       });
     }
     res.cookies.set('oauth_state', '', { httpOnly: true, path: '/', maxAge: 0 });

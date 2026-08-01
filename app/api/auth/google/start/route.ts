@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
     response_type: 'code',
     scope: 'openid email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
     state,
-    prompt: 'select_account',
-    access_type: 'online',
+    prompt: 'consent',
+    access_type: 'offline',
   });
   
   if (ALLOWED_DOMAINS().length > 1) {
