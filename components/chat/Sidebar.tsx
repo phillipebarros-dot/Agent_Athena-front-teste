@@ -93,7 +93,7 @@ const s = {
     height: 56,
     objectFit: 'contain' as const,
     flexShrink: 0,
-    filter: 'drop-shadow(0 2px 8px rgba(221,0,4,.2))',
+    filter: 'drop-shadow(0 2px 8px rgba(196,30,30,.2))',
   },
   logoText: {
     fontFamily: 'var(--font-display)',
@@ -126,7 +126,7 @@ const s = {
     cursor: 'pointer',
     color: '#fff',
     background: 'linear-gradient(135deg, var(--red), var(--red-dim))',
-    boxShadow: '0 4px 16px rgba(221,0,4,.2)',
+    boxShadow: '0 4px 16px rgba(196,30,30,.2)',
     transition: 'all .2s ease',
     marginBottom: '14px',
   },
@@ -248,7 +248,7 @@ const s = {
     height: 32,
     borderRadius: 8,
     flexShrink: 0,
-    background: active ? 'rgba(221,0,4,0.1)' : 'var(--bg-input)',
+    background: active ? 'rgba(196,30,30,0.1)' : 'var(--bg-input)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -370,8 +370,8 @@ export function Sidebar({
         <button
           onClick={onNewConversation}
           style={s.newBtn}
-          onMouseEnter={(e) => { (e.currentTarget.style.background = 'linear-gradient(135deg, var(--red-dim), var(--wine))'); (e.currentTarget.style.boxShadow = '0 6px 20px rgba(221,0,4,0.3)'); (e.currentTarget.style.transform = 'translateY(-1px)'); }}
-          onMouseLeave={(e) => { (e.currentTarget.style.background = 'linear-gradient(135deg, var(--red), var(--red-dim))'); (e.currentTarget.style.boxShadow = '0 4px 16px rgba(221,0,4,0.2)'); (e.currentTarget.style.transform = 'translateY(0)'); }}
+          onMouseEnter={(e) => { (e.currentTarget.style.background = 'linear-gradient(135deg, var(--red-dim), var(--wine))'); (e.currentTarget.style.boxShadow = '0 6px 20px rgba(196,30,30,0.3)'); (e.currentTarget.style.transform = 'translateY(-1px)'); }}
+          onMouseLeave={(e) => { (e.currentTarget.style.background = 'linear-gradient(135deg, var(--red), var(--red-dim))'); (e.currentTarget.style.boxShadow = '0 4px 16px rgba(196,30,30,0.2)'); (e.currentTarget.style.transform = 'translateY(0)'); }}
         >
           <Plus size={16} weight="bold" /> Nova conversa
         </button>
@@ -639,7 +639,7 @@ export function Sidebar({
             onClick={onLogout}
             title="Sair"
             style={s.logoutBtn}
-            onMouseEnter={(e) => { (e.currentTarget.style.color = 'var(--red)'); (e.currentTarget.style.borderColor = 'rgba(221,0,4,0.2)'); }}
+            onMouseEnter={(e) => { (e.currentTarget.style.color = 'var(--red)'); (e.currentTarget.style.borderColor = 'rgba(196,30,30,0.2)'); }}
             onMouseLeave={(e) => { (e.currentTarget.style.color = 'var(--muted-dim)'); (e.currentTarget.style.borderColor = 'var(--border-faint)'); }}
           >
             <SignOut size={15} />

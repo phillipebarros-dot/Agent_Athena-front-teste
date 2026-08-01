@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { IC, css } from '@/lib/dc';
 import type { ParsedTable } from '@/lib/types';
 
@@ -13,12 +13,12 @@ export function toNum(s: string): number {
 /** Remove formatação markdown (bold, italic, strikethrough, code). */
 export function stripMd(s: string): string {
   return String(s || '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')  // **bold**
-    .replace(/__(.+?)__/g, '$1')       // __bold__
-    .replace(/\*(.+?)\*/g, '$1')       // *italic*
-    .replace(/_(.+?)_/g, '$1')         // _italic_
-    .replace(/~~(.+?)~~/g, '$1')       // ~~strike~~
-    .replace(/`(.+?)`/g, '$1')         // `code`
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/_(.+?)_/g, '$1')
+    .replace(/~~(.+?)~~/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
     .trim();
 }
 
@@ -37,7 +37,6 @@ export function parseTable(md: string): ParsedTable | null {
       }
       if (rows.length < 2) return null;
 
-      // Detectar coluna de valores numéricos (da direita pra esquerda)
       let valueCol = -1;
       for (let c = headers.length - 1; c >= 1; c--) {
         const ok = rows.filter((r) => !Number.isNaN(toNum(r[c]))).length;
@@ -45,14 +44,7 @@ export function parseTable(md: string): ParsedTable | null {
       }
       if (valueCol < 0) return null;
 
-      // ── Detectar coluna de label inteligente ──
-      // Estratégia multi-nível:
-      // 1) Header semântico ("veículo", "nome", "canal", etc.)
-      // 2) Primeira col com strings não-numéricas (excluindo a col de valor)
-      // 3) Se col 0 é índice numérico puro, pular para col 1
       let labelCol = 0;
-
-      // Nível 1: buscar header com nome descritivo
       const LABEL_HEADERS = /^(ve[ií]culo|nome|canal|programa|emissor[a]?|meio|pra[çc]a|cidade|estado|uf|regi[aã]o|marca|produto|categoria|descri[çc][aã]o|tipo|segmento|fonte|plataforma|rede|item|label|name|title)/i;
       for (let c = 0; c < headers.length; c++) {
         if (c !== valueCol && LABEL_HEADERS.test(stripMd(headers[c]).trim())) {
@@ -61,11 +53,9 @@ export function parseTable(md: string): ParsedTable | null {
         }
       }
 
-      // Nível 2: se labelCol ainda é 0 e col 0 é toda numérica, procurar melhor
       if (labelCol === 0 && headers.length >= 3) {
         const col0AllNumeric = rows.every(r => /^\d+$/.test((r[0] || '').trim()));
         if (col0AllNumeric) {
-          // Procurar primeira col com strings textuais (não numéricas)
           for (let c = 1; c < headers.length; c++) {
             if (c === valueCol) continue;
             const hasText = rows.some(r => {
@@ -74,7 +64,6 @@ export function parseTable(md: string): ParsedTable | null {
             });
             if (hasText) { labelCol = c; break; }
           }
-          // Fallback: se nenhuma col tem texto puro, usar col 1 se não é a de valor
           if (labelCol === 0 && valueCol !== 1) {
             labelCol = 1;
           }
@@ -87,9 +76,67 @@ export function parseTable(md: string): ParsedTable | null {
   return null;
 }
 
-// Paleta premium — sem vermelho, cores elegantes e contrastadas
-const CHART_COLORS = [
-  '#4A90D9', // azul principal
+// ============================================================================
+// INTELIGÊNCIA DE CORES — escolhe paleta baseado na natureza dos dados
+// ============================================================================
+
+type ColorScheme = 'sequential' | 'categorical';
+
+/** Detecta se as labels representam categorias distintas ou ranking sequencial. */
+function detectColorScheme(rows: string[][], labelCol: number, valueCol: number): ColorScheme {
+  const labels = rows.map(r => stripMd(r[labelCol]).toLowerCase());
+  
+  // Se labels são TODAS do mesmo tipo (ex: TV GLOBO X, TV GLOBO Y) → sequential
+  // Se labels são categorias distintas (TV, Rádio, Digital, OOH) → categorical
+  
+  // Heurística 1: Se dados estão ordenados (monotonicamente decrescente/crescente) → ranking → sequential
+  const vals = rows.map(r => toNum(r[valueCol])).filter(v => !Number.isNaN(v));
+  if (vals.length >= 3) {
+    let ascending = true, descending = true;
+    for (let i = 1; i < vals.length; i++) {
+      if (vals[i] > vals[i - 1]) descending = false;
+      if (vals[i] < vals[i - 1]) ascending = false;
+    }
+    if (ascending || descending) return 'sequential';
+  }
+
+  // Heurística 2: Se tem muitos itens (>8), provavelmente é ranking → sequential
+  if (rows.length > 8) return 'sequential';
+  
+  // Heurística 3: Se labels compartilham prefixo comum → sequential
+  if (labels.length >= 3) {
+    const firstWords = labels.map(l => l.split(/[\s-]/)[0]);
+    const mode = firstWords.sort().reduce<{val: string; count: number; max: number; maxVal: string}>((acc, w) => {
+      if (w === acc.val) acc.count++;
+      else acc.count = 1;
+      acc.val = w;
+      if (acc.count > acc.max) { acc.max = acc.count; acc.maxVal = w; }
+      return acc;
+    }, { val: '', count: 0, max: 0, maxVal: '' });
+    if (mode.max >= Math.ceil(labels.length * 0.5)) return 'sequential';
+  }
+
+  // Default: poucos itens distintos → categorical
+  return 'categorical';
+}
+
+/** Paleta sequencial — gradiente monocromático vermelho (marca). */
+function getSequentialColors(count: number): string[] {
+  // Do vermelho escuro ao vermelho claro (brand-aligned)
+  const colors: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const ratio = count <= 1 ? 0.5 : i / (count - 1);
+    // HSL: hue=6 (vermelho marca), saturation 70-85%, lightness 30-65%
+    const s = 75 + ratio * 10;
+    const l = 35 + ratio * 30;
+    colors.push(`hsl(6, ${s}%, ${l}%)`);
+  }
+  return colors;
+}
+
+/** Paleta categórica — cores distintas, elegantes. */
+const CATEGORICAL_COLORS = [
+  '#C41E1E', // vermelho marca
   '#50C878', // verde esmeralda
   '#F5A623', // laranja
   '#9B59B6', // roxo
@@ -103,9 +150,17 @@ const CHART_COLORS = [
   '#F39C12', // dourado
 ];
 
+function getColors(scheme: ColorScheme, count: number): string[] {
+  if (scheme === 'sequential') return getSequentialColors(count);
+  return CATEGORICAL_COLORS;
+}
+
+// ============================================================================
+// DETECÇÃO DE TIPO DE GRÁFICO
+// ============================================================================
+
 type ChartType = 'bar' | 'horizontal' | 'pie' | 'line';
 
-/** Detecta se labels são temporais (meses, anos, datas). */
 function isTemporal(labels: string[]): boolean {
   const months = /^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i;
   const yearMonth = /^\d{4}[\/-]\d{1,2}$/;
@@ -120,7 +175,6 @@ function isTemporal(labels: string[]): boolean {
   return temporalCount >= Math.ceil(labels.length * 0.6);
 }
 
-/** Detecta automaticamente o melhor tipo de gráfico. */
 function detectChartType(rows: string[][], labelCol: number, valueCol: number): ChartType {
   const vals = rows.map((r) => toNum(r[valueCol])).filter((v) => !Number.isNaN(v));
   const allPositive = vals.every((v) => v >= 0);
@@ -128,16 +182,16 @@ function detectChartType(rows: string[][], labelCol: number, valueCol: number): 
   const totalApprox100 = allPositive && Math.abs(vals.reduce((a, b) => a + b, 0) - 100) < 5;
   const labels = rows.map(r => stripMd(r[labelCol]));
 
-  // Se labels são temporais (meses, anos, datas) → linha
   if (isTemporal(labels) && rows.length >= 3) return 'line';
-  // Se parecem percentuais que somam ~100%, pizza
   if (isPercentage && totalApprox100 && rows.length <= 8) return 'pie';
-  // Se tem poucos itens e valores positivos, pizza
   if (allPositive && rows.length <= 5 && rows.length >= 2) return 'pie';
-  // Se labels são longos, horizontal
   if (labels.some((l) => l.length > 20) || rows.length > 8) return 'horizontal';
   return 'bar';
 }
+
+// ============================================================================
+// COMPONENTES DE GRÁFICO COM ANIMAÇÃO
+// ============================================================================
 
 interface AnswerChartProps {
   table: ParsedTable;
@@ -145,37 +199,59 @@ interface AnswerChartProps {
   onToggle: () => void;
 }
 
-// ── Bar Chart (vertical) ──
-function BarChart({ bars, max }: { bars: { label: string; raw: string; val: number }[]; max: number }) {
+/** Hook para animação de entrada — delay staggered. */
+function useStaggeredReveal(count: number, on: boolean) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (on) {
+      const t = setTimeout(() => setVisible(true), 50);
+      return () => clearTimeout(t);
+    }
+    setVisible(false);
+  }, [on]);
+  return visible;
+}
+
+// ── Bar Chart (vertical) com animação ──
+function BarChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: string[] }) {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
+
   return (
-    <div style={css('display:flex; align-items:stretch; gap:10px; height:180px')}>
-      {bars.map((b, i) => (
-        <div key={i} style={css('flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:5px; min-width:0')}>
-          <span style={css("font-family:var(--font-mono); font-size:10px; color:var(--muted); white-space:nowrap")}>{b.raw}</span>
-          <div style={css('width:100%; height:130px; display:flex; align-items:flex-end; justify-content:center')}>
-            <div
-              title={`${b.label}: ${b.raw}`}
-              style={{
-                width: '100%',
-                maxWidth: '36px',
-                height: `${Math.max(4, Math.round((Math.abs(b.val) / max) * 100))}%`,
-                borderRadius: '6px 6px 2px 2px',
-                background: CHART_COLORS[i % CHART_COLORS.length],
-                transition: 'height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                boxShadow: `0 2px 8px ${CHART_COLORS[i % CHART_COLORS.length]}40`,
-              }}
-            />
+    <div style={css('display:flex; align-items:stretch; gap:10px; height:200px')}>
+      {bars.map((b, i) => {
+        const pct = max > 0 ? Math.max(4, Math.round((Math.abs(b.val) / max) * 100)) : 4;
+        const color = colors[i % colors.length];
+        return (
+          <div key={i} style={css('flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:5px; min-width:0')}>
+            <span style={css("font-family:var(--font-mono); font-size:10px; color:var(--muted); white-space:nowrap")}>{b.raw}</span>
+            <div style={css('width:100%; height:150px; display:flex; align-items:flex-end; justify-content:center')}>
+              <div
+                title={`${b.label}: ${b.raw}`}
+                style={{
+                  width: '100%',
+                  maxWidth: '36px',
+                  height: animated ? `${pct}%` : '0%',
+                  borderRadius: '6px 6px 2px 2px',
+                  background: `linear-gradient(180deg, ${color}, ${color}cc)`,
+                  transition: `height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.06}s`,
+                  boxShadow: `0 2px 12px ${color}30`,
+                }}
+              />
+            </div>
+            <span style={css('font-size:9.5px; color:var(--muted-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; text-align:center')}>{b.label}</span>
           </div>
-          <span style={css('font-size:9.5px; color:var(--muted-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; text-align:center')}>{b.label}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-// ── Horizontal Bar Chart (premium redesign) ──
-function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; val: number }[]; max: number }) {
-  // Calcula largura max das labels (adapta ao conteudo)
+// ── Horizontal Bar Chart com animação ──
+function HorizontalChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: string[] }) {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
+
   const maxLabelLen = Math.max(...bars.map(b => b.label.length));
   const labelWidth = Math.min(220, Math.max(100, maxLabelLen * 7 + 20));
 
@@ -184,7 +260,7 @@ function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; va
       {bars.map((b, i) => {
         const pct = max > 0 ? Math.max(2, Math.round((Math.abs(b.val) / max) * 100)) : 2;
         const isSmall = pct < 25;
-        const barColor = CHART_COLORS[i % CHART_COLORS.length];
+        const barColor = colors[i % colors.length];
 
         return (
           <div key={i} style={{
@@ -192,11 +268,15 @@ function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; va
             padding: '3px 0',
             transition: 'background .15s ease',
             borderRadius: 6,
+            opacity: animated ? 1 : 0,
+            transform: animated ? 'translateX(0)' : 'translateX(-10px)',
+            transitionDelay: `${i * 0.03}s`,
+            transitionProperty: 'opacity, transform, background',
+            transitionDuration: '0.4s',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.03)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
           >
-            {/* Label */}
             <span style={{
               fontSize: 12, color: 'var(--fg-2)',
               width: labelWidth, minWidth: labelWidth, maxWidth: labelWidth,
@@ -207,7 +287,6 @@ function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; va
               {b.label}
             </span>
 
-            {/* Bar container */}
             <div style={{
               flex: 1, height: 28,
               background: 'var(--bg-surface)',
@@ -215,23 +294,21 @@ function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; va
               position: 'relative',
               display: 'flex', alignItems: 'center',
             }}>
-              {/* Bar fill */}
               <div
                 title={`${b.label}: ${b.raw}`}
                 style={{
                   height: '100%',
-                  width: `${pct}%`,
+                  width: animated ? `${pct}%` : '0%',
                   borderRadius: 8,
                   background: `linear-gradient(90deg, ${barColor}, ${barColor}dd)`,
-                  transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  transition: `width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.04}s`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
                   paddingRight: isSmall ? 0 : 10,
-                  boxShadow: `0 2px 8px ${barColor}40`,
+                  boxShadow: `0 2px 8px ${barColor}30`,
                 }}
               >
-                {/* Value inside bar (only when bar is wide enough) */}
                 {!isSmall && (
                   <span style={{
                     fontFamily: 'var(--font-mono)',
@@ -242,7 +319,6 @@ function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; va
                 )}
               </div>
 
-              {/* Value outside bar (when bar is too small) */}
               {isSmall && (
                 <span style={{
                   fontFamily: 'var(--font-mono)',
@@ -258,19 +334,21 @@ function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; va
   );
 }
 
-// ── Pie Chart ──
-function PieChart({ bars, total }: { bars: { label: string; raw: string; val: number }[]; total: number }) {
+// ── Pie Chart com animação ──
+function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors: string[] }) {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
+
   const segments = useMemo(() => {
     let cumulative = 0;
     return bars.map((b, i) => {
       const pct = total > 0 ? (Math.abs(b.val) / total) * 100 : 0;
       const start = cumulative;
       cumulative += pct;
-      return { ...b, pct, start, color: CHART_COLORS[i % CHART_COLORS.length] };
+      return { ...b, pct, start, color: colors[i % colors.length] };
     });
-  }, [bars, total]);
+  }, [bars, total, colors]);
 
-  // SVG conic gradient via multiple arcs
   const size = 160;
   const cx = size / 2, cy = size / 2, r = 60;
 
@@ -288,7 +366,12 @@ function PieChart({ bars, total }: { bars: { label: string; raw: string; val: nu
   }
 
   return (
-    <div style={css('display:flex; align-items:center; gap:24px; flex-wrap:wrap; justify-content:center')}>
+    <div style={{
+      ...css('display:flex; align-items:center; gap:24px; flex-wrap:wrap; justify-content:center') as any,
+      opacity: animated ? 1 : 0,
+      transform: animated ? 'scale(1)' : 'scale(0.8)',
+      transition: 'opacity 0.5s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+    }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {segments.map((seg, i) => (
           <path
@@ -297,6 +380,10 @@ function PieChart({ bars, total }: { bars: { label: string; raw: string; val: nu
             fill={seg.color}
             stroke="var(--bg-card)"
             strokeWidth="2"
+            style={{
+              opacity: animated ? 1 : 0,
+              transition: `opacity 0.3s ease ${i * 0.08}s`,
+            }}
           >
             <title>{`${seg.label}: ${seg.raw} (${seg.pct.toFixed(1)}%)`}</title>
           </path>
@@ -315,8 +402,12 @@ function PieChart({ bars, total }: { bars: { label: string; raw: string; val: nu
   );
 }
 
-// ── Line Chart (evolução temporal) ──
-function LineChart({ bars, max, min }: { bars: { label: string; raw: string; val: number }[]; max: number; min: number }) {
+// ── Line Chart com animação ──
+function LineChart({ bars, max, min, colors }: { bars: Bar[]; max: number; min: number; colors: string[] }) {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
+
+  const lineColor = colors[0] || '#C41E1E';
   const w = 500, h = 160, padX = 40, padY = 20;
   const plotW = w - padX * 2, plotH = h - padY * 2;
   const range = Math.max(1, max - min);
@@ -329,11 +420,11 @@ function LineChart({ bars, max, min }: { bars: { label: string; raw: string; val
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
   const areaPath = linePath + ` L ${points[points.length - 1].x} ${h - padY} L ${points[0].x} ${h - padY} Z`;
+  const pathLength = 1200;
 
   return (
     <div style={css('overflow-x:auto')}>
       <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', maxWidth: w, height: 'auto' }}>
-        {/* Grid lines */}
         {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
           const y = padY + plotH * (1 - pct);
           const val = min + range * pct;
@@ -346,20 +437,27 @@ function LineChart({ bars, max, min }: { bars: { label: string; raw: string; val
             </g>
           );
         })}
-        {/* Area fill */}
-        <path d={areaPath} fill="url(#lineGrad)" opacity="0.15" />
+        <path d={areaPath} fill={`${lineColor}15`} style={{ opacity: animated ? 1 : 0, transition: 'opacity 0.8s ease 0.5s' }} />
         <defs>
           <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={CHART_COLORS[0]} />
+            <stop offset="0%" stopColor={lineColor} />
             <stop offset="100%" stopColor="transparent" />
           </linearGradient>
         </defs>
-        {/* Line */}
-        <path d={linePath} fill="none" stroke={CHART_COLORS[0]} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-        {/* Points + labels */}
+        <path
+          d={linePath}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          strokeDasharray={pathLength}
+          strokeDashoffset={animated ? 0 : pathLength}
+          style={{ transition: `stroke-dashoffset 1.2s ease-out` }}
+        />
         {points.map((p, i) => (
-          <g key={i}>
-            <circle cx={p.x} cy={p.y} r="4" fill={CHART_COLORS[i % CHART_COLORS.length]} stroke="var(--bg-card)" strokeWidth="2">
+          <g key={i} style={{ opacity: animated ? 1 : 0, transition: `opacity 0.3s ease ${0.3 + i * 0.08}s` }}>
+            <circle cx={p.x} cy={p.y} r="4" fill={lineColor} stroke="var(--bg-card)" strokeWidth="2">
               <title>{`${p.label}: ${p.raw}`}</title>
             </circle>
             <text x={p.x} y={h - 4} textAnchor="middle" fill="var(--muted-dim)" fontSize="9" fontFamily="var(--font-body)">
@@ -375,20 +473,43 @@ function LineChart({ bars, max, min }: { bars: { label: string; raw: string; val
   );
 }
 
-/** Gráfico derivado da tabela real da resposta — barras verticais, horizontais, pizza ou linha, coloridos. */
+// ============================================================================
+// COMPONENTE PRINCIPAL
+// ============================================================================
+
+type Bar = { label: string; raw: string; val: number };
+
+const CHART_TYPE_LABELS: Record<ChartType, string> = {
+  bar: 'Barras',
+  horizontal: 'Horizontal',
+  pie: 'Pizza',
+  line: 'Linha',
+};
+const CHART_TYPE_ICONS: Record<ChartType, string> = {
+  bar: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  horizontal: '<line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>',
+  pie: '<circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10H12V2z"/>',
+  line: '<polyline points="4 18 8 14 12 16 16 10 20 6"/>',
+};
+
 export function AnswerChart({ table, on, onToggle }: AnswerChartProps) {
   const { headers, rows, labelCol, valueCol } = table;
   const vals = rows.map((r) => toNum(r[valueCol]));
   const max = Math.max(1, ...vals.map((v) => (Number.isNaN(v) ? 0 : Math.abs(v))));
   const total = vals.filter((v) => !Number.isNaN(v)).reduce((a, b) => a + Math.abs(b), 0);
   const min = Math.min(0, ...vals.map((v) => (Number.isNaN(v) ? 0 : v)));
-  const bars = rows.slice(0, 12).map((r, i) => ({
+  const bars: Bar[] = rows.slice(0, 20).map((r, i) => ({
     label: stripMd(r[labelCol]), raw: stripMd(r[valueCol]),
     val: Number.isNaN(vals[i]) ? 0 : vals[i],
   }));
 
-  const chartType = detectChartType(rows, labelCol, valueCol);
-  const chartLabel = chartType === 'line' ? 'linha' : chartType === 'pie' ? 'pizza' : 'barras';
+  const autoType = detectChartType(rows, labelCol, valueCol);
+  const [manualType, setManualType] = useState<ChartType | null>(null);
+  const chartType = manualType || autoType;
+
+  // Inteligência de cores: esquema muda com o tipo
+  const colorScheme = chartType === 'pie' ? 'categorical' : detectColorScheme(rows, labelCol, valueCol);
+  const colors = getColors(colorScheme, bars.length);
 
   return (
     <div style={css('margin-top:8px')}>
@@ -399,14 +520,45 @@ export function AnswerChart({ table, on, onToggle }: AnswerChartProps) {
       </button>
       {on && (
         <div style={css('margin-top:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg-card); padding:18px 20px; overflow-x:auto')}>
+          {/* Seletor de tipo + esquema de cores */}
+          <div style={css('display:flex; align-items:center; gap:4px; margin-bottom:14px; flex-wrap:wrap')}>
+            {(['bar', 'horizontal', 'pie', 'line'] as ChartType[]).map((type) => {
+              const isActive = chartType === type;
+              const isAuto = type === autoType && !manualType;
+              return (
+                <button
+                  key={type}
+                  onClick={() => setManualType(type === autoType ? null : type)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '3px 10px', borderRadius: 6,
+                    border: `1px solid ${isActive ? 'var(--red-dim)' : 'var(--border)'}`,
+                    background: isActive ? 'var(--red-glow)' : 'transparent',
+                    color: isActive ? 'var(--white)' : 'var(--muted)',
+                    fontFamily: 'var(--font-body)', fontSize: 10.5, fontWeight: 600,
+                    cursor: 'pointer', transition: 'all .15s ease',
+                  }}
+                >
+                  <IC s={10} d={CHART_TYPE_ICONS[type]} w={1.5} />
+                  {CHART_TYPE_LABELS[type]}
+                  {isAuto && <span style={{ fontSize: 8, opacity: 0.6 }}>(auto)</span>}
+                </button>
+              );
+            })}
+            <span style={css('font-size:9.5px; color:var(--muted-dim); margin-left:6px')}>
+              {rows.length > 20 ? `Top 20 de ${rows.length}` : `${rows.length} itens`}
+              {' · '}
+              {colorScheme === 'sequential' ? '🎨 Gradiente' : '🎨 Categórico'}
+            </span>
+          </div>
           {chartType === 'line' ? (
-            <LineChart bars={bars} max={max} min={min} />
+            <LineChart bars={bars} max={max} min={min} colors={colors} />
           ) : chartType === 'pie' ? (
-            <PieChart bars={bars} total={total} />
+            <PieChart bars={bars} total={total} colors={colors} />
           ) : chartType === 'horizontal' ? (
-            <HorizontalChart bars={bars} max={max} />
+            <HorizontalChart bars={bars} max={max} colors={colors} />
           ) : (
-            <BarChart bars={bars} max={max} />
+            <BarChart bars={bars} max={max} colors={colors} />
           )}
         </div>
       )}

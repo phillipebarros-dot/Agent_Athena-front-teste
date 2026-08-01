@@ -10,7 +10,7 @@ const QUOTES = [
 ];
 
 const SOURCES = [
-  { label: 'Publi', dot: '#dd0004' },
+  { label: 'Publi', dot: '#C41E1E' },
   { label: 'Kantar', dot: '#3fb4c4' },
   { label: 'BOP', dot: '#d9a441' },
   { label: 'Mídia digital', dot: '#3fb950' },
@@ -196,7 +196,7 @@ export default function LoginPage() {
           className="google-btn"
           onClick={signIn}
           disabled={busy}
-          style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 14, width: '100%', padding: '0', background: 'linear-gradient(135deg, #dd0004, #b2232a)', border: 'none', borderRadius: 999, color: '#fff', fontFamily: "'Raleway',sans-serif", fontSize: '0.95rem', fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer', transition: 'transform .25s ease, box-shadow .25s ease', animation: 'fade-up .6s ease .9s both', boxShadow: '0 8px 30px rgba(221,0,4,.4)' }}
+          style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 14, width: '100%', padding: '0', background: 'linear-gradient(135deg, #C41E1E, #8B1515)', border: 'none', borderRadius: 999, color: '#fff', fontFamily: "'Raleway',sans-serif", fontSize: '0.95rem', fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer', transition: 'transform .25s ease, box-shadow .25s ease', animation: 'fade-up .6s ease .9s both', boxShadow: '0 8px 30px rgba(196,30,30,.4)' }}
         >
           <span className="btn-sheen" aria-hidden style={{ position: 'absolute', top: 0, bottom: 0, width: '40%', left: '-60%', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent)', pointerEvents: 'none' }} />
           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: '50%', background: '#fff', flexShrink: 0, marginLeft: 2 }}>
@@ -231,13 +231,13 @@ export default function LoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/grupo-om.png" alt="Grupo OM" style={{ height: 22, width: 'auto', objectFit: 'contain', opacity: 0.55 }} />
           <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,.18)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            Powered by <a href="https://opusmultipla.com.br" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(221,0,4,.55)' }}>OpusMúltipla</a>
+            Powered by <a href="https://opusmultipla.com.br" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(196,30,30,.55)' }}>OpusMúltipla</a>
           </div>
         </div>
       </main>
 
       <style jsx>{`
-        .google-btn:hover { transform: scale(1.05); box-shadow: 0 14px 44px rgba(221,0,4,.6); }
+        .google-btn:hover { transform: scale(1.05); box-shadow: 0 14px 44px rgba(196,30,30,.6); }
         .google-btn:active { transform: scale(0.97); }
         .google-btn:hover .btn-sheen { animation: sheen 0.9s ease; }
         @keyframes sheen { from { left: -60%; } to { left: 130%; } }

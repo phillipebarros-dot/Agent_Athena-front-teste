@@ -60,6 +60,9 @@ export const api = {
   // auditoria (admin)
   audit: (query: 'kpis' | 'recent_activity' | 'recent_feedback' | 'top_users' | 'all_conversations' | 'conversation_messages' | 'system_stats' | 'mcp_health', extra?: { conversation_id?: string; date_from?: string; date_to?: string }) =>
     call<{ query: string; data: any }>('audit', { query, ...(extra || {}) }),
+  // resolução de feedback (admin curadoria)
+  resolveFeedback: (feedback_id: string, action: 'create_rule' | 'ignore') =>
+    call<{ query: string; data: { status: string } }>('audit', { query: 'resolve_feedback', feedback_id, action }),
   // voz
   tts: (text: string) => call<{ audio: string }>('tts', { text }),
   // export
@@ -88,6 +91,88 @@ export const api = {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw Object.assign(new Error(data?.detail || `erro_${res.status}`), { status: res.status, data });
     return data;
+  },
+
+  /**
+   * SSE Streaming — consome tokens em tempo real via ReadableStream.
+   *
+   * Protocolo (do backend FastAPI):
+   *   data: {"t":"tok","c":"texto"}              → Token do LLM
+   *   data: {"t":"tool","n":"nome","s":"start"}  → Tool call iniciado
+   *   data: {"t":"tool","n":"nome","s":"end"}    → Tool call finalizado
+   *   data: {"t":"done","c":"texto","ms":123}    → Fim da geração
+   *   data: {"t":"err","c":"msg"}                → Erro
+   *
+   * Refs:
+   *   - Web Streams API: developer.mozilla.org/en-US/docs/Web/API/ReadableStream
+   *   - SSE spec: html.spec.whatwg.org/multipage/server-sent-events.html
+   */
+  chatStream: async (
+    params: { message: string; conversation_id?: string; client?: string },
+    signal: AbortSignal,
+    callbacks: {
+      onToken: (text: string) => void;
+      onToolStart?: (name: string) => void;
+      onToolEnd?: (name: string) => void;
+      onDone?: (fullText: string, latencyMs: number) => void;
+      onError?: (msg: string) => void;
+    },
+  ): Promise<string> => {
+    const res = await fetch('/api/athena/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(params),
+      signal,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Stream error ${res.status}: ${text.slice(0, 200)}`);
+    }
+
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // último pedaço pode estar incompleto
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const evt = JSON.parse(line.slice(6));
+            switch (evt.t) {
+              case 'tok':
+                fullText += evt.c;
+                callbacks.onToken(evt.c);
+                break;
+              case 'tool':
+                if (evt.s === 'start') callbacks.onToolStart?.(evt.n);
+                else callbacks.onToolEnd?.(evt.n);
+                break;
+              case 'done':
+                callbacks.onDone?.(evt.c || fullText, evt.ms || 0);
+                break;
+              case 'err':
+                callbacks.onError?.(evt.c);
+                break;
+            }
+          } catch { /* ignore malformed SSE lines */ }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    return fullText;
   },
 };
 

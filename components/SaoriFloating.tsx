@@ -81,7 +81,7 @@ export function SaoriFloating() {
     if (expanded && messages.length === 0) {
       setMessages([{
         role: 'saori',
-        text: 'Saudacoes! Sou Saori, sua guia da plataforma. Pela sabedoria do Olimpo, posso tirar suas duvidas ou te levar a Central de Ajuda!',
+        text: 'Ola! Sou a assistente de ajuda da plataforma Athena. Posso explicar qualquer funcionalidade, atalho ou fluxo de trabalho. Se preferir, acesse a Central de Ajuda completa.',
       }]);
       setCurrentEmotion('greeting');
     }
@@ -195,7 +195,7 @@ export function SaoriFloating() {
       setCurrentEmotion(detectEmotion(responseText));
       if (data.audio) await playAudioWithLipSync(data.audio);
     } catch {
-      setMessages(prev => [...prev, { role: 'saori', text: 'Hmm, a coruja de Athena nao ouviu direito. Tenta novamente?' }]);
+      setMessages(prev => [...prev, { role: 'saori', text: 'Desculpe, nao consegui processar sua pergunta. Tente novamente ou acesse a Central de Ajuda.' }]);
       setCurrentEmotion('angry');
     } finally { setThinking(false); }
   }, [input, thinking, playAudioWithLipSync]);
@@ -469,7 +469,7 @@ export function SaoriFloating() {
             style={{
               width: 72, height: 72,
               objectFit: 'contain',
-              filter: `drop-shadow(0 12px 32px rgba(255,255,255,${isHovered || currentEmotion === 'angry' ? '0.2' : '0.08'})) drop-shadow(0 4px 12px rgba(0,0,0,0.5))`,
+              filter: `drop-shadow(0 0 ${isHovered || currentEmotion === 'angry' ? '22px' : '12px'} rgba(196,30,30,${isHovered || currentEmotion === 'angry' ? '0.65' : '0.4'})) drop-shadow(0 4px 12px rgba(0,0,0,0.5))`,
               transition: 'filter 0.3s',
               transform: 'translateZ(12px)',
             }}

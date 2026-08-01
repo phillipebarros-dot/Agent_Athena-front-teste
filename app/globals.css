@@ -1,5 +1,5 @@
-/* Tokens da marca OpusMúltipla — tema azul premium.
-   Os nomes --red/--wine são legados; os valores agora são azuis. */
+/* Tokens da marca OpusMúltipla — tema vermelho premium.
+   A marca é vermelha (#C41E1E). */
 :root {
   /* superfícies (grafite quente sobre quase-preto) */
   --page:#0d0c0c; --bg-deep:#0d0c0c; --bg-surface:#141312; --bg-panel:#1a1918;
@@ -8,8 +8,8 @@
   --border:#2c2a29; --border-subtle:#332f2e; --border-faint:rgba(255,255,255,.06);
   --line:rgba(255,255,255,.08); --dash:rgba(255,255,255,.14);
   /* marca (azul premium — nomes legados mantidos) */
-  --red:#4A90D9; --red-dim:#3670B0; --red-glow:rgba(74,144,217,.16); --brand:#4A90D9;
-  --brand-dim:#3670B0; --brand-hot:#5BA3ED; --red-dot:#4A90D9; --wine:#2B5F94;
+  --red:#C41E1E; --red-dim:#8B1515; --red-glow:rgba(196,30,30,.16); --brand:#C41E1E;
+  --brand-dim:#8B1515; --brand-hot:#E52E2E; --red-dot:#C41E1E; --wine:#5C0F0F;
   /* texto */
   --white:#f4f2f0; --fg:#ffffff; --muted:#7a7472; --muted-light:#a29b98; --muted-dim:#615b59;
   --fg-2:#948d8a; --fg-3:#615b59;
@@ -41,15 +41,15 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
   --shadow-md: 0 4px 14px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.1);
   --shadow-lg: 0 12px 40px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.15);
-  --shadow-glow-red: 0 0 30px rgba(74,144,217,.12), 0 0 60px rgba(74,144,217,.06);
+  --shadow-glow-red: 0 0 30px rgba(196,30,30,.12), 0 0 60px rgba(196,30,30,.06);
 }
 :root.light {
   --page:#eeeae7; --bg-deep:#f4f1ee; --bg-surface:#ffffff; --bg-panel:#f7f4f1;
   --bg-card:#ffffff; --bg-input:#efeae6; --sunk:#efeae6; --rail:#ffffff;
   --border:#ddd6d1; --border-subtle:#ddd6d1; --border-faint:rgba(0,0,0,.06);
   --line:rgba(0,0,0,.1); --dash:rgba(0,0,0,.16);
-  --red:#4A90D9; --red-dim:#3670B0; --red-glow:rgba(74,144,217,.1); --brand:#4A90D9;
-  --brand-dim:#3670B0; --brand-hot:#3670B0; --red-dot:#4A90D9; --wine:#2B5F94;
+  --red:#C41E1E; --red-dim:#8B1515; --red-glow:rgba(196,30,30,.1); --brand:#C41E1E;
+  --brand-dim:#8B1515; --brand-hot:#D42020; --red-dot:#C41E1E; --wine:#5C0F0F;
   --white:#2c2a29; --fg:#161514; --muted:#7a7472; --muted-light:#5a5350; --muted-dim:#948d8a;
   --fg-2:#5a5350; --fg-3:#948d8a;
   --green:#1a8f2e; --cyan:#0e8394; --violet:#6d3fc4; --magenta:#b2126e; --danger:#F5A623; --grey:#c4beba;
@@ -62,7 +62,7 @@
   --glass-border: rgba(0,0,0,0.06);
   --glass-surface: rgba(255,255,255,0.75);
   --glass-hover: rgba(0,0,0,0.02);
-  --shadow-glow-red: 0 0 20px rgba(74,144,217,.08), 0 0 40px rgba(74,144,217,.04);
+  --shadow-glow-red: 0 0 20px rgba(196,30,30,.08), 0 0 40px rgba(196,30,30,.04);
 }
 
 * { box-sizing: border-box; }
@@ -104,7 +104,7 @@ select::-ms-expand {
   to { opacity: 1; transform: translateY(0) scale(1); backdrop-filter: var(--glass-blur); } }
 @keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes countUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes glowPulse { 0%,100% { box-shadow: 0 0 12px rgba(221,0,4,.08); } 50% { box-shadow: 0 0 24px rgba(221,0,4,.18); } }
+@keyframes glowPulse { 0%,100% { box-shadow: 0 0 12px rgba(196,30,30,.08); } 50% { box-shadow: 0 0 24px rgba(196,30,30,.18); } }
 @media (prefers-reduced-motion: reduce) { [data-think-dot] { animation: none !important; opacity: .75 !important; } }
 
 /* ─── Mobile responsive sidebar ─── */

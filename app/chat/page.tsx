@@ -180,47 +180,118 @@ export default function ChatPage() {
     }
 
     try {
-      const r = await api.chat({ message: enrichedMsg, conversation_id: convId, client, is_audio: ttsEnabled }, controller.signal);
-      const bot: ChatMessage = { message_id: `local_a_${Date.now()}`, conversation_id: convId, user_id: 'athena', role: 'assistant', content: r.output || '', timestamp: new Date().toISOString(), sources: (r as any).sources || undefined, query: (r as any).query || undefined, attachment: r.attachment || undefined };
-
-      // FIX B1: só adiciona mensagem se ainda estiver na mesma conversa
-      setActiveId((currentActiveId) => {
-        if (currentActiveId === sendingConvId) {
-          setMessages((cur) => [...cur, bot]);
-        } else {
-          // Resposta chegou em conversa não-ativa — notifica
-          setToast(`Athena respondeu em outra conversa`);
-          setTimeout(() => setToast(null), 4000);
-          // A2: badge "1 nova" na sidebar
-          setConvNotifs((prev) => ({ ...prev, [sendingConvId]: (prev[sendingConvId] || 0) + 1 }));
-          // Guarda pra quando o user voltar a essa conversa
-          pendingMsgsRef.current[sendingConvId] = [...(pendingMsgsRef.current[sendingConvId] || []), bot];
+      // ── SSE Streaming: tokens em tempo real ──
+      // TTS inline ainda usa o endpoint bloqueante /chat (precisa do audio base64).
+      // Chat normal usa /chat/stream pra feedback visual instantâneo.
+      if (ttsEnabled) {
+        // Fallback: /chat bloqueante (retorna audio inline)
+        const r = await api.chat({ message: enrichedMsg, conversation_id: convId, client, is_audio: true }, controller.signal);
+        const bot: ChatMessage = { message_id: `local_a_${Date.now()}`, conversation_id: convId, user_id: 'athena', role: 'assistant', content: r.output || '', timestamp: new Date().toISOString(), sources: (r as any).sources || undefined, query: (r as any).query || undefined, attachment: r.attachment || undefined };
+        setActiveId((currentActiveId) => {
+          if (currentActiveId === sendingConvId) setMessages((cur) => [...cur, bot]);
+          else {
+            setToast(`Athena respondeu em outra conversa`);
+            setTimeout(() => setToast(null), 4000);
+            setConvNotifs((prev) => ({ ...prev, [sendingConvId]: (prev[sendingConvId] || 0) + 1 }));
+            pendingMsgsRef.current[sendingConvId] = [...(pendingMsgsRef.current[sendingConvId] || []), bot];
+          }
+          return currentActiveId;
+        });
+        // TTS playback
+        if (r.audio) {
+          try {
+            if (!audioContextRef.current) audioContextRef.current = new AudioContext();
+            const ctx = audioContextRef.current;
+            if (ctx.state === 'suspended') await ctx.resume();
+            const bin = atob(r.audio);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            const buf = await ctx.decodeAudioData(bytes.buffer);
+            try { sourceNodeRef.current?.stop(); sourceNodeRef.current?.disconnect(); } catch {}
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(ctx.destination);
+            sourceNodeRef.current = src;
+            setIsPlaying(true);
+            src.start();
+            src.onended = () => { setIsPlaying(false); sourceNodeRef.current = null; };
+          } catch (audioErr) { console.warn('TTS playback error:', audioErr); }
         }
-        return currentActiveId;
-      });
+        api.saveMessage({ conversation_id: convId!, role: 'assistant', content: r.output || '' }).catch(() => {});
+      } else {
+        // ── Streaming SSE: renderiza token a token ──
+        const botMsgId = `local_a_${Date.now()}`;
+        const streamBot: ChatMessage = { message_id: botMsgId, conversation_id: convId, user_id: 'athena', role: 'assistant', content: '', timestamp: new Date().toISOString() };
 
-      // TTS: tocar audio da resposta
-      if (r.audio && ttsEnabled) {
-        try {
-          if (!audioContextRef.current) audioContextRef.current = new AudioContext();
-          const ctx = audioContextRef.current;
-          if (ctx.state === 'suspended') await ctx.resume();
-          const bin = atob(r.audio);
-          const bytes = new Uint8Array(bin.length);
-          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-          const buf = await ctx.decodeAudioData(bytes.buffer);
-          // Para audio anterior
-          try { sourceNodeRef.current?.stop(); sourceNodeRef.current?.disconnect(); } catch {}
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
-          src.connect(ctx.destination);
-          sourceNodeRef.current = src;
-          setIsPlaying(true);
-          src.start();
-          src.onended = () => { setIsPlaying(false); sourceNodeRef.current = null; };
-        } catch (audioErr) { console.warn('TTS playback error:', audioErr); }
+        // Insere placeholder vazio (vai preenchendo com tokens)
+        setActiveId((currentActiveId) => {
+          if (currentActiveId === sendingConvId) setMessages((cur) => [...cur, streamBot]);
+          return currentActiveId;
+        });
+
+        await api.chatStream(
+          { message: enrichedMsg, conversation_id: convId, client },
+          controller.signal,
+          {
+            onToken: (token) => {
+              // Atualiza a última mensagem (assistente) incrementalmente
+              setMessages((cur) => {
+                const last = cur[cur.length - 1];
+                if (last?.message_id === botMsgId) {
+                  return [...cur.slice(0, -1), { ...last, content: last.content + token }];
+                }
+                return cur;
+              });
+            },
+            onToolStart: (name) => {
+              // Mostra indicador de tool call
+              setMessages((cur) => {
+                const last = cur[cur.length - 1];
+                if (last?.message_id === botMsgId) {
+                  return [...cur.slice(0, -1), { ...last, toolStatus: `Consultando ${name}...` }];
+                }
+                return cur;
+              });
+            },
+            onToolEnd: () => {
+              // Remove indicador de tool call
+              setMessages((cur) => {
+                const last = cur[cur.length - 1];
+                if (last?.message_id === botMsgId) {
+                  const { toolStatus: _, ...rest } = last as any;
+                  return [...cur.slice(0, -1), rest];
+                }
+                return cur;
+              });
+            },
+            onDone: (fullText, latencyMs) => {
+              // Salva mensagem completa no BigQuery
+              api.saveMessage({ conversation_id: convId!, role: 'assistant', content: fullText }).catch(() => {});
+              // Notifica se mudou de conversa enquanto gerava
+              setActiveId((currentActiveId) => {
+                if (currentActiveId !== sendingConvId) {
+                  setToast(`Athena respondeu em outra conversa`);
+                  setTimeout(() => setToast(null), 4000);
+                  setConvNotifs((prev) => ({ ...prev, [sendingConvId]: (prev[sendingConvId] || 0) + 1 }));
+                  const finalBot: ChatMessage = { ...streamBot, content: fullText };
+                  pendingMsgsRef.current[sendingConvId] = [...(pendingMsgsRef.current[sendingConvId] || []), finalBot];
+                }
+                return currentActiveId;
+              });
+            },
+            onError: (errMsg) => {
+              setMessages((cur) => {
+                const last = cur[cur.length - 1];
+                if (last?.message_id === botMsgId) {
+                  return [...cur.slice(0, -1), { ...last, content: errMsg || 'Erro ao processar.', error: true }];
+                }
+                return cur;
+              });
+            },
+          },
+        );
       }
-      api.saveMessage({ conversation_id: convId!, role: 'assistant', content: r.output || '' }).catch(() => {});
+
       if (isNew) loadConversations();
       // Compactação automática — evita perda de contexto (bug Victor)
       if (messages.length > 20) {

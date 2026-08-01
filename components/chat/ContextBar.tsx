@@ -83,7 +83,7 @@ export function ContextBar({ chips, onChipChange, onClearAll }: ContextBarProps)
           font-family:var(--font-body);
           transition:border-color .2s, box-shadow .2s;
         `)}
-        whileHover={{ borderColor: 'rgba(221,0,4,0.2)', boxShadow: '0 4px 20px rgba(221,0,4,0.08)' }}
+        whileHover={{ borderColor: 'rgba(196,30,30,0.2)', boxShadow: '0 4px 20px rgba(196,30,30,0.08)' }}
       >
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: hasValues ? 'var(--red)' : 'var(--muted)', flexShrink: 0 }} />
         CONTEXTO {filledCount > 0 ? `(${filledCount})` : ''}

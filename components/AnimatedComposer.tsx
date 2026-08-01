@@ -105,7 +105,7 @@ export function AnimatedComposer({ onSend, prompts = [], disabled, userName }: {
             {prompts.map((p, i) => (
               <motion.button key={p} type="button" onClick={() => fire(p)} disabled={disabled}
                 initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.4 + i * 0.1, type: 'spring', stiffness: 300, damping: 25 }}
-                whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,.3), 0 0 0 1px rgba(221,0,4,.15)' }}
+                whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,.3), 0 0 0 1px rgba(196,30,30,.15)' }}
                 style={{
                   textAlign: 'left', padding: '12px 16px', borderRadius: 12,
                   border: '1px solid var(--glass-border)',

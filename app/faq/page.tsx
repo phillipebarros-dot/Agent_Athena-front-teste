@@ -78,7 +78,7 @@ const FAQ: FaqCategory[] = [
   {
     title: 'Primeiros Passos',
     icon: Icons.rocket,
-    accent: '#dd0004',
+    accent: '#C41E1E',
     items: [
       { q: 'O que e a Athena?', a: 'A Athena e uma assistente de IA especializada em publicidade e midia da OpusMultipla. Ela consulta dados reais (BigQuery, ERP, Kantar, IBOPE, TGI) para responder perguntas sobre clientes, campanhas, investimentos, audiencia e muito mais.' },
       { q: 'Como inicio uma conversa?', a: 'Na tela principal, digite sua pergunta no campo de texto na parte inferior e pressione Enter. A Athena processa sua pergunta, consulta as fontes de dados relevantes e gera uma resposta estruturada.' },
@@ -96,12 +96,14 @@ const FAQ: FaqCategory[] = [
       { q: 'Como seleciono um cliente?', a: 'Use o dropdown de cliente no header superior. Ao selecionar um cliente (ex: O Boticario, Vivo), a Athena filtra todas as respostas para o contexto daquele cliente.' },
       { q: 'O que sao os chips de contexto?', a: 'Abaixo do header existem chips editaveis: Ciclo, Plano, Periodo e Meio. Preencha-os para dar contexto fixo a suas perguntas. Por exemplo, definir Ciclo=04 faz a Athena filtrar automaticamente por esse ciclo.' },
       { q: 'Posso enviar arquivos?', a: 'Sim. Clique no icone de clip no compositor de mensagens. Aceita PDF, Excel (.xlsx), CSV e imagens. O texto e extraido automaticamente e enviado junto com sua pergunta.' },
+      { q: 'Posso enviar imagens para analise?', a: 'Sim. A Athena suporta visao computacional via Claude (multimodal). Envie uma imagem (PNG, JPG, GIF, WebP) e faca perguntas sobre ela. Por exemplo: "Analise este grafico de vendas" com a imagem anexada.' },
+      { q: 'Como funciona o streaming de respostas?', a: 'A Athena usa SSE (Server-Sent Events) para enviar tokens em tempo real. Voce ve a resposta sendo construida palavra por palavra, sem esperar o processamento completo. Isso reduz drasticamente o tempo de espera percebido.' },
       { q: 'Como uso o microfone?', a: 'Clique no icone de microfone no compositor. Ele usa a Web Speech API do navegador para transcrever sua fala em texto. Clique novamente para parar a gravacao. O texto transcrito aparece no campo de input.' },
       { q: 'O que faz o botao "Parar"?', a: 'Quando a Athena esta gerando uma resposta longa, o botao "Parar" aparece. Ele cancela a geracao em andamento usando AbortController. Util se voce percebeu que a pergunta nao era a correta.' },
       { q: 'Como copio uma resposta?', a: 'Nas acoes abaixo de cada resposta da Athena, clique no icone de copiar. O conteudo e copiado para a area de transferencia do sistema.' },
       { q: 'Como regenero uma resposta?', a: 'Nas acoes abaixo de cada resposta, clique no icone de regenerar (setas circulares). A Athena reprocessa a mesma pergunta e gera uma nova resposta.' },
       { q: 'Como dou feedback?', a: 'Cada resposta tem icones de polegar para cima e para baixo. Ao clicar em qualquer um, um formulario opcional aparece para voce detalhar o motivo. Isso ajuda a equipe a calibrar a IA.' },
-      { q: 'A Athena le respostas em voz alta?', a: 'Sim. Nas acoes de cada resposta existe o botao TTS (Text-to-Speech). Clique para ouvir a resposta em audio sintetizado.' },
+      { q: 'A Athena le respostas em voz alta?', a: 'Sim. Nas acoes de cada resposta existe o botao TTS (Text-to-Speech). Clique para ouvir a resposta em audio sintetizado via OpenAI.' },
       { q: 'O que sao as notificacoes por conversa?', a: 'Se voce esta em uma conversa e recebe resposta em outra, um badge vermelho aparece na sidebar indicando que ha novas mensagens naquela conversa.' },
       { q: 'O que e o autocomplete de entidades?', a: 'Ao digitar no campo de mensagem, a Athena pode sugerir nomes de clientes, veiculos, programas e outras entidades do sistema. Selecione uma sugestao para inserir o nome correto.' },
     ],
@@ -125,8 +127,10 @@ const FAQ: FaqCategory[] = [
     accent: '#f59e0b',
     items: [
       { q: 'Que navegadores suportam o microfone?', a: 'O microfone usa a Web Speech API, suportada nativamente no Chrome, Edge e Safari. Firefox tem suporte parcial.' },
-      { q: 'Como funciona o TTS?', a: 'O Text-to-Speech envia o texto da resposta ao backend, que gera audio sintetizado. O audio e reproduzido diretamente no navegador.' },
+      { q: 'Como funciona o TTS no chat?', a: 'O Text-to-Speech no chat usa a API da OpenAI (voz onyx) para gerar audio sintetizado. O audio e reproduzido diretamente no navegador.' },
+      { q: 'Como funciona a voz da Saori?', a: 'A Saori usa Gemini TTS com voz feminina ultra-realista (Aoede). Se o Gemini falhar, usa Google Cloud Neural2-C (feminina) como fallback. A voz da Saori e independente do TTS do chat principal.' },
       { q: 'Posso parar o audio no meio?', a: 'Sim. Ao clicar novamente no botao de TTS enquanto esta tocando, o audio para imediatamente.' },
+      { q: 'Qual a diferenca de voz entre Saori e Chat?', a: 'A Saori tem voz feminina natural (Gemini AI), enquanto o chat usa OpenAI TTS com voz onyx. Sao provedores separados, otimizados para cada contexto.' },
     ],
   },
   {
@@ -134,9 +138,10 @@ const FAQ: FaqCategory[] = [
     icon: Icons.upload,
     accent: '#8b5cf6',
     items: [
-      { q: 'Que tipos de arquivo posso enviar?', a: 'PDF, Excel (.xlsx), CSV e imagens (PNG, JPG). O texto e extraido automaticamente de cada formato.' },
-      { q: 'O que acontece com o arquivo enviado?', a: 'O texto e extraido no frontend (para PDFs e CSVs) ou enviado ao backend (para Excel). O conteudo extraido e anexado a sua mensagem como contexto adicional para a IA.' },
-      { q: 'Ha limite de tamanho?', a: 'O limite pratico e de cerca de 10MB por arquivo. Arquivos muito grandes podem demorar para processar.' },
+      { q: 'Que tipos de arquivo posso enviar?', a: 'PDF, Excel (.xlsx), CSV e imagens (PNG, JPG, GIF, WebP). O texto e extraido automaticamente de cada formato.' },
+      { q: 'Posso enviar imagens para a IA analisar?', a: 'Sim. A Athena usa Claude com suporte multimodal (Vision). Envie qualquer imagem e pergunte sobre ela. Formatos suportados: JPEG, PNG, GIF e WebP.' },
+      { q: 'O que acontece com o arquivo enviado?', a: 'O texto e extraido no frontend (para PDFs e CSVs) ou enviado ao backend (para Excel). Imagens sao enviadas em base64 para analise visual pela IA. O conteudo e anexado a sua mensagem como contexto.' },
+      { q: 'Ha limite de tamanho?', a: 'O limite pratico e de cerca de 10MB por arquivo. Imagens sao otimizadas automaticamente. Arquivos muito grandes podem demorar para processar.' },
     ],
   },
   {
@@ -232,7 +237,7 @@ export default function FaqPage() {
         </button>
         <div style={{ flex: 1 }} />
         <span style={{
-          fontSize: 11, color: 'rgba(221,0,4,0.7)', letterSpacing: '1.5px',
+          fontSize: 11, color: 'rgba(196,30,30,0.7)', letterSpacing: '1.5px',
           textTransform: 'uppercase', fontWeight: 700,
         }}>
           Central de Ajuda
@@ -242,7 +247,7 @@ export default function FaqPage() {
       {/* ── Hero ── */}
       <div style={{
         textAlign: 'center', padding: '52px 32px 36px',
-        background: 'radial-gradient(ellipse at 50% -20%, rgba(221,0,4,0.08) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse at 50% -20%, rgba(196,30,30,0.08) 0%, transparent 70%)',
       }}>
         <h1 style={{
           fontSize: 28, fontWeight: 700, color: '#fff',
@@ -388,7 +393,7 @@ export default function FaqPage() {
             Nao encontrou o que procura?
           </p>
           <button onClick={() => router.push('/chat')} style={{
-            background: '#dd0004', color: '#fff', border: 'none',
+            background: '#C41E1E', color: '#fff', border: 'none',
             borderRadius: 10, padding: '11px 24px', fontSize: 13,
             fontWeight: 600, cursor: 'pointer',
           }}>

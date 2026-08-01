@@ -1,8 +1,8 @@
-﻿# Athena Frontend - Interface de Inteligencia de Midia (v3.2.0)
+# Athena Frontend - Interface de Inteligencia de Midia (v3.3.0)
 
 **Autor**: Phillipe Barros ([@phillipebarros-dot](https://github.com/phillipebarros-dot))  
 **Organizacao**: Opus Multipla / Grupo OM  
-**Versao**: 3.2.0 | **Licenca**: Proprietaria
+**Versao**: 3.4.0 | **Licenca**: Proprietaria
 
 Frontend do assistente Athena. Interface de chat inteligente para consulta de dados de midia, planejamento e investimento publicitario. Aplicacao Next.js 14 com autenticacao Google OAuth 2.0, proxy server-side seguro e design system proprio. Inclui o assistente virtual Saori (Logo PNG + emoji) para guiar usuarios.
 
@@ -13,7 +13,7 @@ Frontend do assistente Athena. Interface de chat inteligente para consulta de da
 - [Tecnologias](#tecnologias)
 - [Arquitetura](#arquitetura)
 - [Funcionalidades](#funcionalidades)
-- [Saori - Assistente Virtual](#jack---assistente-virtual)
+- [Saori - Assistente Virtual](#saori---assistente-virtual)
 - [Componentes](#componentes)
 - [Atalhos de Teclado](#atalhos-de-teclado)
 - [Configuracao](#configuracao)
@@ -21,6 +21,9 @@ Frontend do assistente Athena. Interface de chat inteligente para consulta de da
 - [Estrutura de Arquivos](#estrutura-de-arquivos)
 - [Seguranca](#seguranca)
 - [Guia do Usuario](#guia-do-usuario)
+- [Changelog v3.4.0](#changelog-v340)
+- [Changelog v3.3.0](#changelog-v330)
+- [Roadmap](#roadmap)
 
 ---
 
@@ -68,9 +71,10 @@ Next.js 14 (Cloud Run)
     |     +-- /logout         Encerra sessao
     |
     +-- /api/athena/[...path]  Proxy seguro para o backend FastAPI
-    |     +-- Timeout: 120s
+    |     +-- Timeout: 120s (normal) / 300s (SSE streaming)
     |     +-- Injeta Bearer Token (server-side, nunca exposto)
     |     +-- Injeta user_email e google_access_token
+    |     +-- /chat/stream: Pipe SSE direto (ReadableStream, sem buffering)
     |
     +-- middleware.ts         CSP com nonce por request
 ```
@@ -80,6 +84,8 @@ Next.js 14 (Cloud Run)
 ## Funcionalidades
 
 ### Chat Inteligente
+- Streaming SSE: Tokens aparecem em tempo real conforme o Claude gera (POST /chat/stream)
+- Indicador de tool call: "Consultando BigQuery..." durante ferramentas MCP
 - Envio de mensagens: Texto livre com contexto de cliente e ciclo
 - Respostas em Markdown: Tabelas GFM, listas, negrito, codigo
 - Tabelas interativas: Renderizacao rica com headers estilizados
@@ -103,15 +109,17 @@ Next.js 14 (Cloud Run)
 
 ### Exportacao de Dados
 - CSV: Download direto no navegador
-- XLSX: Via backend com headers estilizados e auto-width
-- PDF: Gera HTML formatado e abre impressao
+- XLSX: Via backend com headers estilizados (azul marca) e auto-width
+- PDF: Gera HTML formatado e abre impressao (cores azul marca)
 - Google Sheets: Cria planilha nativa no Drive do usuario (botao verde)
+- Deteccao de sessao: Diferencia erro de autenticacao (sessao expirada) de erro de cota (Drive cheio)
 
 ### Voz (Gemini TTS Ultra-Realista)
 - TTS automatico: Respostas lidas em voz alta com Gemini 2.5 Flash TTS (voz Charon, masculina grave)
+- TTS por mensagem: Botao de alto-falante em cada resposta do assistente
 - Toggle TTS: Botao de volume no compositor para ativar/desativar voz
 - Parar audio: Botao pulsante para interromper reproducao
-- Fallback 3 niveis: Gemini TTS â†’ Google Cloud Neural2 â†’ OpenAI TTS
+- Fallback 3 niveis: Gemini TTS -> Google Cloud Neural2 -> OpenAI TTS
 - Ditado: Botao de microfone no compositor (Web Speech API, Chrome)
 
 ### Upload de Documentos
@@ -137,13 +145,13 @@ Next.js 14 (Cloud Run)
 
 ## Saori - Assistente Virtual
 
-O Saori e um personagem Logo PNG + emoji integrado ao frontend que funciona como assistente de onboarding e ajuda contextual. Ele guia os usuarios pelas funcionalidades do sistema, explica botoes, ajuda a tomar decisoes e responde duvidas sobre o uso da Athena.
+O Saori e um assistente de IA integrado ao frontend que funciona como guia de onboarding e ajuda contextual. Ele orienta os usuarios pelas funcionalidades do sistema, explica botoes, ajuda a tomar decisoes e responde duvidas sobre o uso da Athena.
 
 ### Caracteristicas
 - Modelo Logo PNG + emoji Cubism renderizado via PixiJS no navegador
 - 7 expressoes emocionais: feliz, bravo, preocupado, envergonhado, fofo, surpreso, confuso
 - Lip sync em tempo real: Web Audio API analisa volume do audio TTS e sincroniza com a boca
-- Respostas texto-only: Sem audio TTS no Saori (economia de quota)
+- Tom profissional: Respostas objetivas e uteis, sem personagem ficticio
 - Sem emojis: Prompt proibe emojis para respostas profissionais
 - Baloes de fala: Efeito typewriter com animacao de entrada/saida
 - Deteccao de emocao: Analisa o contexto da resposta e muda expressao automaticamente
@@ -177,6 +185,7 @@ O Saori e um personagem Logo PNG + emoji integrado ao frontend que funciona como
 | AnimatedComposer | components/AnimatedComposer.tsx | Composer da WelcomeScreen com sugestoes grid 2col |
 | WelcomeScreen | components/chat/WelcomeScreen.tsx | Tela inicial com chips de sugestao |
 | AnswerChart | components/chat/AnswerChart.tsx | Graficos SVG premium (bar/horizontal/pie/line) |
+| FeedbackPanel | components/chat/FeedbackPanel.tsx | Like/dislike com comentario e TTS feedback |
 | SaoriFloating | components/SaoriFloating.tsx | Assistente Logo PNG + emoji flutuante |
 | Logo PNG + emojiCanvas | components/jack/Logo PNG + emojiCanvas.tsx | Renderizador Logo PNG + emoji (PixiJS) |
 | IC | lib/dc.tsx | Icone SVG inline + design components |
@@ -253,14 +262,16 @@ Agent_Athena-front-teste/
     chat/                     # Sidebar, MessageBubble, Composer, etc.
     jack/                     # Logo PNG + emojiCanvas, SpeechBubble
     ui/                       # IC (icone SVG inline)
+  docs/
+    STREAMING_ARCHITECTURE.md  # Documentacao tecnica SSE (Next.js, proxy, consumer)
   lib/
-    api.ts                    # Cliente HTTP (call, endpoints)
+    api.ts                    # Cliente HTTP (call, chatStream SSE, endpoints)
     config.ts                 # Configuracoes server-side
     session.ts                # JWT sign/verify (HMAC-SHA256)
     session-secret.ts         # Geracao/validacao do secret
     lipsync.ts                # Motor de lip sync (Web Audio API)
     jack-emotions.ts          # Mapeamento texto para expressao
-    types.ts                  # Tipos compartilhados
+    types.ts                  # Tipos compartilhados (ChatMessage com toolStatus)
     useTheme.ts               # Hook de tema (light/dark)
   middleware.ts               # CSP com nonce por request
   public/
@@ -317,8 +328,54 @@ P: Posso renomear conversas?
 R: Sim. Passe o mouse sobre a conversa na sidebar e clique no icone de lapis.
 
 P: O que e o Saori?
-R: O Saori e o assistente virtual Logo PNG + emoji que guia voce pelas funcionalidades do sistema. Ele aparece no canto inferior direito do chat e pode direcionar para a Central de Ajuda (/faq).
+R: O Saori e o assistente virtual que guia voce pelas funcionalidades do sistema. Ele aparece no canto inferior direito do chat e pode direcionar para a Central de Ajuda (/faq).
 
 P: Onde fica a Central de Ajuda?
 R: Acesse /faq no navegador ou clique em "Ver Central de Ajuda completa" no Saori. La tem 9 categorias com todas as funcionalidades documentadas.
 
+P: O botao de exportar Sheets deu erro.
+R: Se apareceu "Sessao do Google expirou", faca logout e login novamente para renovar a autorizacao. O token do Google dura 1 hora.
+
+---
+
+## Changelog v3.4.0
+
+### SSE Streaming (Implementado)
+- **Streaming em tempo real**: Tokens aparecem incrementalmente via SSE (POST /chat/stream)
+- **Proxy SSE**: Route handler faz pipe de ReadableStream direto (zero buffering, timeout 300s)
+- **chatStream()**: Consumer SSE em api.ts com callbacks (onToken, onToolStart, onToolEnd, onDone, onError)
+- **Indicador visual**: Dot pulsante vermelho com "Consultando [tool]..." durante tool calls
+- **TTS preservado**: Modo audio continua usando POST /chat bloqueante (retorna audio base64)
+- **Abort handling**: AbortController cancela stream no client, backend pode continuar
+- **toolStatus**: Novo campo em ChatMessage + React.memo atualizado
+- **Documentacao tecnica**: `docs/STREAMING_ARCHITECTURE.md` com refs oficiais (Next.js, Web Streams, SSE)
+
+---
+
+## Changelog v3.3.0
+
+### Correcoes
+- **Cor vermelha eliminada**: 35+ ocorrencias de rgba(221,0,4) substituidas por CSS variables azul marca (#4A90D9)
+- **TTS por mensagem**: Botao "Ouvir" nao desaparece mais ao gerar audio (fix unmount race condition)
+- **TTS backend**: Removido google-tts-api (robotico), audio agora via /tts do backend (Gemini/Neural2/OpenAI)
+- **Sheets export**: Diferencia erro de sessao expirada vs Drive cheio (mensagens de erro claras)
+- **PDF export**: Cores dos headers PDF agora usam azul marca em vez de vermelho
+- **Saori**: Tom profissional (removido personagem ficticio mitologico)
+
+### Melhorias
+- Botoes admin "Criar regra" / "Ignorar" desabilitados com tooltip ate endpoints serem implementados
+- FeedbackPanel: Visual de loading e erro no TTS (spinner + mensagem)
+
+---
+
+## Roadmap
+
+### OAuth Refresh Token (Prioridade Media)
+Mudar access_type de 'online' para 'offline' no fluxo OAuth e implementar refresh automatico no backend. Isso elimina a necessidade de re-login apos 1 hora para exports Google Sheets.
+
+### Admin — Endpoints Pendentes (Prioridade Media)
+- POST /audit?query=cost_metrics: Metricas de custo por modelo LLM
+- Botao "Criar regra" e "Ignorar" na aba Feedback (dependem de endpoints backend)
+
+### Busca de Usuarios no Admin (Prioridade Baixa)
+- GET /users?search=: Filtro por nome/email na lista de usuarios

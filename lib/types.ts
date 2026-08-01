@@ -28,6 +28,8 @@ export interface ChatMessage {
   fb?: 'positive' | 'negative';
   sources?: MessageSource[];
   query?: string;
+  /** SSE streaming: indicador visual de tool call em andamento */
+  toolStatus?: string;
 }
 
 export interface MessageAttachment {

@@ -81,7 +81,7 @@ export function NavRail({ me, light, onToggleTheme, onLogout }: NavRailProps) {
           alt="Athena"
           style={{
             width: 36, height: 36, objectFit: 'contain',
-            filter: 'drop-shadow(0 2px 8px rgba(221,0,4,.2))',
+            filter: 'drop-shadow(0 2px 8px rgba(196,30,30,.2))',
           }}
         />
       </div>
@@ -113,7 +113,7 @@ export function NavRail({ me, light, onToggleTheme, onLogout }: NavRailProps) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer',
                 background: active
-                  ? 'rgba(221,0,4,0.1)'
+                  ? 'rgba(196,30,30,0.1)'
                   : hover ? 'var(--bg-panel)' : 'transparent',
                 color: active ? 'var(--red)' : hover ? 'var(--white)' : 'var(--muted)',
                 transition: 'all .2s ease',
@@ -263,7 +263,7 @@ export function NavRail({ me, light, onToggleTheme, onLogout }: NavRailProps) {
                   fontSize: 13, color: 'var(--red)',
                   cursor: 'pointer', transition: 'background .15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(221,0,4,.06)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(196,30,30,.06)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <SignOut size={16} /> Sair da conta

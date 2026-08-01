@@ -19,8 +19,8 @@ const dayKey = (iso?: string) => (iso ? new Date(iso).toISOString().slice(0, 10)
 const hourOf = (iso?: string) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.getHours() : -1; };
 
 /* ─── Chart helpers (paleta premium, sem vermelho) ─── */
-const CHART_COLORS = ['#4A90D9', '#50C878', '#F5A623', '#9B59B6', '#1ABC9C'];
-const BAR_COLOR = '#4A90D9'; // Azul premium
+const CHART_COLORS = ['#C41E1E', '#50C878', '#F5A623', '#9B59B6', '#1ABC9C'];
+const BAR_COLOR = '#C41E1E'; // Azul premium
 
 const ROLES = ['Administrador', 'Planejamento', 'Mídia', 'Atendimento'];
 const PERMS: { label: string; roles: string[] }[] = [
@@ -60,7 +60,7 @@ const Panel = ({ title, hint, children, extra, delay = 0 }: any) => (
       minWidth: 0,
       transition: 'border-color .25s ease, box-shadow .25s ease',
     }}
-    whileHover={{ borderColor: 'rgba(74,144,217,0.2)' }}
+    whileHover={{ borderColor: 'rgba(196,30,30,0.2)' }}
   >
     <div style={css('display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:18px')}>
       <div style={css('min-width:0')}>
@@ -130,7 +130,7 @@ const DomainManager = () => {
         <button
           onClick={addDomain}
           disabled={!newDomain.trim().includes('.')}
-          style={css(`padding:8px 16px; border-radius:8px; border:none; font-size:12px; font-weight:600; cursor:${newDomain.trim().includes('.') ? 'pointer' : 'default'}; background:${newDomain.trim().includes('.') ? '#4A90D9' : 'var(--border)'}; color:#fff; transition:all .2s`)}
+          style={css(`padding:8px 16px; border-radius:8px; border:none; font-size:12px; font-weight:600; cursor:${newDomain.trim().includes('.') ? 'pointer' : 'default'}; background:${newDomain.trim().includes('.') ? '#C41E1E' : 'var(--border)'}; color:#fff; transition:all .2s`)}
         >Adicionar</button>
       </div>
       <div style={css('font-size:11.5px; color:var(--fg-3); margin-top:10px; line-height:1.6')}>Gerenciado dinamicamente. Alterações aplicam imediatamente sem redeploy.</div>
@@ -195,7 +195,7 @@ const SynonymManager = () => {
             placeholder="mapeia para"
             style={css('flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--white); font-size:12px; font-family:var(--font-body); outline:none')}
           />
-          <button onClick={addSyn} disabled={!synFrom.trim() || !synTo.trim()} style={css('padding:6px 12px; border-radius:6px; border:none; background:#4A90D9; color:#fff; font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-body); opacity:' + (!synFrom.trim() || !synTo.trim() ? '.4' : '1'))}>+</button>
+          <button onClick={addSyn} disabled={!synFrom.trim() || !synTo.trim()} style={css('padding:6px 12px; border-radius:6px; border:none; background:#C41E1E; color:#fff; font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-body); opacity:' + (!synFrom.trim() || !synTo.trim() ? '.4' : '1'))}>+</button>
         </div>
       </div>
       <div style={css('font-size:11.5px; color:var(--fg-3); margin-top:10px; line-height:1.6')}>Sinônimos são usados para mapear termos informais para nomes oficiais no BigQuery.</div>
@@ -501,7 +501,7 @@ function AdminPageInner() {
                               </div>
                             </div>
                             <div style={css('display:flex; gap:20px')}>
-                              <span style={css('display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--fg-2)')}><span style={css('width:9px; height:9px; border-radius:3px; background:#4A90D9')} />{fmtNum(pos)} úteis</span>
+                              <span style={css('display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--fg-2)')}><span style={css('width:9px; height:9px; border-radius:3px; background:#C41E1E')} />{fmtNum(pos)} úteis</span>
                               <span style={css('display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--fg-2)')}><span style={css('width:9px; height:9px; border-radius:3px; background:var(--sunk); border:1px solid var(--border)')} />{fmtNum(neg)} correções</span>
                             </div>
                           </div>
@@ -529,7 +529,7 @@ function AdminPageInner() {
                           const peak = byHour.reduce((best, b) => b.v > best.v ? b : best, { h: -1, v: 0, ht: 0 });
                           return peak.v > 0 ? (
                             <div style={css('margin-top:8px; font-size:10.5px; color:var(--fg-3)')}>
-                              Pico: <span style={{ color: '#4A90D9', fontWeight: 700, fontFamily: DISP }}>{peak.h}h</span> ({fmtNum(peak.v)} msgs)
+                              Pico: <span style={{ color: '#C41E1E', fontWeight: 700, fontFamily: DISP }}>{peak.h}h</span> ({fmtNum(peak.v)} msgs)
                             </div>
                           ) : null;
                         })()}
@@ -554,14 +554,14 @@ function AdminPageInner() {
                             const pct = Math.round(num(u.message_count) / maxUser * 100);
                             return (
                               <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 + i * 0.06 }} style={css('display:flex; align-items:center; gap:8px')}>
-                                <span style={{ width: 18, height: 18, borderRadius: 5, background: i < 3 ? '#4A90D9' : 'var(--sunk)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: i < 3 ? '#fff' : 'var(--fg-3)', fontFamily: DISP, flexShrink: 0 }}>{i + 1}</span>
+                                <span style={{ width: 18, height: 18, borderRadius: 5, background: i < 3 ? '#C41E1E' : 'var(--sunk)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: i < 3 ? '#fff' : 'var(--fg-3)', fontFamily: DISP, flexShrink: 0 }}>{i + 1}</span>
                                 <span style={css('font-size:11.5px; color:var(--fg-2); width:85px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{shortName(u.user_id)}</span>
                                 <span style={css('flex:1; min-width:0; height:7px; border-radius:4px; background:var(--sunk); overflow:hidden')}>
                                   <motion.span
                                     initial={{ width: '0%' }}
                                     animate={{ width: `${pct}%` }}
                                     transition={{ delay: 0.4 + i * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                                    style={{ display: 'block', height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, #4A90D9, #3670B0)', opacity: 1 - i * 0.1 }}
+                                    style={{ display: 'block', height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, #C41E1E, #8B1515)', opacity: 1 - i * 0.1 }}
                                   />
                                 </span>
                                 <span style={css('font-family:' + DISP + '; font-size:11px; width:38px; text-align:right; flex-shrink:0; color:var(--fg-2)')}>{fmtNum(u.message_count)}</span>
@@ -661,7 +661,7 @@ function AdminPageInner() {
                           const apiRole = role === 'Administrador' ? 'admin' : 'user';
                           return (
                             <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.03 }} style={css('display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px dashed var(--dash)')}>
-                              <span style={css('width:34px; height:34px; border-radius:50%; background:linear-gradient(140deg,#3670B0,#4A90D9); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(p.user_id)}</span>
+                              <span style={css('width:34px; height:34px; border-radius:50%; background:linear-gradient(140deg,#8B1515,#C41E1E); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(p.user_id)}</span>
                               <span style={css('min-width:0; flex:1')}>
                                 <span style={css('display:block; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{shortName(p.user_id)}</span>
                                 <span style={css('display:block; font-size:11px; color:var(--fg-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{p.user_id}</span>
@@ -680,7 +680,7 @@ function AdminPageInner() {
                             try { await api.updateRole(email, role); } catch { /* segue */ }
                           }
                           setRoleSaved(true);
-                        }} style={{ padding: '9px 18px', border: 'none', borderRadius: 10, background: '#4A90D9', color: '#fff', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(74,144,217,.25)' }}>Salvar papéis</motion.button>
+                        }} style={{ padding: '9px 18px', border: 'none', borderRadius: 10, background: '#C41E1E', color: '#fff', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(196,30,30,.25)' }}>Salvar papéis</motion.button>
                         <span style={css('font-size:11.5px; color:var(--fg-3); line-height:1.5')}>{roleSaved ? 'Papéis salvos no BigQuery via POST /users.' : 'Atribua papéis e clique em Salvar para persistir no BigQuery.'}</span>
                       </div>
                     </Panel>
@@ -689,8 +689,8 @@ function AdminPageInner() {
                       <div style={css('display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px')}>
                         {ROLES.map((r) => { const on = roleView === r; return (
                           <motion.button key={r} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setRoleView(r)} style={{
-                            padding: '8px 16px', border: `1px solid ${on ? '#4A90D9' : 'var(--border)'}`, borderRadius: 22,
-                            background: on ? '#4A90D9' : 'transparent', color: on ? '#fff' : 'var(--fg-2)',
+                            padding: '8px 16px', border: `1px solid ${on ? '#C41E1E' : 'var(--border)'}`, borderRadius: 22,
+                            background: on ? '#C41E1E' : 'transparent', color: on ? '#fff' : 'var(--fg-2)',
                             fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all .2s',
                           }}>{r}</motion.button>
                         ); })}
@@ -698,7 +698,7 @@ function AdminPageInner() {
                       <div style={css('display:flex; flex-direction:column')}>
                         {PERMS.map((p, i) => { const allowed = p.roles.includes(roleView); return (
                           <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 * i }} style={css('display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px dashed var(--dash)')}>
-                            <span style={css(`width:20px; height:20px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; background:${allowed ? '#4A90D9' : 'transparent'}; border:1px solid ${allowed ? '#4A90D9' : 'var(--border)'}; transition:all .2s`)}>{allowed ? ic('<polyline points="20 6 9 17 4 12"/>', 12, 3) : null}</span>
+                            <span style={css(`width:20px; height:20px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; background:${allowed ? '#C41E1E' : 'transparent'}; border:1px solid ${allowed ? '#C41E1E' : 'var(--border)'}; transition:all .2s`)}>{allowed ? ic('<polyline points="20 6 9 17 4 12"/>', 12, 3) : null}</span>
                             <span style={css(`font-size:13px; flex:1; min-width:0; color:${allowed ? 'var(--fg)' : 'var(--fg-3)'}; transition:color .2s`)}>{p.label}</span>
                             <span style={css('font-size:11px; color:var(--fg-3); flex-shrink:0')}>{p.roles.length === ROLES.length ? 'todos' : p.roles.join(', ')}</span>
                           </motion.div>
@@ -735,9 +735,9 @@ function AdminPageInner() {
                       <div style={css('display:flex; flex-direction:column; gap:4px')}>
                         {['andrei@grupoom.com.br', 'phillipe.barros@grupoom.com.br', 'camilo.ferreira@grupoom.com.br'].map((e, i) => (
                           <motion.div key={e} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 + i * 0.04 }} style={css('display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px dashed var(--dash)')}>
-                            <span style={css('width:30px; height:30px; border-radius:50%; background:linear-gradient(140deg,#3670B0,#4A90D9); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(e)}</span>
+                            <span style={css('width:30px; height:30px; border-radius:50%; background:linear-gradient(140deg,#8B1515,#C41E1E); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(e)}</span>
                             <span style={css('font-size:12.5px; color:var(--fg-2)')}>{e}</span>
-                            <span style={css('margin-left:auto; font-size:10.5px; padding:3px 10px; border-radius:6px; background:rgba(74,144,217,.12); color:#4A90D9; font-weight:600')}>admin</span>
+                            <span style={css('margin-left:auto; font-size:10.5px; padding:3px 10px; border-radius:6px; background:rgba(196,30,30,.12); color:#C41E1E; font-weight:600')}>admin</span>
                           </motion.div>
                         ))}
                       </div>
@@ -747,21 +747,27 @@ function AdminPageInner() {
                     {/* System Metrics — latência, custo, sem resultado */}
                     <Panel title="Métricas de sistema" hint="últimos 30 dias — latência, custo estimado, taxa sem resultado" delay={0.2}>
                       {systemStats ? (
-                        <div style={css('display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:14px')}>
-                          {[
-                            { l: 'Latência média', v: `${systemStats.avg_latency_sec || 0}s`, s: 'user→assistant' },
-                            { l: 'Sem resultado', v: `${systemStats.no_result_pct || 0}%`, s: `${systemStats.no_result_count || 0} de ${systemStats.total_messages_30d || 0}` },
-                            { l: 'Custo estimado', v: `$${systemStats.estimated_cost_month_usd || 0}`, s: 'mês atual (est.)' },
-                            { l: 'Modelo', v: (systemStats.model || '').split('-').slice(-3, -1).join('-') || systemStats.model, s: systemStats.model },
-                            { l: 'Msgs 30d', v: fmtNum(systemStats.total_messages_30d || 0), s: 'total período' },
-                          ].map((k, i) => (
-                            <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.05 }} style={{ background: 'var(--sunk)', borderRadius: 12, padding: '14px 16px' }}>
-                              <div style={css('font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-3)')}>{k.l}</div>
-                              <div style={css('font-family:' + DISP + '; font-size:22px; font-weight:600; margin-top:4px')}>{k.v}</div>
-                              <div style={css('font-size:10px; color:var(--fg-3); margin-top:3px')}>{k.s}</div>
-                            </motion.div>
-                          ))}
-                        </div>
+                        systemStats.error ? (
+                          <div style={css('font-size:12px; color:var(--gold); line-height:1.7')}>
+                            ⚠️ Erro ao consultar métricas: <span style={css('font-size:11px; color:var(--fg-3)')}>({systemStats.error})</span>
+                          </div>
+                        ) : (
+                          <div style={css('display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:14px')}>
+                            {[
+                              { l: 'Latência média', v: `${systemStats.avg_latency_sec || 0}s`, s: 'user→assistant' },
+                              { l: 'Sem resultado', v: `${systemStats.no_result_pct || 0}%`, s: `${systemStats.no_result_count || 0} de ${systemStats.total_messages_30d || 0}` },
+                              { l: 'Custo estimado', v: `$${systemStats.estimated_cost_month_usd || 0}`, s: 'mês atual (est.)' },
+                              { l: 'Modelo', v: (systemStats.model || '').split('-').slice(-3, -1).join('-') || systemStats.model, s: systemStats.model },
+                              { l: 'Msgs 30d', v: fmtNum(systemStats.total_messages_30d || 0), s: 'total período' },
+                            ].map((k, i) => (
+                              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.05 }} style={{ background: 'var(--sunk)', borderRadius: 12, padding: '14px 16px' }}>
+                                <div style={css('font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-3)')}>{k.l}</div>
+                                <div style={css('font-family:' + DISP + '; font-size:22px; font-weight:600; margin-top:4px')}>{k.v}</div>
+                                <div style={css('font-size:10px; color:var(--fg-3); margin-top:3px')}>{k.s}</div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        )
                       ) : (
                         <div style={css('font-size:12px; color:var(--fg-3)')}>Carregando métricas...</div>
                       )}
@@ -786,10 +792,10 @@ function AdminPageInner() {
 
                     {/* Curadoria do Aprendizado */}
                     <Panel title="Curadoria do aprendizado" hint="feedbacks negativos pendentes de revisão" delay={0.3}>
-                      {feedback && feedback.length > 0 ? (
+                      {feedback && feedback.filter((f: any) => f.rating === 'negative' && !f.resolved_action).length > 0 ? (
                         <div style={css('display:flex; flex-direction:column; gap:10px; max-height:300px; overflow-y:auto')}>
-                          {feedback.filter((f: any) => f.rating === 'negative').slice(0, 10).map((f: any, i: number) => (
-                            <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} style={css('padding:12px 14px; background:var(--bg-deep); border:1px solid var(--border); border-radius:10px')}>
+                          {feedback.filter((f: any) => f.rating === 'negative' && !f.resolved_action).slice(0, 10).map((f: any, i: number) => (
+                            <motion.div key={f.feedback_id || i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} style={css('padding:12px 14px; background:var(--bg-deep); border:1px solid var(--border); border-radius:10px')}>
                               <div style={css('font-size:11px; color:var(--fg-3); margin-bottom:6px')}>
                                 {shortName(f.user_id)} · {relativeTime(f.timestamp)}
                               </div>
@@ -802,8 +808,28 @@ function AdminPageInner() {
                                 <div style={css('font-size:12px; color:var(--gold); font-style:italic')}>"{f.comment}"</div>
                               )}
                               <div style={css('display:flex; gap:6px; margin-top:8px')}>
-                                <button style={css('padding:3px 10px; border-radius:6px; border:1px solid var(--green); background:transparent; color:var(--green); font-size:10.5px; font-weight:600; cursor:pointer; font-family:var(--font-body)')}>Criar regra</button>
-                                <button style={css('padding:3px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--fg-3); font-size:10.5px; font-weight:600; cursor:pointer; font-family:var(--font-body)')}>Ignorar</button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await api.resolveFeedback(f.feedback_id, 'create_rule');
+                                      setFeedback((prev: any[]) => prev.map((fb: any) => fb.feedback_id === f.feedback_id ? { ...fb, resolved_action: 'create_rule' } : fb));
+                                    } catch { /* silencioso */ }
+                                  }}
+                                  style={css('padding:3px 10px; border-radius:6px; border:1px solid var(--green); background:transparent; color:var(--green); font-size:10.5px; font-weight:600; cursor:pointer; font-family:var(--font-body); transition:all .2s')}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--green)'; e.currentTarget.style.color = '#fff'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--green)'; }}
+                                >Criar regra</button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await api.resolveFeedback(f.feedback_id, 'ignore');
+                                      setFeedback((prev: any[]) => prev.map((fb: any) => fb.feedback_id === f.feedback_id ? { ...fb, resolved_action: 'ignore' } : fb));
+                                    } catch { /* silencioso */ }
+                                  }}
+                                  style={css('padding:3px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--fg-3); font-size:10.5px; font-weight:600; cursor:pointer; font-family:var(--font-body); transition:all .2s')}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--fg)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--fg-3)'; }}
+                                >Ignorar</button>
                               </div>
                             </motion.div>
                           ))}
@@ -855,7 +881,7 @@ function AdminPageInner() {
                 {drawerMsgs?.length === 0 && <div style={css('font-size:12.5px; color:var(--fg-3)')}>Sem mensagens.</div>}
                 {(drawerMsgs || []).filter((m) => m.role !== 'system_summary').map((m, i) => (
                   <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} style={css(`display:flex; flex-direction:column; gap:6px; ${m.role === 'user' ? 'align-items:flex-end' : ''}`)}>
-                    <span style={css(`font-family:${DISP}; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:${m.role === 'user' ? 'var(--fg-3)' : '#4A90D9'}`)}>{m.role === 'user' ? 'Usuário' : 'Athena'}</span>
+                    <span style={css(`font-family:${DISP}; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:${m.role === 'user' ? 'var(--fg-3)' : '#C41E1E'}`)}>{m.role === 'user' ? 'Usuário' : 'Athena'}</span>
                     <div style={css(`max-width:92%; font-size:13px; line-height:1.65; padding:12px 15px; border-radius:12px; white-space:pre-wrap; background:${m.role === 'user' ? 'var(--sunk)' : 'transparent'}; border:1px solid var(--border); color:var(--fg)`)}>{m.content}</div>
                   </motion.div>
                 ))}

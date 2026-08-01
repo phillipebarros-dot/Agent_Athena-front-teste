@@ -44,6 +44,7 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
   const [fbOpen, setFbOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [driveError, setDriveError] = useState(false);
+  const [ttsActive, setTtsActive] = useState(false);
   const table = !message.error ? parseTable(message.content) : null;
 
   return (
@@ -58,7 +59,7 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.05 }}
-        style={css('width:38px; height:38px; object-fit:contain; flex-shrink:0; margin-top:2px;')}
+        style={css('width:38px; height:38px; object-fit:contain; flex-shrink:0; margin-top:2px; filter: drop-shadow(0 0 10px rgba(196,30,30,0.45));')}
       />
       
       <div style={css('flex:1; min-width:0; max-width: 100%; position:relative')}>
@@ -94,6 +95,13 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
                   </div>
                 );
               })()}
+              {/* SSE streaming: indicador de tool call em andamento */}
+              {(message as any).toolStatus && (
+                <div style={css('display:flex; align-items:center; gap:8px; padding:6px 12px; margin-bottom:8px; border-radius:8px; background:rgba(196,30,30,0.08); border:1px solid rgba(196,30,30,0.15); font-size:12px; color:var(--muted-light);')}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C41E1E', animation: 'pulse 1.5s infinite' }} />
+                  {(message as any).toolStatus}
+                </div>
+              )}
               <Markdown>{message.content}</Markdown>
             </div>
           )}
@@ -221,19 +229,24 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
                   if (result && (result as any).url) {
                     window.open((result as any).url, '_blank');
                   } else if (result && (result as any).message) {
-                    const rmsg = (result as any).message || '';
-                    if (rmsg.includes('quota') || rmsg.includes('storage') || rmsg.includes('403')) {
+                    const rmsg = ((result as any).message || '').toLowerCase();
+                    if (rmsg.includes('quota') || rmsg.includes('storage') || rmsg.includes('insufficient') || rmsg.includes('rate limit')) {
                       setDriveError(true);
+                    } else if (rmsg.includes('token') || rmsg.includes('auth') || rmsg.includes('expired') || rmsg.includes('403') || rmsg.includes('invalid_grant')) {
+                      alert('Sessão do Google expirou. Faça logout e login novamente para reconectar ao Sheets.');
                     } else {
-                      alert(rmsg);
+                      alert('Erro ao criar planilha: ' + ((result as any).message || '').slice(0, 150));
                     }
                   }
                 } catch (err: any) {
-                  const msg = err?.message || String(err) || '';
-                  if (msg.includes('quota') || msg.includes('storage') || msg.includes('403')) {
+                  const msg = (err?.message || String(err) || '').toLowerCase();
+                  const status = (err as any)?.status;
+                  if (msg.includes('quota') || msg.includes('storage') || msg.includes('insufficient') || msg.includes('rate limit')) {
                     setDriveError(true);
+                  } else if (status === 403 || msg.includes('403') || msg.includes('token') || msg.includes('auth') || msg.includes('expired') || msg.includes('invalid_grant')) {
+                    alert('Sessão do Google expirou. Faça logout e login novamente para reconectar ao Sheets.');
                   } else {
-                    alert('Erro ao criar planilha: ' + (msg.slice(0, 120) || 'verifique sua conexão.'));
+                    alert('Erro ao criar planilha: ' + (err?.message || '').slice(0, 120));
                   }
                 }
               }}
@@ -246,7 +259,7 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
             </button>
             {driveError && (
               <span style={css('font-size:11px; color:var(--red); display:flex; align-items:center; gap:4px')}>
-                ⚠️ Drive cheio. Use XLSX.
+                ⚠️ Cota de armazenamento excedida. Use XLSX.
               </span>
             )}
           </div>
@@ -258,14 +271,14 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
         {/* Action Bar (Regenerar, Ouvir, Copiar, Feedback) */}
         {!message.error && (
           <AnimatePresence>
-            {hovered && (
+            {(hovered || fbOpen || ttsActive) && (
               <motion.div 
                 initial={{ opacity: 0, y: -5 }} 
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: 5 }} 
                 style={css('position:relative; z-index:10; margin-top:8px;')}
               >
-                <FeedbackActions message={message} onSendFeedback={onSendFeedback} fbOpen={fbOpen} onToggleFb={() => setFbOpen(!fbOpen)} onRegenerate={onRegenerate} />
+                <FeedbackActions message={message} onSendFeedback={onSendFeedback} fbOpen={fbOpen} onToggleFb={() => setFbOpen(!fbOpen)} onRegenerate={onRegenerate} onTtsStateChange={setTtsActive} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -301,6 +314,7 @@ export const MessageBubble = React.memo(MessageBubbleInner, (prev, next) => {
   return prev.message.message_id === next.message.message_id
     && prev.message.content === next.message.content
     && prev.message.fb === next.message.fb
+    && prev.message.toolStatus === next.message.toolStatus
     && prev.chartOpen === next.chartOpen
     && prev.onRegenerate === next.onRegenerate;
 });

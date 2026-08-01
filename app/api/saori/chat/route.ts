@@ -118,24 +118,25 @@ export async function POST(req: NextRequest) {
     const outputText = data.output || data.response || data.message || 'Consulte a Central de Ajuda em /faq.';
     let audioB64 = data.audio || null;
 
+    // Fallback: usar o mesmo endpoint /tts do backend (voz ultra-realista)
+    // em vez do google-tts-api (voz robótica do Google Translate)
     if (!audioB64 && outputText) {
       try {
-        const { getAllAudioBase64 } = await import('google-tts-api');
-        const results = await getAllAudioBase64(outputText, {
-          lang: 'pt-BR',
-          slow: false,
-          host: 'https://translate.google.com',
-          splitPunct: ',.?',
+        const ttsRes = await fetch(`${backendUrl.replace(/\/$/, '')}/tts`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${backendToken}`,
+          },
+          body: JSON.stringify({ text: outputText.slice(0, 4000) }),
+          signal: AbortSignal.timeout(15_000),
         });
-        // Simplest fallback: we just use the first chunk if it splits,
-        // or a concatenated base64 which might be tricky in pure node.
-        // For Saori, responses are usually short (2-3 sentences), so first chunk is often enough.
-        // But let's join them if possible. google-tts-api returns an array of objects.
-        if (results && results.length > 0) {
-          audioB64 = results.map(r => r.base64);
+        if (ttsRes.ok) {
+          const ttsData = await ttsRes.json();
+          if (ttsData?.audio) audioB64 = ttsData.audio;
         }
       } catch (e) {
-        console.error('[Saori] TTS fallback error:', e);
+        console.error('[Saori] TTS backend fallback error:', e);
       }
     }
 

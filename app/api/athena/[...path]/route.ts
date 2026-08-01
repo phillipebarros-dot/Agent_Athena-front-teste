@@ -17,9 +17,9 @@ import { COOKIE_NAME, verify } from '@/lib/session';
 export const runtime = 'nodejs';
 
 // endpoints do backend que o front pode chamar (allowlist)
-const ALLOWED = new Set(['chat', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users', 'list-clients', 'resume', 'time-travel', 'settings/domains', 'settings/domains/add', 'settings/domains/remove', 'search-entities', 'settings/synonyms', 'settings/synonyms/add', 'settings/synonyms/remove', 'upload']);
+const ALLOWED = new Set(['chat', 'chat/stream', 'conversations', 'history', 'save-message', 'feedback', 'compact', 'audit', 'tts', 'export', 'users', 'list-clients', 'resume', 'time-travel', 'settings/domains', 'settings/domains/add', 'settings/domains/remove', 'search-entities', 'settings/synonyms', 'settings/synonyms/add', 'settings/synonyms/remove', 'upload']);
 // endpoints que recebem a identidade do usuário logado
-const NEEDS_USER = new Set(['chat', 'conversations', 'save-message', 'feedback', 'audit', 'users']);
+const NEEDS_USER = new Set(['chat', 'chat/stream', 'conversations', 'save-message', 'feedback', 'audit', 'users']);
 
 // rate limit simples em memória (por instância). Em produção, somar Cloud Armor / API Gateway.
 const hits = new Map<string, number[]>();
@@ -110,6 +110,39 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     const action = body?.action;
     if (['list', 'update_role'].includes(action) && !isAdmin(session.email)) {
       return NextResponse.json({ error: 'acesso_negado' }, { status: 403 });
+    }
+  }
+
+  // ── SSE Streaming: pipe body direto, não consumir com res.text() ──
+  // Ref: Next.js docs — Route Handlers suportam ReadableStream via new Response(res.body)
+  // Ref: GCP Cloud Run — text/event-stream com status 200 não é bufferizado
+  if (endpoint === 'chat/stream') {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 300_000); // 5 min timeout para SSE
+    try {
+      const res = await fetch(`${BACKEND_URL().replace(/\/$/, '')}/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${BACKEND_TOKEN()}` },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        return new NextResponse(text, { status: res.status });
+      }
+      // Pipe SSE stream direto — NÃO consumir com res.text()
+      return new Response(res.body, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    } catch {
+      return NextResponse.json({ error: 'backend_indisponivel' }, { status: 502 });
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

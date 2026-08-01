@@ -30,7 +30,7 @@ export function Markdown({ children }: { children: string }) {
           ),
           thead: (p) => <thead style={{ background: 'var(--bg-raised, #161616)' }} {...p} />,
           th: (p) => <th style={{ textAlign: 'left', padding: '9px 14px', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 600, borderBottom: '1px solid var(--border-faint)', whiteSpace: 'nowrap' }} {...p} />,
-          td: (p) => <td style={{ padding: '10px 14px', color: 'var(--white)', borderBottom: '1px solid var(--border-ghost, rgba(255,255,255,.04))' }} {...p} />,
+          td: (p) => <td style={{ padding: '10px 12px', color: 'var(--white)', borderBottom: '1px solid var(--border-ghost, rgba(255,255,255,.04))', whiteSpace: 'nowrap' }} {...p} />,
           blockquote: (p) => <blockquote style={{ margin: '0 0 10px', paddingLeft: 12, borderLeft: '2px solid var(--red-dim)', color: 'var(--muted-light)' }} {...p} />,
           hr: () => <hr style={{ border: 'none', borderTop: '1px solid var(--border-faint)', margin: '12px 0' }} />,
         }}

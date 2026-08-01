@@ -10,20 +10,20 @@ interface WelcomeScreenProps {
   backendDown: boolean;
 }
 
-const pulseKeyframes = `
-@keyframes athena-pulse {
-  0%, 100% { filter: drop-shadow(0 0 12px rgba(190,40,40,0.3)); transform: scale(1); }
-  50% { filter: drop-shadow(0 0 32px rgba(190,40,40,0.55)); transform: scale(1.04); }
+const floatKeyframes = `
+@keyframes athena-float {
+  0%, 100% { transform: translateY(0); filter: drop-shadow(0 0 12px rgba(196,30,30,0.4)) drop-shadow(0 8px 24px rgba(0,0,0,0.4)); }
+  50% { transform: translateY(-8px); filter: drop-shadow(0 0 28px rgba(196,30,30,0.7)) drop-shadow(0 8px 24px rgba(0,0,0,0.4)); }
 }
 `;
 
 export function WelcomeScreen({ userName, onSend, suggestions, backendDown }: WelcomeScreenProps) {
   return (
     <div style={css('max-width:720px; margin:0 auto; display:flex; flex-direction:column; align-items:center; padding-top:6vh')}>
-      {/* Inject pulse animation */}
-      <style>{pulseKeyframes}</style>
+      {/* Inject float animation */}
+      <style>{floatKeyframes}</style>
 
-      {/* Logo — larger with glow pulse */}
+      {/* Logo — subtle float, no boxy glow */}
       <div style={css('margin-bottom:28px')}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -32,7 +32,8 @@ export function WelcomeScreen({ userName, onSend, suggestions, backendDown }: We
           style={{
             width: 160,
             height: 'auto',
-            animation: 'athena-pulse 3s ease-in-out infinite',
+            animation: 'athena-float 4s ease-in-out infinite',
+            filter: 'drop-shadow(0 0 18px rgba(196,30,30,0.5)) drop-shadow(0 8px 24px rgba(0,0,0,0.4))',
           }}
         />
       </div>
