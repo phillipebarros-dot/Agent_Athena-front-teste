@@ -13,7 +13,7 @@ export const css = (s: string): React.CSSProperties => {
       if (key.trim().startsWith('--')) {
         (acc as any)[key.trim()] = val.trim();
       } else {
-        acc[camelKey as keyof React.CSSProperties] = val.trim();
+        (acc as any)[camelKey] = val.trim();
       }
     }
     return acc;
