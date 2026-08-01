@@ -178,7 +178,7 @@ const FAQ: FaqCategory[] = [
     items: [
       { q: 'Que atalhos de teclado existem?', a: 'Enter: enviar mensagem. Shift+Enter: nova linha. Ctrl+N ou Cmd+N: nova conversa. Ctrl+B: abrir/fechar sidebar. Esc: fechar modais.' },
       { q: 'O que e o tema claro/escuro?', a: 'No header existe um toggle de tema. O modo escuro e o padrao. O modo claro inverte as cores para uso em ambientes com muita luz. A preferencia e salva no navegador.' },
-      { q: 'O Beyonder responde sobre qualquer assunto?', a: 'Nao. O Beyonder (personagem Live2D no canto inferior direito) e especializado em explicar funcionalidades da plataforma Athena. Para perguntas sobre dados de clientes e campanhas, use o chat principal.' },
+      { q: 'A Saori responde sobre qualquer assunto?', a: 'Nao. A Saori (assistente no canto inferior direito) e especializada em explicar funcionalidades da plataforma Athena. Para perguntas sobre dados de clientes e campanhas, use o chat principal.' },
     ],
   },
 ];
@@ -392,7 +392,7 @@ export default function FaqPage() {
             borderRadius: 10, padding: '11px 24px', fontSize: 13,
             fontWeight: 600, cursor: 'pointer',
           }}>
-            Pergunte ao Beyonder no Chat
+            Pergunte à Saori no Chat
           </button>
         </div>
       </div>

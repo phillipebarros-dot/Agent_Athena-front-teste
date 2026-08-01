@@ -16,6 +16,10 @@ const DISP = "'Oswald',sans-serif";
 const dayKey = (iso?: string) => (iso ? new Date(iso).toISOString().slice(0, 10) : '');
 const hourOf = (iso?: string) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.getHours() : -1; };
 
+/* ─── Chart helpers (monocromático, nível senior) ─── */
+const barOpacity = (pct: number) => Math.max(0.2, Math.min(1, pct / 100));
+const BAR_COLOR = 'var(--red)';  // #DD0004
+
 const ROLES = ['Administrador', 'Planejamento', 'Mídia', 'Atendimento'];
 const PERMS: { label: string; roles: string[] }[] = [
   { label: 'Consultar Publi e bases Kantar', roles: ROLES },
@@ -460,24 +464,65 @@ function AdminPageInner() {
 
                     {/* Charts row 1 */}
                     <div style={css('display:grid; grid-template-columns:2fr 1fr; gap:18px; align-items:start')}>
-                      <Panel title="Conversas por dia" hint="derivado de created_at das conversas reais" delay={0.1}>
+                      <Panel title="Conversas por dia" hint="últimos 14 dias" delay={0.1}>
                         {byDay.days.length === 0 ? <Empty /> : (
                           <>
-                            <div style={css('display:flex; align-items:flex-end; gap:6px; height:180px')}>
-                              {byDay.days.map((d, i) => (
-                                <div key={i} title={`${d.label}: ${d.v}`} style={css('flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:6px; min-width:0')}>
-                                  <span style={css('font-family:' + DISP + '; font-size:9.5px; color:var(--fg-3)')}>{d.v || ''}</span>
-                                  <motion.div
-                                    initial={{ scaleY: 0 }}
-                                    animate={{ scaleY: 1 }}
-                                    transition={{ delay: 0.2 + i * 0.04, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                                    style={{ width: '100%', maxWidth: 28, height: `${Math.max(3, d.h)}%`, borderRadius: '6px 6px 0 0', background: 'linear-gradient(180deg, var(--red), var(--wine) 85%, rgba(121,31,35,0.3))', transformOrigin: 'bottom', boxShadow: d.v ? '0 -2px 8px rgba(221,0,4,.15)' : 'none' }}
-                                  />
+                            {/* Summary stats */}
+                            <div style={css('display:flex; gap:20px; margin-bottom:16px')}>
+                              {[
+                                { l: 'Total', v: fmtNum(byDay.days.reduce((a, d) => a + d.v, 0)) },
+                                { l: 'Média/dia', v: (byDay.days.reduce((a, d) => a + d.v, 0) / Math.max(1, byDay.days.length)).toFixed(1) },
+                                { l: 'Pico', v: fmtNum(byDay.max) },
+                              ].map((s, i) => (
+                                <div key={i} style={css('display:flex; flex-direction:column; gap:2px')}>
+                                  <span style={css('font-size:9px; color:var(--fg-3); text-transform:uppercase; letter-spacing:.1em; font-weight:600')}>{s.l}</span>
+                                  <span style={css('font-family:' + DISP + '; font-size:15px; font-weight:600')}>{s.v}</span>
                                 </div>
                               ))}
                             </div>
-                            <div style={css('display:flex; gap:6px; margin-top:10px')}>
-                              {byDay.days.map((d, i) => <span key={i} style={css('flex:1; text-align:center; font-family:' + DISP + '; font-size:9px; color:var(--fg-3); min-width:0; white-space:nowrap; overflow:hidden')}>{d.label}</span>)}
+                            {/* Chart with Y-axis + grid lines */}
+                            <div style={css('display:flex; gap:0; height:160px')}>
+                              {/* Y-axis labels */}
+                              <div style={css('width:30px; flex-shrink:0; display:flex; flex-direction:column; justify-content:space-between; padding:0 4px 0 0')}>
+                                <span style={css('font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3); text-align:right')}>{byDay.max || ''}</span>
+                                <span style={css('font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3); text-align:right')}>{byDay.max ? Math.round(byDay.max / 2) : ''}</span>
+                                <span style={css('font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3); text-align:right')}>0</span>
+                              </div>
+                              {/* Bar area */}
+                              <div style={css('flex:1; position:relative; display:flex; align-items:flex-end; gap:5px; border-left:1px solid var(--border-faint); border-bottom:1px solid var(--border-faint)')}>
+                                {/* Grid lines */}
+                                {[25, 50, 75].map(p => (
+                                  <div key={p} style={{ position: 'absolute', left: 0, right: 0, bottom: `${p}%`, height: 0, borderTop: '1px dashed var(--border-faint)', pointerEvents: 'none' }} />
+                                ))}
+                                {/* Average line */}
+                                {(() => {
+                                  const avg = byDay.days.reduce((a, d) => a + d.v, 0) / Math.max(1, byDay.days.length);
+                                  const avgPct = byDay.max > 0 ? Math.round(avg / byDay.max * 100) : 0;
+                                  return avgPct > 5 ? (
+                                    <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${avgPct}%`, height: 0, borderTop: '1.5px dashed rgba(221,0,4,0.35)', zIndex: 2, pointerEvents: 'none' }}>
+                                      <span style={{ position: 'absolute', right: 2, top: -13, fontSize: 8, color: 'var(--red)', fontWeight: 600, fontFamily: DISP, opacity: 0.7 }}>média</span>
+                                    </div>
+                                  ) : null;
+                                })()}
+                                {/* Bars */}
+                                {byDay.days.map((d, i) => {
+                                  const opacity = byDay.max > 0 ? barOpacity((d.v / byDay.max) * 100) : 0.2;
+                                  return (
+                                    <div key={i} title={`${d.label}: ${d.v} conversas`} style={css('flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0')}>
+                                      <motion.div
+                                        initial={{ scaleY: 0 }}
+                                        animate={{ scaleY: 1 }}
+                                        transition={{ delay: 0.2 + i * 0.04, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                                        style={{ width: '100%', maxWidth: 26, height: `${Math.max(2, d.h)}%`, borderRadius: '4px 4px 0 0', background: `linear-gradient(180deg, var(--red), var(--wine))`, opacity, transformOrigin: 'bottom' }}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            {/* X-axis labels */}
+                            <div style={css('display:flex; gap:5px; margin-top:6px; padding-left:30px')}>
+                              {byDay.days.map((d, i) => <span key={i} style={css('flex:1; text-align:center; font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3); min-width:0; white-space:nowrap; overflow:hidden')}>{d.label}</span>)}
                             </div>
                           </>
                         )}
@@ -512,53 +557,78 @@ function AdminPageInner() {
 
                     {/* Charts row 2 */}
                     <div style={css('display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; align-items:start')}>
-                      <Panel title="Atividade por hora" hint="perguntas das últimas 24h" delay={0.2}>
-                        <div style={css('display:flex; align-items:flex-end; gap:2px; height:130px')}>
-                          {byHour.map((b, i) => (
-                            <motion.div
-                              key={i} title={`${b.h}h: ${b.v}`}
-                              initial={{ scaleY: 0 }}
-                              animate={{ scaleY: 1 }}
-                              transition={{ delay: 0.3 + i * 0.015, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                              style={{ flex: 1, height: `${Math.max(3, b.ht)}%`, borderRadius: 3, background: b.v ? 'linear-gradient(180deg, var(--red), var(--wine))' : 'var(--sunk)', transformOrigin: 'bottom' }}
-                            />
-                          ))}
+                      <Panel title="Atividade por hora" hint="últimas 24h" delay={0.2}>
+                        <div style={css('display:flex; gap:0; height:130px')}>
+                          <div style={css('flex:1; position:relative; display:flex; align-items:flex-end; gap:2px; border-bottom:1px solid var(--border-faint)')}>
+                            {/* Grid lines */}
+                            {[50].map(p => (
+                              <div key={p} style={{ position: 'absolute', left: 0, right: 0, bottom: `${p}%`, height: 0, borderTop: '1px dashed var(--border-faint)', pointerEvents: 'none' }} />
+                            ))}
+                            {byHour.map((b, i) => {
+                              const opacity = barOpacity(b.ht);
+                              return (
+                                <motion.div
+                                  key={i} title={`${b.h}h: ${b.v} msgs`}
+                                  initial={{ scaleY: 0 }}
+                                  animate={{ scaleY: 1 }}
+                                  transition={{ delay: 0.3 + i * 0.015, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                                  style={{ flex: 1, height: `${Math.max(3, b.ht)}%`, borderRadius: '2px 2px 0 0', background: 'linear-gradient(180deg, var(--red), var(--wine))', opacity: b.v ? opacity : 0.08, transformOrigin: 'bottom' }}
+                                />
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div style={css('display:flex; justify-content:space-between; margin-top:10px; font-family:' + DISP + '; font-size:9px; color:var(--fg-3)')}><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
-                      </Panel>
-                      <Panel title="Mensagens por conversa" hint="distribuição real" delay={0.25}>
-                        <div style={css('display:flex; align-items:flex-end; gap:12px; height:130px')}>
-                          {msgDist.map((b, i) => (
-                            <div key={i} style={css('flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:6px; min-width:0')}>
-                              <span style={css('font-family:' + DISP + '; font-size:10.5px; color:var(--fg-2)')}>{b.v}</span>
-                              <motion.div
-                                initial={{ scaleY: 0 }}
-                                animate={{ scaleY: 1 }}
-                                transition={{ delay: 0.3 + i * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                                style={{ width: '100%', maxWidth: 36, height: `${Math.max(3, b.h)}%`, borderRadius: '6px 6px 0 0', background: 'linear-gradient(180deg, var(--wine), rgba(121,31,35,0.5))', transformOrigin: 'bottom' }}
-                              />
-                              <span style={css('font-family:' + DISP + '; font-size:9.5px; color:var(--fg-3)')}>{b.label}</span>
+                        <div style={css('display:flex; justify-content:space-between; margin-top:8px; font-family:' + DISP + '; font-size:8.5px; color:var(--fg-3)')}><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
+                        {/* Peak indicator */}
+                        {(() => {
+                          const peak = byHour.reduce((best, b) => b.v > best.v ? b : best, { h: -1, v: 0, ht: 0 });
+                          return peak.v > 0 ? (
+                            <div style={css('margin-top:8px; font-size:10.5px; color:var(--fg-3)')}>
+                              Pico: <span style={{ color: 'var(--red)', fontWeight: 700, fontFamily: DISP }}>{peak.h}h</span> ({fmtNum(peak.v)} msgs)
                             </div>
-                          ))}
+                          ) : null;
+                        })()}
+                      </Panel>
+                      <Panel title="Mensagens por conversa" hint="distribuição" delay={0.25}>
+                        <div style={css('display:flex; align-items:flex-end; gap:10px; height:130px')}>
+                          {msgDist.map((b, i) => {
+                            const opacity = barOpacity(b.h);
+                            return (
+                              <div key={i} style={css('flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:5px; min-width:0')}>
+                                <span style={css('font-family:' + DISP + '; font-size:10px; color:var(--fg-2)')}>{b.v}</span>
+                                <motion.div
+                                  initial={{ scaleY: 0 }}
+                                  animate={{ scaleY: 1 }}
+                                  transition={{ delay: 0.3 + i * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                                  style={{ width: '100%', maxWidth: 34, height: `${Math.max(3, b.h)}%`, borderRadius: '4px 4px 0 0', background: 'linear-gradient(180deg, var(--red), var(--wine))', opacity, transformOrigin: 'bottom' }}
+                                />
+                                <span style={css('font-family:' + DISP + '; font-size:9px; color:var(--fg-3)')}>{b.label}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </Panel>
                       <Panel title="Top usuários" hint="por mensagens" delay={0.3}>
-                        <div style={css('display:flex; flex-direction:column; gap:11px')}>
+                        <div style={css('display:flex; flex-direction:column; gap:10px')}>
                           {topUsers.length === 0 && !loading && <Empty />}
-                          {topUsers.slice(0, 6).map((u, i) => (
-                            <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 + i * 0.06 }} style={css('display:flex; align-items:center; gap:10px')}>
-                              <span style={css('font-size:12px; color:var(--fg-2); width:100px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{shortName(u.user_id)}</span>
-                              <span style={css('flex:1; min-width:0; height:8px; border-radius:6px; background:var(--sunk); overflow:hidden')}>
-                                <motion.span
-                                  initial={{ width: '0%' }}
-                                  animate={{ width: `${Math.round(num(u.message_count) / maxUser * 100)}%` }}
-                                  transition={{ delay: 0.4 + i * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                                  style={{ display: 'block', height: '100%', borderRadius: 6, background: 'linear-gradient(90deg, var(--red), var(--wine))' }}
-                                />
-                              </span>
-                              <span style={css('font-family:' + DISP + '; font-size:11.5px; width:40px; text-align:right; flex-shrink:0')}>{fmtNum(u.message_count)}</span>
-                            </motion.div>
-                          ))}
+                          {topUsers.slice(0, 6).map((u, i) => {
+                            const pct = Math.round(num(u.message_count) / maxUser * 100);
+                            return (
+                              <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 + i * 0.06 }} style={css('display:flex; align-items:center; gap:8px')}>
+                                <span style={{ width: 18, height: 18, borderRadius: 5, background: i < 3 ? 'var(--red)' : 'var(--sunk)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: i < 3 ? '#fff' : 'var(--fg-3)', fontFamily: DISP, flexShrink: 0 }}>{i + 1}</span>
+                                <span style={css('font-size:11.5px; color:var(--fg-2); width:85px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{shortName(u.user_id)}</span>
+                                <span style={css('flex:1; min-width:0; height:7px; border-radius:4px; background:var(--sunk); overflow:hidden')}>
+                                  <motion.span
+                                    initial={{ width: '0%' }}
+                                    animate={{ width: `${pct}%` }}
+                                    transition={{ delay: 0.4 + i * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                                    style={{ display: 'block', height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, var(--red), var(--wine))', opacity: 1 - i * 0.1 }}
+                                  />
+                                </span>
+                                <span style={css('font-family:' + DISP + '; font-size:11px; width:38px; text-align:right; flex-shrink:0; color:var(--fg-2)')}>{fmtNum(u.message_count)}</span>
+                              </motion.div>
+                            );
+                          })}
                         </div>
                       </Panel>
                     </div>

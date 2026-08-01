@@ -1,7 +1,7 @@
-/**
- * Pagina do Beyonder - Assistente Virtual Live2D com personalidade Marvel
+﻿/**
+ * Pagina dA Saori - Assistente Virtual Live2D com personalidade Marvel
  *
- * O Beyonder (inspirado no personagem da Secret Wars) e o guia cosmico
+ * A Saori (inspirado no personagem da Secret Wars) e o guia cosmico
  * do sistema Athena. Ele conhece TODAS as funcionalidades, botoes e fluxos
  * do frontend, entende roles de usuario (admin/user), e explica tudo
  * de forma que qualquer pessoa entenda.
@@ -16,14 +16,14 @@ import dynamic from 'next/dynamic';
 import { auth, api } from '@/lib/api';
 import SpeechBubble from '@/components/jack/SpeechBubble';
 import { LipSyncEngine } from '@/lib/lipsync';
-import { detectEmotion, getExpressionFile, emotionLabel, BeyonderEmotion } from '@/lib/jack-emotions';
+import { detectEmotion, getExpressionFile, emotionLabel, SaoriEmotion } from '@/lib/jack-emotions';
 import {
-  BEYONDER_SYSTEM_PROMPT,
+  SAORI_SYSTEM_PROMPT,
   generateFeatureContext,
   searchFeatures,
   ROLE_DESCRIPTIONS,
   featuresByArea,
-} from '@/lib/beyonder-knowledge';
+} from '@/lib/saori-knowledge';
 import type { Live2DCanvasHandle } from '@/components/jack/Live2DCanvas';
 
 // Dynamic import para evitar SSR (PixiJS precisa de window)
@@ -36,13 +36,13 @@ const Live2DCanvas = dynamic(() => import('@/components/jack/Live2DCanvas'), {
     }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>&#x2728;</div>
-        <span style={{ color: '#888', fontSize: 14 }}>O Beyonder esta chegando do Alem...</span>
+        <span style={{ color: '#888', fontSize: 14 }}>A Saori esta chegando do Alem...</span>
       </div>
     </div>
   ),
 });
 
-const BEYONDER_GREETING = 'Saudacoes, humano! Eu sou o Beyonder, vim do Alem para ser seu guia na Athena. Conhego cada botao, cada funcionalidade, cada atalho deste sistema. Pergunte o que quiser, desde "como exportar dados" ate "o que faz o botao verde". Nada esta alem do meu conhecimento... bem, quase nada.';
+const SAORI_GREETING = 'Saudacoes, humano! Eu sou A Saori, vim do Alem para ser seu guia na Athena. Conhego cada botao, cada funcionalidade, cada atalho deste sistema. Pergunte o que quiser, desde "como exportar dados" ate "o que faz o botao verde". Nada esta alem do meu conhecimento... bem, quase nada.';
 
 // Acoes rapidas organizadas por categoria
 const QUICK_CATEGORIES = [
@@ -82,7 +82,7 @@ const QUICK_CATEGORIES = [
   },
 ];
 
-export default function BeyonderPage() {
+export default function SaoriPage() {
   const router = useRouter();
   const [me, setMe] = useState<any>(null);
   const [checking, setChecking] = useState(true);
@@ -90,7 +90,7 @@ export default function BeyonderPage() {
   const [input, setInput] = useState('');
   const [bubbleText, setBubbleText] = useState('');
   const [bubbleVisible, setBubbleVisible] = useState(false);
-  const [currentEmotion, setCurrentEmotion] = useState<BeyonderEmotion>('smile');
+  const [currentEmotion, setCurrentEmotion] = useState<SaoriEmotion>('smile');
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -124,11 +124,11 @@ export default function BeyonderPage() {
   const handleModelReady = useCallback(() => {
     setModelReady(true);
     setTimeout(() => {
-      setBubbleText(BEYONDER_GREETING);
+      setBubbleText(SAORI_GREETING);
       setBubbleVisible(true);
       setCurrentEmotion('smile');
       canvasRef.current?.setExpression('smile');
-      speakText(BEYONDER_GREETING);
+      speakText(SAORI_GREETING);
     }, 800);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -143,13 +143,13 @@ export default function BeyonderPage() {
         await lipSyncRef.current?.startFromBase64(res.audio);
       }
     } catch (err) {
-      console.warn('[Beyonder] TTS falhou:', err);
+      console.warn('[Saori] TTS falhou:', err);
     }
     setIsSpeaking(false);
   };
 
   // Aplicar emocao ao modelo
-  const applyEmotion = (emotion: BeyonderEmotion) => {
+  const applyEmotion = (emotion: SaoriEmotion) => {
     setCurrentEmotion(emotion);
     canvasRef.current?.setExpression(getExpressionFile(emotion));
   };
@@ -222,7 +222,7 @@ export default function BeyonderPage() {
     const featureCtx = generateFeatureContext();
 
     const fullPrompt = [
-      BEYONDER_SYSTEM_PROMPT,
+      SAORI_SYSTEM_PROMPT,
       '',
       'CONTEXTO DO USUARIO ATUAL:',
       userContext,
@@ -236,7 +236,7 @@ export default function BeyonderPage() {
     try {
       const r = await api.chat({
         message: fullPrompt,
-        conversation_id: `beyonder_${me?.email || 'anon'}`,
+        conversation_id: `saori_${me?.email || 'anon'}`,
       });
       const response = r.output || 'Hmm, ate meus poderes cosmicos falharam nessa. Tenta reformular?';
 
@@ -309,7 +309,7 @@ export default function BeyonderPage() {
             Voltar ao Chat
           </button>
           <span style={{ color: 'rgba(255,255,255,0.12)' }}>|</span>
-          <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Beyonder</h1>
+          <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Saori</h1>
           <span style={{ fontSize: 10, color: '#555', fontStyle: 'italic' }}>from Beyond</span>
           {modelReady && (
             <span style={{
@@ -337,7 +337,7 @@ export default function BeyonderPage() {
 
       {/* Main content */}
       <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '20px' }}>
-        {/* Beyonder model + bubble */}
+        {/* Saori model + bubble */}
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <SpeechBubble text={bubbleText} visible={bubbleVisible} position="right" />
           <Live2DCanvas
@@ -423,7 +423,7 @@ export default function BeyonderPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
-          placeholder={sending ? 'Beyonder esta consultando o Alem...' : 'Pergunte algo ao Beyonder...'}
+          placeholder={sending ? 'Saori esta consultando o Alem...' : 'Pergunte algo aA Saori...'}
           disabled={sending}
           style={{
             flex: 1, padding: '12px 18px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)',
@@ -450,3 +450,4 @@ export default function BeyonderPage() {
     </div>
   );
 }
+

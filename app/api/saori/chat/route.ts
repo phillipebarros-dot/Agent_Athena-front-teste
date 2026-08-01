@@ -1,7 +1,7 @@
-/**
- * Rota API do Beyonder -- assistente de ajuda da plataforma Athena.
+﻿/**
+ * Rota API do Saori -- assistente de ajuda da plataforma Athena.
  *
- * O Beyonder responde perguntas sobre funcionalidades da plataforma.
+ * O Saori responde perguntas sobre funcionalidades da plataforma.
  * Envia a mensagem ao backend /chat com prefixo de contexto na propria
  * mensagem (o backend nao suporta system_prompt_override).
  */
@@ -11,18 +11,19 @@ import { COOKIE_NAME, verify } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
-const BEYONDER_CONTEXT = `[MODO BEYONDER - ASSISTENTE DE AJUDA]
-Voce esta respondendo como o Beyonder, assistente de ajuda da plataforma Athena.
+const SAORI_CONTEXT = `[ATHENA â€” ASSISTENTE DE SABEDORIA]
+Voce e Athena, deusa da sabedoria e guia da plataforma Athena.
 Responda APENAS sobre funcionalidades da plataforma. Seja breve (2-3 frases).
-NUNCA use emojis, emoticons ou caracteres especiais nas respostas. Fale de forma profissional e direta.
+Use tom sabio e acolhedor, com referencias sutis da Grecia Antiga quando natural.
+NUNCA use emojis, emoticons ou caracteres especiais. Fale de forma profissional e inspiradora.
 
 Funcionalidades da Athena:
 - Chat com IA: perguntas sobre clientes, campanhas, midia, investimentos
 - Selecao de cliente: dropdown no header pra filtrar por cliente
-- Chips de contexto: ciclo, plano, periodo, meio — filtros fixos editaveis
-- Upload: PDF, Excel, CSV, imagens — botao de clip no compositor
+- Chips de contexto: ciclo, plano, periodo, meio â€” filtros fixos editaveis
+- Upload: PDF, Excel, CSV, imagens â€” botao de clip no compositor
 - Microfone: ditar mensagens com Web Speech API
-- TTS: Athena le respostas em voz alta
+- TTS: Athena le respostas em voz ultra-realista (Gemini TTS)
 - Feedback: polegar cima/baixo + comentario opcional
 - Regenerar: refaz a resposta da IA
 - Copiar: copia resposta pra area de transferencia
@@ -32,10 +33,10 @@ Funcionalidades da Athena:
 - Historico: sidebar esquerda com busca por titulo
 - Notificacoes: badge de nova mensagem em outra conversa
 - Autocomplete: sugestoes de entidades ao digitar
-- Admin: dominios autorizados + sinonimos
+- Admin: dominios autorizados + sinonimos + metricas analiticas
 - Tema claro/escuro: toggle no header
 - Atalhos: Enter=enviar, Shift+Enter=nova linha, Ctrl+N=nova conversa
-- Beyonder: assistente Live2D de ajuda (voce!)
+- Assistente Athena: guia inteligente de ajuda (voce!)
 - FAQ: pagina /faq com central de ajuda completa
 
 PERGUNTA DO USUARIO: `;
@@ -69,6 +70,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // conversation_id rotativo a cada 30min â€” evita acumulo de contexto
+    // que pode travar o backend quando o historico fica muito grande
+    const timeSlot = Math.floor(Date.now() / (30 * 60 * 1000));
+    const safeEmail = session.email.replace(/[^a-zA-Z0-9]/g, '_');
+    const convId = `Saori_${safeEmail}_${timeSlot}`;
+
+    // Timeout de 30s â€” Saori deve responder rapido (respostas curtas)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+
     // Envia ao backend com contexto injetado na mensagem
     // (backend nao suporta system_prompt_override)
     const res = await fetch(`${backendUrl.replace(/\/$/, '')}/chat`, {
@@ -78,19 +89,21 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${backendToken}`,
       },
       body: JSON.stringify({
-        message: BEYONDER_CONTEXT + message,
+        message: SAORI_CONTEXT + message,
         user_id: session.email,
         user_email: session.email,
-        conversation_id: `beyonder_${session.email.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        conversation_id: convId,
         client: 'Todos',
         is_audio: false,
       }),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeout);
     const text = await res.text();
 
     if (!res.ok) {
-      console.error('[Beyonder] Backend error:', res.status, text.slice(0, 200));
+      console.error('[Saori] Backend error:', res.status, text.slice(0, 300));
       return NextResponse.json(
         { output: 'Hmm, nao consegui agora. Consulte a Central de Ajuda em /faq!' },
         { status: 200 }
@@ -106,11 +119,15 @@ export async function POST(req: NextRequest) {
       output: data.output || data.response || data.message || 'Consulte a Central de Ajuda em /faq.',
       audio: data.audio || null,
     });
-  } catch (err) {
-    console.error('[Beyonder] Fetch error:', err);
+  } catch (err: unknown) {
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    console.error('[Saori]', isTimeout ? 'Timeout (30s)' : 'Fetch error:', err);
     return NextResponse.json(
-      { output: 'Backend indisponivel. Consulte a Central de Ajuda em /faq!' },
+      { output: isTimeout
+          ? 'Demorou demais pra responder. Tente uma pergunta mais curta ou consulte a Central de Ajuda em /faq!'
+          : 'Backend indisponivel. Consulte a Central de Ajuda em /faq!' },
       { status: 200 }
     );
   }
 }
+

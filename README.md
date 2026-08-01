@@ -1,10 +1,10 @@
-# Athena Frontend - Interface de Inteligencia de Midia (v3.2.0)
+﻿# Athena Frontend - Interface de Inteligencia de Midia (v3.2.0)
 
 **Autor**: Phillipe Barros ([@phillipebarros-dot](https://github.com/phillipebarros-dot))  
 **Organizacao**: Opus Multipla / Grupo OM  
 **Versao**: 3.2.0 | **Licenca**: Proprietaria
 
-Frontend do assistente Athena. Interface de chat inteligente para consulta de dados de midia, planejamento e investimento publicitario. Aplicacao Next.js 14 com autenticacao Google OAuth 2.0, proxy server-side seguro e design system proprio. Inclui o assistente virtual Beyonder (Live2D) para guiar usuarios.
+Frontend do assistente Athena. Interface de chat inteligente para consulta de dados de midia, planejamento e investimento publicitario. Aplicacao Next.js 14 com autenticacao Google OAuth 2.0, proxy server-side seguro e design system proprio. Inclui o assistente virtual Saori (Logo PNG + emoji) para guiar usuarios.
 
 ---
 
@@ -13,7 +13,7 @@ Frontend do assistente Athena. Interface de chat inteligente para consulta de da
 - [Tecnologias](#tecnologias)
 - [Arquitetura](#arquitetura)
 - [Funcionalidades](#funcionalidades)
-- [Beyonder - Assistente Virtual](#jack---assistente-virtual)
+- [Saori - Assistente Virtual](#jack---assistente-virtual)
 - [Componentes](#componentes)
 - [Atalhos de Teclado](#atalhos-de-teclado)
 - [Configuracao](#configuracao)
@@ -37,7 +37,7 @@ Frontend do assistente Athena. Interface de chat inteligente para consulta de da
 | Fontes | Google Fonts | Inter + DM Sans | Tipografia premium |
 | Markdown | Renderizacao propria | - | Parser GFM com tabelas |
 | Graficos | SVG custom | inline | Visualizacao premium (bar, horizontal, pie, line) |
-| Live2D | pixi-live2d-display | + PixiJS v7 | Assistente Beyonder (VTuber, sem audio/emoji) |
+| Logo PNG + emoji | pixi-Logo PNG + emoji-display | + PixiJS v7 | Assistente Saori (VTuber, sem audio/emoji) |
 | Lip Sync | Web Audio API | AnalyserNode | Sincronizacao boca/audio |
 | Voz TTS | Gemini 2.5 Flash TTS | voz Charon | Ultra-realista, masculina grave, emocoes naturais |
 | TTS Fallback | Google Cloud Neural2 + OpenAI | pt-BR-Neural2-B / onyx | Fallback em cadeia 3 provedores |
@@ -111,7 +111,7 @@ Next.js 14 (Cloud Run)
 - TTS automatico: Respostas lidas em voz alta com Gemini 2.5 Flash TTS (voz Charon, masculina grave)
 - Toggle TTS: Botao de volume no compositor para ativar/desativar voz
 - Parar audio: Botao pulsante para interromper reproducao
-- Fallback 3 niveis: Gemini TTS → Google Cloud Neural2 → OpenAI TTS
+- Fallback 3 niveis: Gemini TTS â†’ Google Cloud Neural2 â†’ OpenAI TTS
 - Ditado: Botao de microfone no compositor (Web Speech API, Chrome)
 
 ### Upload de Documentos
@@ -135,22 +135,22 @@ Next.js 14 (Cloud Run)
 
 ---
 
-## Beyonder - Assistente Virtual
+## Saori - Assistente Virtual
 
-O Beyonder e um personagem Live2D integrado ao frontend que funciona como assistente de onboarding e ajuda contextual. Ele guia os usuarios pelas funcionalidades do sistema, explica botoes, ajuda a tomar decisoes e responde duvidas sobre o uso da Athena.
+O Saori e um personagem Logo PNG + emoji integrado ao frontend que funciona como assistente de onboarding e ajuda contextual. Ele guia os usuarios pelas funcionalidades do sistema, explica botoes, ajuda a tomar decisoes e responde duvidas sobre o uso da Athena.
 
 ### Caracteristicas
-- Modelo Live2D Cubism renderizado via PixiJS no navegador
+- Modelo Logo PNG + emoji Cubism renderizado via PixiJS no navegador
 - 7 expressoes emocionais: feliz, bravo, preocupado, envergonhado, fofo, surpreso, confuso
 - Lip sync em tempo real: Web Audio API analisa volume do audio TTS e sincroniza com a boca
-- Respostas texto-only: Sem audio TTS no Beyonder (economia de quota)
+- Respostas texto-only: Sem audio TTS no Saori (economia de quota)
 - Sem emojis: Prompt proibe emojis para respostas profissionais
 - Baloes de fala: Efeito typewriter com animacao de entrada/saida
 - Deteccao de emocao: Analisa o contexto da resposta e muda expressao automaticamente
 - Animacoes idle: Respiracao, piscar, fisica de gravata e cadarco
 - Redireciona para /faq: Orienta usuarios a Central de Ajuda completa
 
-### Quando o Beyonder aparece
+### Quando o Saori aparece
 - Primeira vez que o usuario acessa o sistema
 - Quando o usuario precisa de ajuda com funcionalidades
 
@@ -177,8 +177,8 @@ O Beyonder e um personagem Live2D integrado ao frontend que funciona como assist
 | AnimatedComposer | components/AnimatedComposer.tsx | Composer da WelcomeScreen com sugestoes grid 2col |
 | WelcomeScreen | components/chat/WelcomeScreen.tsx | Tela inicial com chips de sugestao |
 | AnswerChart | components/chat/AnswerChart.tsx | Graficos SVG premium (bar/horizontal/pie/line) |
-| BeyonderFloating | components/BeyonderFloating.tsx | Assistente Live2D flutuante |
-| Live2DCanvas | components/jack/Live2DCanvas.tsx | Renderizador Live2D (PixiJS) |
+| SaoriFloating | components/SaoriFloating.tsx | Assistente Logo PNG + emoji flutuante |
+| Logo PNG + emojiCanvas | components/jack/Logo PNG + emojiCanvas.tsx | Renderizador Logo PNG + emoji (PixiJS) |
 | IC | lib/dc.tsx | Icone SVG inline + design components |
 
 ---
@@ -251,7 +251,7 @@ Agent_Athena-front-teste/
       athena/[...path]/       # Proxy seguro para backend
   components/
     chat/                     # Sidebar, MessageBubble, Composer, etc.
-    jack/                     # Live2DCanvas, SpeechBubble
+    jack/                     # Logo PNG + emojiCanvas, SpeechBubble
     ui/                       # IC (icone SVG inline)
   lib/
     api.ts                    # Cliente HTTP (call, endpoints)
@@ -264,7 +264,7 @@ Agent_Athena-front-teste/
     useTheme.ts               # Hook de tema (light/dark)
   middleware.ts               # CSP com nonce por request
   public/
-    jack/                     # Modelo Live2D (moc3, texturas, expressoes)
+    jack/                     # Modelo Logo PNG + emoji (moc3, texturas, expressoes)
   next.config.mjs             # Config Next.js + security headers
   Dockerfile                  # Container standalone para Cloud Run
   package.json                # Dependencias
@@ -316,8 +316,9 @@ R: Clique no icone de microfone no compositor. Disponivel apenas em Chrome.
 P: Posso renomear conversas?
 R: Sim. Passe o mouse sobre a conversa na sidebar e clique no icone de lapis.
 
-P: O que e o Beyonder?
-R: O Beyonder e o assistente virtual Live2D que guia voce pelas funcionalidades do sistema. Ele aparece no canto inferior direito do chat e pode direcionar para a Central de Ajuda (/faq).
+P: O que e o Saori?
+R: O Saori e o assistente virtual Logo PNG + emoji que guia voce pelas funcionalidades do sistema. Ele aparece no canto inferior direito do chat e pode direcionar para a Central de Ajuda (/faq).
 
 P: Onde fica a Central de Ajuda?
-R: Acesse /faq no navegador ou clique em "Ver Central de Ajuda completa" no Beyonder. La tem 9 categorias com todas as funcionalidades documentadas.
+R: Acesse /faq no navegador ou clique em "Ver Central de Ajuda completa" no Saori. La tem 9 categorias com todas as funcionalidades documentadas.
+

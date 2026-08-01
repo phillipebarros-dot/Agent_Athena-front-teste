@@ -219,9 +219,21 @@ function AssistantBubble({ message, me, onSendFeedback, onRegenerate, chartOpen,
                   if (result && (result as any).url) {
                     window.open((result as any).url, '_blank');
                   } else if (result && (result as any).message) {
-                    alert((result as any).message);
+                    const rmsg = (result as any).message || '';
+                    if (rmsg.includes('quota') || rmsg.includes('storage') || rmsg.includes('403')) {
+                      alert('⚠️ Armazenamento do Google Drive cheio!\n\nLibere espaço no Drive ou exporte como XLSX/CSV (que faz download direto, sem precisar de Drive).');
+                    } else {
+                      alert(rmsg);
+                    }
                   }
-                } catch { /* silencioso */ }
+                } catch (err: any) {
+                  const msg = err?.message || String(err) || '';
+                  if (msg.includes('quota') || msg.includes('storage') || msg.includes('403')) {
+                    alert('⚠️ Armazenamento do Google Drive cheio!\n\nLibere espaço no Drive ou exporte como XLSX/CSV (que faz download direto, sem precisar de Drive).');
+                  } else {
+                    alert('Erro ao criar planilha: ' + (msg.slice(0, 120) || 'verifique sua conexão.'));
+                  }
+                }
               }}
               style={css('display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-surface); font-size:11.5px; color:var(--muted-light); cursor:pointer; transition:all 0.2s;')}
               onMouseEnter={(e) => { e.currentTarget.style.background = '#0F9D58'; e.currentTarget.style.color = '#fff'; }}

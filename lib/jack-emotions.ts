@@ -1,9 +1,9 @@
-/**
- * Sistema de Emocoes do Beyonder - Mapeia texto/contexto para expressoes Live2D.
+﻿/**
+ * Sistema de Emocoes do Saori - Mapeia texto/contexto para expressoes Live2D.
  *
  * Usa analise de palavras-chave com pesos para determinar a emocao
  * mais adequada para cada resposta. O sistema e extensivel via
- * adição de novas regras.
+ * adiÃ§Ã£o de novas regras.
  *
  * Expressoes disponiveis no modelo:
  *   smile    - feliz, saudacao, dado positivo
@@ -18,10 +18,10 @@
  *   Texto da resposta -> analisa keywords com peso -> emocao dominante -> nome da expressao
  */
 
-export type BeyonderEmotion = 'smile' | 'angy' | 'worried' | 'blush' | 'aww' | 'oh' | 'ehh';
+export type SaoriEmotion = 'smile' | 'angy' | 'worried' | 'blush' | 'aww' | 'oh' | 'ehh';
 
 interface EmotionRule {
-  emotion: BeyonderEmotion;
+  emotion: SaoriEmotion;
   keywords: string[];
   weight: number;
 }
@@ -124,7 +124,7 @@ const EMOTION_RULES: EmotionRule[] = [
  * 4. Retorna a emocao com maior score
  * 5. Default: 'smile' se nenhuma keyword bater
  */
-export function detectEmotion(text: string): BeyonderEmotion {
+export function detectEmotion(text: string): SaoriEmotion {
   if (!text || text.trim().length === 0) return 'smile';
 
   const normalized = text
@@ -132,7 +132,7 @@ export function detectEmotion(text: string): BeyonderEmotion {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, ''); // remove acentos
 
-  let bestEmotion: BeyonderEmotion = 'smile';
+  let bestEmotion: SaoriEmotion = 'smile';
   let bestScore = 0;
 
   for (const rule of EMOTION_RULES) {
@@ -158,8 +158,8 @@ export function detectEmotion(text: string): BeyonderEmotion {
 /**
  * Retorna o nome do arquivo de expressao para uma emocao.
  */
-export function getExpressionFile(emotion: BeyonderEmotion): string {
-  const map: Record<BeyonderEmotion, string> = {
+export function getExpressionFile(emotion: SaoriEmotion): string {
+  const map: Record<SaoriEmotion, string> = {
     smile: 'smile',
     angy: 'angy',
     worried: 'worried',
@@ -174,8 +174,8 @@ export function getExpressionFile(emotion: BeyonderEmotion): string {
 /**
  * Retorna um texto descritivo da emocao (para debug/logs).
  */
-export function emotionLabel(emotion: BeyonderEmotion): string {
-  const labels: Record<BeyonderEmotion, string> = {
+export function emotionLabel(emotion: SaoriEmotion): string {
+  const labels: Record<SaoriEmotion, string> = {
     smile: 'Feliz',
     angy: 'Bravo',
     worried: 'Preocupado',
@@ -188,9 +188,9 @@ export function emotionLabel(emotion: BeyonderEmotion): string {
 }
 
 /**
- * Palavras de contexto de ajuda - o Beyonder usa quando esta guiando o usuario.
+ * Palavras de contexto de ajuda - o Saori usa quando esta guiando o usuario.
  */
-export const BEYONDER_HELP_PHRASES: Record<string, string> = {
+export const SAORI_HELP_PHRASES: Record<string, string> = {
   export: 'Para exportar, clique nos botoes CSV, XLSX, PDF ou Sheets abaixo de qualquer tabela que eu mostrar.',
   voice: 'Clique no icone de microfone para falar comigo. Funciona melhor no Chrome.',
   newchat: 'Use Ctrl+N ou o botao Nova Conversa na sidebar para iniciar um tema novo.',
@@ -202,3 +202,4 @@ export const BEYONDER_HELP_PHRASES: Record<string, string> = {
   admin: 'A area de administracao esta em /admin. Apenas administradores podem acessar.',
   sheets: 'O botao verde Sheets cria uma planilha direto no seu Google Drive com os dados formatados.',
 };
+

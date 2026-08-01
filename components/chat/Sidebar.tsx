@@ -601,7 +601,7 @@ export function Sidebar({
           </div>
         </>
       )}
-      {/* Beyonder agora e icone flutuante no chat, sem link na sidebar */}
+      {/* Saori agora e icone flutuante no chat, sem link na sidebar */}
 
       {/* OpusMultipla */}
       <div style={{ padding: '6px 18px 4px', textAlign: 'center' }}>

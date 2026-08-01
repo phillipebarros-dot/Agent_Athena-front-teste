@@ -1,96 +1,110 @@
 'use client';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-
-const BeyonderLive2D = dynamic(
-  () => import('./BeyonderLive2D').then(m => ({ default: m.BeyonderLive2D })),
-  { ssr: false }
-);
 
 /**
- * Detecta emocao com base no conteudo do texto.
- * Retorna uma das 7 expressoes reais do modelo:
- * smile, angy, worried, blush, aww, oh, ehh
+ * Detecta emoção com base no conteúdo do texto.
+ * Retorna uma das emoções mapeadas para emoji.
  */
 function detectEmotion(text: string): string {
   const t = text.toLowerCase();
 
-  // Surpresa / novidade
   if (/\b(uau|nossa|caramba|incrivel|impressionante|wow|puxa|eita|oxi)\b/.test(t) ||
       /[!]{2,}/.test(t)) return 'surprised';
 
-  // Raiva / frustracaoa
   if (/\b(erro|falha|problema|bug|nao consigo|impossivel|droga|porcaria)\b/.test(t) ||
       /\b(infelizmente nao|nao foi possivel|nao e possivel)\b/.test(t)) return 'angry';
 
-  // Preocupacao / duvida
   if (/\b(cuidado|atencao|importante|aviso|alerta|risco|perigoso)\b/.test(t) ||
       /\b(verifique|confirme|certifique)\b/.test(t)) return 'confused';
 
-  // Vergonha / modestia
   if (/\b(desculp|perdao|sinto muito|me perdoe|obrigad)\b/.test(t)) return 'shy';
 
-  // Fofura / empatia
   if (/\b(ajud|aqui pra voce|conte comigo|prazer|bem-vind|fique tranquil)\b/.test(t) ||
       /\b(nao se preocupe|sem problemas|tudo bem)\b/.test(t)) return 'explaining';
 
-  // Confusao / pensamento
   if (/\b(hmm|acho que|talvez|depende|nao tenho certeza|pode ser)\b/.test(t) ||
       /\?{2,}/.test(t)) return 'thinking';
 
-  // Feliz / positivo (default pra respostas normais)
-  if (/\b(sim|claro|com certeza|exato|isso|perfeito|pronto|funciona|sucesso)\b/.test(t) ||
-      /[😊🎉✅👍]/.test(t)) return 'happy';
+  if (/\b(sim|claro|com certeza|exato|isso|perfeito|pronto|funciona|sucesso)\b/.test(t)) return 'happy';
 
-  // Saudacao
   if (/\b(ola|oi|bom dia|boa tarde|boa noite|fala|eai)\b/.test(t)) return 'greeting';
 
   return 'happy';
 }
 
-interface BeyonderMsg {
-  role: 'user' | 'beyonder';
+/** Mapeamento emoção → emoji */
+const EMOTION_EMOJI: Record<string, string> = {
+  happy: '😊',
+  greeting: '👋',
+  thinking: '🤔',
+  explaining: '💡',
+  surprised: '😲',
+  confused: '🧐',
+  angry: '😤',
+  shy: '😅',
+  neutral: '✦',
+};
+
+interface SaoriMsg {
+  role: 'user' | 'saori';
   text: string;
 }
 
 /**
- * BeyonderFloating - Beyonder Live2D inteiro no canto inferior direito.
+ * SaoriFloating — Logo Athena com emoji + efeitos 3D no canto inferior direito.
  *
- * - Modelo completo, sem circulo, sem corte
- * - Clica: baloes de fala + input + link pra FAQ
- * - Pode direcionar pra pagina /faq com todos os topicos
+ * - Logo Athena PNG com emoji de emoção flutuante
+ * - Efeitos 3D via CSS (perspective, rotação, floating, sombra dinâmica)
+ * - Clica: balões de fala + input + link pra FAQ
  */
-export function BeyonderFloating() {
+export function SaoriFloating() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
-  const [messages, setMessages] = useState<BeyonderMsg[]>([]);
+  const [messages, setMessages] = useState<SaoriMsg[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState('neutral');
+  const [isHovered, setIsHovered] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  // Mensagem de boas-vindas (sem acentos pra evitar encoding)
+  // Mensagem de boas-vindas
   useEffect(() => {
     if (expanded && messages.length === 0) {
       setMessages([{
-        role: 'beyonder',
-        text: 'Opa! Sou o Beyonder. Posso tirar suas duvidas sobre a Athena ou te levar pra Central de Ajuda!',
+        role: 'saori',
+        text: 'Saudacoes! Sou Saori, sua guia da plataforma. Pela sabedoria do Olimpo, posso tirar suas duvidas ou te levar a Central de Ajuda!',
       }]);
       setCurrentEmotion('greeting');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded]);
 
-  // Cancela audio ao fechar o painel ou desmontar
+  // 3D tilt no hover (parallax via mouse position)
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!logoRef.current) return;
+    const rect = logoRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
+    const y = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2);
+    setMousePos({ x: x * 12, y: y * -12 });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    setMousePos({ x: 0, y: 0 });
+  }, []);
+
+  // Cancela audio ao fechar ou desmontar
   const stopAudio = useCallback(() => {
     try {
       if (sourceNodeRef.current) {
@@ -103,16 +117,13 @@ export function BeyonderFloating() {
     analyserRef.current = null;
   }, []);
 
-  // Cleanup no unmount
   useEffect(() => {
     return () => { stopAudio(); };
   }, [stopAudio]);
 
   const playAudioWithLipSync = useCallback(async (base64Audio: string) => {
     try {
-      // Cancela audio anterior se existir
       stopAudio();
-
       if (!audioContextRef.current) audioContextRef.current = new AudioContext();
       const ctx = audioContextRef.current;
       if (ctx.state === 'suspended') await ctx.resume();
@@ -152,7 +163,7 @@ export function BeyonderFloating() {
     setCurrentEmotion('thinking');
 
     try {
-      const res = await fetch('/api/beyonder/chat', {
+      const res = await fetch('/api/saori/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -161,11 +172,11 @@ export function BeyonderFloating() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const responseText = data.output || 'Hmm, nao consegui processar.';
-      setMessages(prev => [...prev, { role: 'beyonder', text: responseText }]);
+      setMessages(prev => [...prev, { role: 'saori', text: responseText }]);
       setCurrentEmotion(detectEmotion(responseText));
       if (data.audio) await playAudioWithLipSync(data.audio);
     } catch {
-      setMessages(prev => [...prev, { role: 'beyonder', text: 'Ops, tive um problema. Tenta de novo?' }]);
+      setMessages(prev => [...prev, { role: 'saori', text: 'Hmm, a coruja de Athena nao ouviu direito. Tenta novamente?' }]);
       setCurrentEmotion('angry');
     } finally { setThinking(false); }
   }, [input, thinking, playAudioWithLipSync]);
@@ -173,6 +184,8 @@ export function BeyonderFloating() {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }, [sendMessage]);
+
+  const emoji = EMOTION_EMOJI[currentEmotion] || EMOTION_EMOJI.neutral;
 
   return (
     <div style={{
@@ -194,7 +207,7 @@ export function BeyonderFloating() {
           boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
-          animation: 'beyonderPanelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          animation: 'saoriPanelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         }}>
 
           {/* Header */}
@@ -213,10 +226,10 @@ export function BeyonderFloating() {
               <span style={{
                 color: '#e0e0e0', fontSize: 13, fontWeight: 600,
                 letterSpacing: '0.3px',
-              }}>Beyonder</span>
+              }}>Saori</span>
               <span style={{
                 color: '#666', fontSize: 11, fontWeight: 400,
-              }}>Assistente</span>
+              }}>Guia da Sabedoria</span>
             </div>
             <button
               onClick={() => { stopAudio(); setExpanded(false); }}
@@ -254,9 +267,9 @@ export function BeyonderFloating() {
                   : 'rgba(255, 255, 255, 0.04)',
                 color: msg.role === 'user' ? '#fff' : '#d0d0d0',
                 fontSize: 13, lineHeight: 1.55,
-                border: msg.role === 'beyonder'
+                border: msg.role === 'saori'
                   ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                animation: 'beyonderMsgIn 0.25s ease',
+                animation: 'saoriMsgIn 0.25s ease',
               }}>
                 {msg.text}
               </div>
@@ -293,7 +306,7 @@ export function BeyonderFloating() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Pergunte ao Beyonder..."
+                placeholder="Pergunte a Saori..."
                 disabled={thinking}
                 style={{
                   flex: 1, background: 'rgba(255,255,255,0.05)',
@@ -357,27 +370,87 @@ export function BeyonderFloating() {
         </div>
       )}
 
-      {/* ---- MODELO LIVE2D (inteiro, sem circulo) ---- */}
-      <div style={{ position: 'relative' }}>
-        <div
-          onClick={() => { if (expanded) stopAudio(); setExpanded(!expanded); }}
-          style={{ cursor: 'pointer' }}
-        >
-          <BeyonderLive2D
-            emotion={currentEmotion}
-            speaking={isSpeaking}
-            analyserNode={analyserRef.current}
+      {/* ---- LOGO ATHENA COM EMOJI + 3D ---- */}
+      <div
+        ref={logoRef}
+        onClick={() => { if (expanded) stopAudio(); setExpanded(!expanded); }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          position: 'relative',
+          cursor: 'pointer',
+          perspective: '600px',
+          marginBottom: 12,
+        }}
+      >
+        {/* Emoji flutuante */}
+        <div style={{
+          position: 'absolute',
+          top: -8, right: -4,
+          fontSize: 20,
+          zIndex: 2,
+          animation: 'emojiFloat 2s ease-in-out infinite',
+          transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transform: isSpeaking ? 'scale(1.3)' : 'scale(1)',
+          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+        }}>
+          {emoji}
+        </div>
+
+        {/* Container 3D da logo */}
+        <div style={{
+          width: 72, height: 72,
+          borderRadius: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(12, 12, 20, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: `1.5px solid ${expanded ? 'rgba(221,0,4,0.3)' : 'rgba(255,255,255,0.08)'}`,
+          boxShadow: isHovered
+            ? `0 12px 40px rgba(221,0,4,0.25), 0 4px 16px rgba(0,0,0,0.4), ${mousePos.x * 0.5}px ${mousePos.y * -0.5}px 20px rgba(221,0,4,0.1)`
+            : '0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04) inset',
+          transition: 'border-color 0.3s, box-shadow 0.3s',
+          transformStyle: 'preserve-3d' as const,
+          transform: isHovered
+            ? `rotateY(${mousePos.x}deg) rotateX(${mousePos.y}deg) scale(1.08)`
+            : 'rotateY(0) rotateX(0) scale(1)',
+          animation: isSpeaking
+            ? 'logoPulse 1s ease-in-out infinite'
+            : 'logoFloat 3s ease-in-out infinite',
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/athena-logo.png"
+            alt="Saori"
+            style={{
+              width: 44, height: 44,
+              objectFit: 'contain',
+              filter: `drop-shadow(0 2px 8px rgba(221,0,4,${isHovered ? '0.4' : '0.15'}))`,
+              transition: 'filter 0.3s',
+              transform: 'translateZ(8px)',
+            }}
           />
         </div>
 
+        {/* Indicador de speaking (ring pulsante) */}
+        {isSpeaking && (
+          <div style={{
+            position: 'absolute', inset: -6,
+            borderRadius: 24,
+            border: '2px solid rgba(221,0,4,0.3)',
+            animation: 'speakRing 1.5s ease-out infinite',
+            pointerEvents: 'none',
+          }} />
+        )}
       </div>
 
       <style>{`
-        @keyframes beyonderPanelIn {
+        @keyframes saoriPanelIn {
           from { opacity: 0; transform: translateY(12px) scale(0.96); }
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        @keyframes beyonderMsgIn {
+        @keyframes saoriMsgIn {
           from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
         }
@@ -385,10 +458,25 @@ export function BeyonderFloating() {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
           40% { opacity: 1; transform: scale(1.1); }
         }
+        @keyframes logoFloat {
+          0%, 100% { transform: translateY(0) rotateY(0) rotateX(0) scale(1); }
+          50% { transform: translateY(-4px) rotateY(0) rotateX(0) scale(1); }
+        }
+        @keyframes logoPulse {
+          0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(221,0,4,0.15); }
+          50% { transform: scale(1.06); box-shadow: 0 6px 28px rgba(221,0,4,0.35); }
+        }
+        @keyframes emojiFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        @keyframes speakRing {
+          0% { transform: scale(1); opacity: 0.6; }
+          100% { transform: scale(1.3); opacity: 0; }
+        }
       `}</style>
     </div>
   );
 }
 
-export default BeyonderFloating;
-
+export default SaoriFloating;

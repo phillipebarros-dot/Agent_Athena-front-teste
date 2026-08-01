@@ -27,7 +27,6 @@ export const metadata: Metadata = {
   description: 'Assistente de mídia da OpusMúltipla',
 };
 
-import Script from 'next/script';
 import { cookies } from 'next/headers';
 import { ThemeProvider } from '@/lib/theme';
 
@@ -38,10 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="pt-BR" className={`${inter.variable} ${oswald.variable} ${jetbrainsMono.variable} ${theme}`}>
-      <head>
-        {/* Live2D Cubism Core SDK - servido localmente para evitar CSP issues */}
-        <Script src="/beyonder/live2dcubismcore.min.js" strategy="beforeInteractive" />
-      </head>
+      <head />
       <body>
         <ThemeProvider defaultLight={isLight}>
           {children}

@@ -45,16 +45,39 @@ export function parseTable(md: string): ParsedTable | null {
       }
       if (valueCol < 0) return null;
 
-      // Detectar coluna de label inteligente:
-      // Se col 0 é numérica/índice (ex: "1", "2", "3"), usar col 1 como label
+      // ── Detectar coluna de label inteligente ──
+      // Estratégia multi-nível:
+      // 1) Header semântico ("veículo", "nome", "canal", etc.)
+      // 2) Primeira col com strings não-numéricas (excluindo a col de valor)
+      // 3) Se col 0 é índice numérico puro, pular para col 1
       let labelCol = 0;
-      if (headers.length >= 3) {
-        const col0AllNumeric = rows.every(r => {
-          const v = r[0]?.trim();
-          return /^\d+$/.test(v); // apenas dígitos puros = índice
-        });
-        if (col0AllNumeric && valueCol !== 1) {
-          labelCol = 1; // pular coluna de índice
+
+      // Nível 1: buscar header com nome descritivo
+      const LABEL_HEADERS = /^(ve[ií]culo|nome|canal|programa|emissor[a]?|meio|pra[çc]a|cidade|estado|uf|regi[aã]o|marca|produto|categoria|descri[çc][aã]o|tipo|segmento|fonte|plataforma|rede|item|label|name|title)/i;
+      for (let c = 0; c < headers.length; c++) {
+        if (c !== valueCol && LABEL_HEADERS.test(stripMd(headers[c]).trim())) {
+          labelCol = c;
+          break;
+        }
+      }
+
+      // Nível 2: se labelCol ainda é 0 e col 0 é toda numérica, procurar melhor
+      if (labelCol === 0 && headers.length >= 3) {
+        const col0AllNumeric = rows.every(r => /^\d+$/.test((r[0] || '').trim()));
+        if (col0AllNumeric) {
+          // Procurar primeira col com strings textuais (não numéricas)
+          for (let c = 1; c < headers.length; c++) {
+            if (c === valueCol) continue;
+            const hasText = rows.some(r => {
+              const v = (r[c] || '').trim();
+              return v.length > 0 && !/^[\d.,R$%\s-]+$/.test(v);
+            });
+            if (hasText) { labelCol = c; break; }
+          }
+          // Fallback: se nenhuma col tem texto puro, usar col 1 se não é a de valor
+          if (labelCol === 0 && valueCol !== 1) {
+            labelCol = 1;
+          }
         }
       }
 
@@ -98,12 +121,12 @@ function isTemporal(labels: string[]): boolean {
 }
 
 /** Detecta automaticamente o melhor tipo de gráfico. */
-function detectChartType(rows: string[][], valueCol: number): ChartType {
+function detectChartType(rows: string[][], labelCol: number, valueCol: number): ChartType {
   const vals = rows.map((r) => toNum(r[valueCol])).filter((v) => !Number.isNaN(v));
   const allPositive = vals.every((v) => v >= 0);
   const isPercentage = rows.some((r) => r[valueCol].includes('%'));
   const totalApprox100 = allPositive && Math.abs(vals.reduce((a, b) => a + b, 0) - 100) < 5;
-  const labels = rows.map(r => r[0]);
+  const labels = rows.map(r => stripMd(r[labelCol]));
 
   // Se labels são temporais (meses, anos, datas) → linha
   if (isTemporal(labels) && rows.length >= 3) return 'line';
@@ -112,7 +135,7 @@ function detectChartType(rows: string[][], valueCol: number): ChartType {
   // Se tem poucos itens e valores positivos, pizza
   if (allPositive && rows.length <= 5 && rows.length >= 2) return 'pie';
   // Se labels são longos, horizontal
-  if (rows.some((r) => r[0].length > 20) || rows.length > 8) return 'horizontal';
+  if (labels.some((l) => l.length > 20) || rows.length > 8) return 'horizontal';
   return 'bar';
 }
 
@@ -161,11 +184,7 @@ function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; va
       {bars.map((b, i) => {
         const pct = max > 0 ? Math.max(2, Math.round((Math.abs(b.val) / max) * 100)) : 2;
         const isSmall = pct < 25;
-        // Gradient suave vermelho Athena → tons mais claros por posição
-        const hue = 4; // vermelho
-        const sat = 75 - (i * 2);
-        const light = 48 + (i * 1.5);
-        const barColor = `hsl(${hue}, ${Math.max(sat, 55)}%, ${Math.min(light, 62)}%)`;
+        const barColor = CHART_COLORS[i % CHART_COLORS.length];
 
         return (
           <div key={i} style={{
@@ -209,7 +228,7 @@ function HorizontalChart({ bars, max }: { bars: { label: string; raw: string; va
                   alignItems: 'center',
                   justifyContent: 'flex-end',
                   paddingRight: isSmall ? 0 : 10,
-                  boxShadow: `0 2px 8px ${barColor}30`,
+                  boxShadow: `0 2px 8px ${barColor}40`,
                 }}
               >
                 {/* Value inside bar (only when bar is wide enough) */}
@@ -368,7 +387,7 @@ export function AnswerChart({ table, on, onToggle }: AnswerChartProps) {
     val: Number.isNaN(vals[i]) ? 0 : vals[i],
   }));
 
-  const chartType = detectChartType(rows, valueCol);
+  const chartType = detectChartType(rows, labelCol, valueCol);
   const chartLabel = chartType === 'line' ? 'linha' : chartType === 'pie' ? 'pizza' : 'barras';
 
   return (

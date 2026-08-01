@@ -11,7 +11,7 @@ import { WelcomeScreen } from '@/components/chat/WelcomeScreen';
 import { SidebarSkeleton, HistorySkeleton } from '@/components/chat/SkeletonLoaders';
 import { useKeyboardShortcuts } from '@/lib/shortcuts';
 import { ContextBar } from '@/components/chat/ContextBar';
-import { BeyonderFloating } from '@/components/BeyonderFloating';
+import { SaoriFloating } from '@/components/SaoriFloating';
 import type { ChatMessage, Conversation, AuthUser } from '@/lib/types';
 
 const SUGGESTIONS = [
@@ -549,8 +549,8 @@ export default function ChatPage() {
         </div>
       </main>
 
-      {/* Beyonder Live2D - icone flutuante */}
-      <BeyonderFloating />
+      {/* Saori — assistente flutuante */}
+      <SaoriFloating />
 
       {/* FIX B1: Toast notification */}
       {toast && (
