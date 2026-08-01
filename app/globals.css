@@ -1,6 +1,5 @@
-/* Tokens da marca OpusMúltipla (extraídos do site oficial):
-   vermelho #dd0004, grafite #2c2a29, vinho #791f23, Raleway + Oswald.
-   Os nomes --* são mantidos para o chat/login não quebrarem; só os valores mudam. */
+/* Tokens da marca OpusMúltipla — tema azul premium.
+   Os nomes --red/--wine são legados; os valores agora são azuis. */
 :root {
   /* superfícies (grafite quente sobre quase-preto) */
   --page:#0d0c0c; --bg-deep:#0d0c0c; --bg-surface:#141312; --bg-panel:#1a1918;
@@ -8,15 +7,15 @@
   /* linhas */
   --border:#2c2a29; --border-subtle:#332f2e; --border-faint:rgba(255,255,255,.06);
   --line:rgba(255,255,255,.08); --dash:rgba(255,255,255,.14);
-  /* marca */
-  --red:#dd0004; --red-dim:#b2232a; --red-glow:rgba(221,0,4,.16); --brand:#dd0004;
-  --brand-dim:#b2232a; --brand-hot:#ff2b2f; --red-dot:#dd0004; --wine:#791f23;
+  /* marca (azul premium — nomes legados mantidos) */
+  --red:#4A90D9; --red-dim:#3670B0; --red-glow:rgba(74,144,217,.16); --brand:#4A90D9;
+  --brand-dim:#3670B0; --brand-hot:#5BA3ED; --red-dot:#4A90D9; --wine:#2B5F94;
   /* texto */
   --white:#f4f2f0; --fg:#ffffff; --muted:#7a7472; --muted-light:#a29b98; --muted-dim:#615b59;
   --fg-2:#948d8a; --fg-3:#615b59;
   /* sinal */
   --green:#3fb950; --green-2:#00b929; --gold:#d9a441; --cyan:#3fb4c4; --violet:#8a5cd0;
-  --magenta:#c4147a; --danger:#dd0004; --grey:#4a4645;
+  --magenta:#c4147a; --danger:#F5A623; --grey:#4a4645;
   --user-bubble:#242221; --athena-bubble:#161514; --scrollbar-thumb:#2c2a29;
   --green-dim:#2f7d3a;
   --bg-quiet:#141312; --bg-raised:#1a1918; --bg-code:#0c0b0b; --border-ghost:rgba(0,0,0,.04);
@@ -42,18 +41,18 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
   --shadow-md: 0 4px 14px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.1);
   --shadow-lg: 0 12px 40px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.15);
-  --shadow-glow-red: 0 0 30px rgba(221,0,4,.12), 0 0 60px rgba(221,0,4,.06);
+  --shadow-glow-red: 0 0 30px rgba(74,144,217,.12), 0 0 60px rgba(74,144,217,.06);
 }
 :root.light {
   --page:#eeeae7; --bg-deep:#f4f1ee; --bg-surface:#ffffff; --bg-panel:#f7f4f1;
   --bg-card:#ffffff; --bg-input:#efeae6; --sunk:#efeae6; --rail:#ffffff;
   --border:#ddd6d1; --border-subtle:#ddd6d1; --border-faint:rgba(0,0,0,.06);
   --line:rgba(0,0,0,.1); --dash:rgba(0,0,0,.16);
-  --red:#dd0004; --red-dim:#b2232a; --red-glow:rgba(221,0,4,.1); --brand:#dd0004;
-  --brand-dim:#b2232a; --brand-hot:#b2232a; --red-dot:#dd0004; --wine:#791f23;
+  --red:#4A90D9; --red-dim:#3670B0; --red-glow:rgba(74,144,217,.1); --brand:#4A90D9;
+  --brand-dim:#3670B0; --brand-hot:#3670B0; --red-dot:#4A90D9; --wine:#2B5F94;
   --white:#2c2a29; --fg:#161514; --muted:#7a7472; --muted-light:#5a5350; --muted-dim:#948d8a;
   --fg-2:#5a5350; --fg-3:#948d8a;
-  --green:#1a8f2e; --cyan:#0e8394; --violet:#6d3fc4; --magenta:#b2126e; --danger:#dd0004; --grey:#c4beba;
+  --green:#1a8f2e; --cyan:#0e8394; --violet:#6d3fc4; --magenta:#b2126e; --danger:#F5A623; --grey:#c4beba;
   --user-bubble:#efeae6; --athena-bubble:#f7f4f1;
   --green-dim:#1a8f2e; --bg-quiet:#f4f1ee; --bg-raised:#f7f4f1; --bg-code:#f0ebe7; --border-ghost:rgba(0,0,0,.05);
   --shadow: 10.67px 21.33px 3.38px rgba(0,0,0,.06), 13.48px 26.97px 7.01px rgba(0,0,0,.08);
@@ -63,7 +62,7 @@
   --glass-border: rgba(0,0,0,0.06);
   --glass-surface: rgba(255,255,255,0.75);
   --glass-hover: rgba(0,0,0,0.02);
-  --shadow-glow-red: 0 0 20px rgba(221,0,4,.08), 0 0 40px rgba(221,0,4,.04);
+  --shadow-glow-red: 0 0 20px rgba(74,144,217,.08), 0 0 40px rgba(74,144,217,.04);
 }
 
 * { box-sizing: border-box; }

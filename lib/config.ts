@@ -19,7 +19,7 @@ export const googleConfigured = () => !!(GOOGLE_CLIENT_ID() && GOOGLE_CLIENT_SEC
 
 export const ADMIN_EMAILS = () =>
   (process.env.ADMIN_EMAILS ||
-    'andrei@grupoom.com.br,phillipe.barros@grupoom.com.br,camilo.ferreira@grupoom.com.br,gabriel.oliveira@grupoom.com.br')
+    'andrei@grupoom.com.br,phillipe.barros@grupoom.com.br,camilo.ferreira@grupoom.com.br')
     .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
 
 export const ALLOWED_DOMAINS = () =>

@@ -112,7 +112,7 @@ const DomainManager = () => {
             <button
               onClick={() => removeDomain(d)}
               style={css('background:none; border:none; color:var(--fg-3); cursor:pointer; padding:0 2px; font-size:14px; line-height:1; transition:color .2s')}
-              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#F5A623'; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--fg-3)'; }}
               title={`Remover @${d}`}
             >×</button>
@@ -406,7 +406,7 @@ function AdminPageInner() {
         <div style={css('flex:1; overflow-y:auto; overflow-x:hidden; padding:22px 24px 44px')}>
           {backendDown ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={css('max-width:560px; margin:8vh auto 0; text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px')}>
-              <span style={css('width:56px; height:56px; border-radius:16px; background:var(--red-glow); border:1px solid rgba(221,0,4,.25); display:flex; align-items:center; justify-content:center; color:var(--red)')}>{ic('<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', 24)}</span>
+              <span style={css('width:56px; height:56px; border-radius:16px; background:rgba(245,166,35,.12); border:1px solid rgba(245,166,35,.25); display:flex; align-items:center; justify-content:center; color:#F5A623')}>{ic('<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', 24)}</span>
               <div style={css('font-family:' + DISP + '; font-size:20px; font-weight:600')}>Backend não conectado</div>
               <div style={css('font-size:13.5px; color:var(--fg-2); line-height:1.7')}>Defina ATHENA_BACKEND_URL e ATHENA_BACKEND_TOKEN no servidor. Este painel só mostra dados reais do endpoint /audit, nada é fabricado.</div>
             </motion.div>
@@ -661,7 +661,7 @@ function AdminPageInner() {
                           const apiRole = role === 'Administrador' ? 'admin' : 'user';
                           return (
                             <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.03 }} style={css('display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px dashed var(--dash)')}>
-                              <span style={css('width:34px; height:34px; border-radius:50%; background:linear-gradient(140deg,var(--wine),var(--red)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(p.user_id)}</span>
+                              <span style={css('width:34px; height:34px; border-radius:50%; background:linear-gradient(140deg,#3670B0,#4A90D9); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(p.user_id)}</span>
                               <span style={css('min-width:0; flex:1')}>
                                 <span style={css('display:block; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{shortName(p.user_id)}</span>
                                 <span style={css('display:block; font-size:11px; color:var(--fg-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis')}>{p.user_id}</span>
@@ -680,7 +680,7 @@ function AdminPageInner() {
                             try { await api.updateRole(email, role); } catch { /* segue */ }
                           }
                           setRoleSaved(true);
-                        }} style={{ padding: '9px 18px', border: 'none', borderRadius: 10, background: 'var(--red)', color: '#fff', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(221,0,4,.2)' }}>Salvar papéis</motion.button>
+                        }} style={{ padding: '9px 18px', border: 'none', borderRadius: 10, background: '#4A90D9', color: '#fff', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(74,144,217,.25)' }}>Salvar papéis</motion.button>
                         <span style={css('font-size:11.5px; color:var(--fg-3); line-height:1.5')}>{roleSaved ? 'Papéis salvos no BigQuery via POST /users.' : 'Atribua papéis e clique em Salvar para persistir no BigQuery.'}</span>
                       </div>
                     </Panel>
@@ -689,8 +689,8 @@ function AdminPageInner() {
                       <div style={css('display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px')}>
                         {ROLES.map((r) => { const on = roleView === r; return (
                           <motion.button key={r} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setRoleView(r)} style={{
-                            padding: '8px 16px', border: `1px solid ${on ? 'var(--red)' : 'var(--border)'}`, borderRadius: 22,
-                            background: on ? 'var(--red)' : 'transparent', color: on ? '#fff' : 'var(--fg-2)',
+                            padding: '8px 16px', border: `1px solid ${on ? '#4A90D9' : 'var(--border)'}`, borderRadius: 22,
+                            background: on ? '#4A90D9' : 'transparent', color: on ? '#fff' : 'var(--fg-2)',
                             fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all .2s',
                           }}>{r}</motion.button>
                         ); })}
@@ -698,7 +698,7 @@ function AdminPageInner() {
                       <div style={css('display:flex; flex-direction:column')}>
                         {PERMS.map((p, i) => { const allowed = p.roles.includes(roleView); return (
                           <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 * i }} style={css('display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px dashed var(--dash)')}>
-                            <span style={css(`width:20px; height:20px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; background:${allowed ? 'var(--red)' : 'transparent'}; border:1px solid ${allowed ? 'var(--red)' : 'var(--border)'}; transition:all .2s`)}>{allowed ? ic('<polyline points="20 6 9 17 4 12"/>', 12, 3) : null}</span>
+                            <span style={css(`width:20px; height:20px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; background:${allowed ? '#4A90D9' : 'transparent'}; border:1px solid ${allowed ? '#4A90D9' : 'var(--border)'}; transition:all .2s`)}>{allowed ? ic('<polyline points="20 6 9 17 4 12"/>', 12, 3) : null}</span>
                             <span style={css(`font-size:13px; flex:1; min-width:0; color:${allowed ? 'var(--fg)' : 'var(--fg-3)'}; transition:color .2s`)}>{p.label}</span>
                             <span style={css('font-size:11px; color:var(--fg-3); flex-shrink:0')}>{p.roles.length === ROLES.length ? 'todos' : p.roles.join(', ')}</span>
                           </motion.div>
@@ -719,9 +719,9 @@ function AdminPageInner() {
                           { label: 'Export (Sheets/CSV)', value: 'Disponível no painel', ok: true },
                         ].map((item, i) => (
                           <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.05 }} style={css('display:flex; align-items:center; gap:14px; padding:12px 0; border-top:1px dashed var(--dash)')}>
-                            <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: item.ok ? 'var(--green)' : 'var(--red)', boxShadow: item.ok ? '0 0 8px rgba(63,185,80,.3)' : '0 0 8px rgba(221,0,4,.3)' }} />
+                            <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: item.ok ? 'var(--green)' : '#F5A623', boxShadow: item.ok ? '0 0 8px rgba(63,185,80,.3)' : '0 0 8px rgba(245,166,35,.3)' }} />
                             <span style={css('font-size:13px; font-weight:600; flex:1')}>{item.label}</span>
-                            <span style={css(`font-size:12px; color:${item.ok ? 'var(--fg-2)' : 'var(--red)'}`)}>{item.value}</span>
+                            <span style={css(`font-size:12px; color:${item.ok ? 'var(--fg-2)' : '#F5A623'}`)}>{item.value}</span>
                           </motion.div>
                         ))}
                       </div>
@@ -733,11 +733,11 @@ function AdminPageInner() {
 
                     <Panel title="Administradores" hint="e-mails com acesso ao painel admin (fallback hardcoded)" delay={0.15}>
                       <div style={css('display:flex; flex-direction:column; gap:4px')}>
-                        {['andrei@grupoom.com.br', 'phillipe.barros@grupoom.com.br', 'camilo.ferreira@grupoom.com.br', 'gabriel.oliveira@grupoom.com.br'].map((e, i) => (
+                        {['andrei@grupoom.com.br', 'phillipe.barros@grupoom.com.br', 'camilo.ferreira@grupoom.com.br'].map((e, i) => (
                           <motion.div key={e} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 + i * 0.04 }} style={css('display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px dashed var(--dash)')}>
-                            <span style={css('width:30px; height:30px; border-radius:50%; background:linear-gradient(140deg,var(--wine),var(--red)); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(e)}</span>
+                            <span style={css('width:30px; height:30px; border-radius:50%; background:linear-gradient(140deg,#3670B0,#4A90D9); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; flex-shrink:0')}>{initials(e)}</span>
                             <span style={css('font-size:12.5px; color:var(--fg-2)')}>{e}</span>
-                            <span style={css('margin-left:auto; font-size:10.5px; padding:3px 10px; border-radius:6px; background:var(--red-glow); color:var(--red); font-weight:600')}>admin</span>
+                            <span style={css('margin-left:auto; font-size:10.5px; padding:3px 10px; border-radius:6px; background:rgba(74,144,217,.12); color:#4A90D9; font-weight:600')}>admin</span>
                           </motion.div>
                         ))}
                       </div>
@@ -773,9 +773,9 @@ function AdminPageInner() {
                         <div style={css('display:flex; flex-direction:column; gap:4px')}>
                           {mcpHealth.servers.map((srv: any, i: number) => (
                             <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.05 }} style={css('display:flex; align-items:center; gap:14px; padding:12px 0; border-top:1px dashed var(--dash)')}>
-                              <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: srv.status === 'ok' ? 'var(--green)' : srv.status === 'not_configured' ? 'var(--gold)' : 'var(--red)', boxShadow: srv.status === 'ok' ? '0 0 8px rgba(63,185,80,.3)' : '0 0 8px rgba(221,0,4,.3)' }} />
+                              <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: srv.status === 'ok' ? 'var(--green)' : srv.status === 'not_configured' ? 'var(--gold)' : '#F5A623', boxShadow: srv.status === 'ok' ? '0 0 8px rgba(63,185,80,.3)' : '0 0 8px rgba(245,166,35,.3)' }} />
                               <span style={css('font-size:13px; font-weight:600; flex:1')}>{srv.name.replace(/_/g, ' ')}</span>
-                              <span style={css(`font-size:12px; color:${srv.status === 'ok' ? 'var(--green)' : srv.status === 'not_configured' ? 'var(--gold)' : 'var(--red)'}`)}>{srv.status === 'ok' ? 'Online' : srv.status === 'not_configured' ? 'Não configurado' : 'Offline'}</span>
+                              <span style={css(`font-size:12px; color:${srv.status === 'ok' ? 'var(--green)' : srv.status === 'not_configured' ? 'var(--gold)' : '#F5A623'}`)}>{srv.status === 'ok' ? 'Online' : srv.status === 'not_configured' ? 'Não configurado' : 'Offline'}</span>
                             </motion.div>
                           ))}
                         </div>
@@ -855,7 +855,7 @@ function AdminPageInner() {
                 {drawerMsgs?.length === 0 && <div style={css('font-size:12.5px; color:var(--fg-3)')}>Sem mensagens.</div>}
                 {(drawerMsgs || []).filter((m) => m.role !== 'system_summary').map((m, i) => (
                   <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} style={css(`display:flex; flex-direction:column; gap:6px; ${m.role === 'user' ? 'align-items:flex-end' : ''}`)}>
-                    <span style={css(`font-family:${DISP}; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:${m.role === 'user' ? 'var(--fg-3)' : 'var(--red)'}`)}>{m.role === 'user' ? 'Usuário' : 'Athena'}</span>
+                    <span style={css(`font-family:${DISP}; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:${m.role === 'user' ? 'var(--fg-3)' : '#4A90D9'}`)}>{m.role === 'user' ? 'Usuário' : 'Athena'}</span>
                     <div style={css(`max-width:92%; font-size:13px; line-height:1.65; padding:12px 15px; border-radius:12px; white-space:pre-wrap; background:${m.role === 'user' ? 'var(--sunk)' : 'transparent'}; border:1px solid var(--border); color:var(--fg)`)}>{m.content}</div>
                   </motion.div>
                 ))}
