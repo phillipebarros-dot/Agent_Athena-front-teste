@@ -120,39 +120,47 @@ function detectColorScheme(rows: string[][], labelCol: number, valueCol: number)
   return 'categorical';
 }
 
-/** Paleta sequencial — gradiente monocromático vermelho (marca). */
+// ============================================================================
+// PALETAS HYPERCHART — gradientes vibrantes com glow pairs
+// ============================================================================
+
+/** Cada cor tem [main, glow] — main pra fill, glow pro drop-shadow/neon. */
+const HYPER_COLORS: [string, string][] = [
+  ['#FF4D6A', '#FF4D6A'],   // rosa-vermelho (brand)
+  ['#7B61FF', '#A78BFA'],   // roxo elétrico
+  ['#00D4AA', '#34D399'],   // verde-turquesa
+  ['#FF9F43', '#FBBF24'],   // laranja-dourado
+  ['#3B82F6', '#60A5FA'],   // azul céu
+  ['#F472B6', '#EC4899'],   // rosa quente
+  ['#10B981', '#6EE7B7'],   // esmeralda
+  ['#8B5CF6', '#C084FC'],   // violeta
+  ['#F59E0B', '#FCD34D'],   // âmbar
+  ['#06B6D4', '#67E8F9'],   // ciano
+  ['#EF4444', '#FCA5A5'],   // vermelho
+  ['#14B8A6', '#5EEAD4'],   // teal
+];
+
+/** Paleta sequencial — gradiente da cor marca. */
 function getSequentialColors(count: number): string[] {
-  // Do vermelho escuro ao vermelho claro (brand-aligned)
   const colors: string[] = [];
   for (let i = 0; i < count; i++) {
     const ratio = count <= 1 ? 0.5 : i / (count - 1);
-    // HSL: hue=6 (vermelho marca), saturation 70-85%, lightness 30-65%
-    const s = 75 + ratio * 10;
-    const l = 35 + ratio * 30;
-    colors.push(`hsl(6, ${s}%, ${l}%)`);
+    const h = 350 + ratio * 20; // vermelho → rosa
+    const s = 80 + ratio * 10;
+    const l = 42 + ratio * 22;
+    colors.push(`hsl(${h % 360}, ${s}%, ${l}%)`);
   }
   return colors;
 }
 
-/** Paleta categórica — cores distintas, elegantes. */
-const CATEGORICAL_COLORS = [
-  '#C41E1E', // vermelho marca
-  '#50C878', // verde esmeralda
-  '#F5A623', // laranja
-  '#9B59B6', // roxo
-  '#1ABC9C', // turquesa
-  '#E74C8B', // rosa
-  '#2ECC71', // verde limão
-  '#3498DB', // azul claro
-  '#E67E22', // tangerina
-  '#8E44AD', // roxo escuro
-  '#16A085', // verde-azulado
-  '#F39C12', // dourado
-];
-
 function getColors(scheme: ColorScheme, count: number): string[] {
   if (scheme === 'sequential') return getSequentialColors(count);
-  return CATEGORICAL_COLORS;
+  return HYPER_COLORS.map(c => c[0]);
+}
+
+function getGlow(color: string): string {
+  const pair = HYPER_COLORS.find(c => c[0] === color);
+  return pair ? pair[1] : color;
 }
 
 // ============================================================================
@@ -212,17 +220,18 @@ function useStaggeredReveal(count: number, on: boolean) {
   return visible;
 }
 
-// ── Bar Chart (vertical) — SVG premium com hover tooltip ──
+// ── Bar Chart HyperChart — SVG com gradient fills + neon glow ──
 function BarChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: string[] }) {
   const [animated, setAnimated] = useState(false);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
 
-  const barWidth = Math.max(16, Math.min(36, 500 / bars.length - 6));
-  const gap = Math.max(4, Math.min(12, 300 / bars.length));
-  const w = Math.max(400, bars.length * (barWidth + gap) + 100);
-  const h = 240, padX = 55, padY = 24, padBottom = 56;
-  const plotW = w - padX - 20, plotH = h - padY - padBottom;
+  const barWidth = Math.max(20, Math.min(44, 600 / bars.length - 8));
+  const gap = Math.max(6, Math.min(16, 400 / bars.length));
+  const w = Math.max(460, bars.length * (barWidth + gap) + 120);
+  const h = 280, padX = 58, padY = 28, padBottom = 64;
+  const plotH = h - padY - padBottom;
+  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
 
   const formatVal = (v: number) => {
     if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
@@ -235,13 +244,29 @@ function BarChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: str
       <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', maxWidth: w, height: 'auto' }}
         onMouseLeave={() => setHoverIdx(null)}
       >
-        {/* Y-axis grid lines */}
+        <defs>
+          {bars.map((_, i) => {
+            const c = colors[i % colors.length];
+            const g = getGlow(c);
+            return (
+              <linearGradient key={i} id={`bg${uid}${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={g} stopOpacity={0.95} />
+                <stop offset="100%" stopColor={c} stopOpacity={0.7} />
+              </linearGradient>
+            );
+          })}
+          <filter id={`glow${uid}`}>
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+        {/* Grid */}
         {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
           const y = padY + plotH * (1 - pct);
           return (
             <g key={i}>
-              <line x1={padX} y1={y} x2={w - 20} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3" opacity={0.5} />
-              <text x={padX - 8} y={y + 4} textAnchor="end" fill="var(--muted)" fontSize="10" fontFamily="var(--font-mono)">
+              <line x1={padX} y1={y} x2={w - 20} y2={y} stroke="rgba(255,255,255,.06)" strokeWidth="1" />
+              <text x={padX - 10} y={y + 4} textAnchor="end" fill="rgba(255,255,255,.35)" fontSize="10" fontFamily="var(--font-mono)">
                 {formatVal(max * pct)}
               </text>
             </g>
@@ -249,7 +274,7 @@ function BarChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: str
         })}
         {/* Bars */}
         {bars.map((b, i) => {
-          const barH = max > 0 ? (Math.abs(b.val) / max) * plotH : 2;
+          const barH = max > 0 ? Math.max(3, (Math.abs(b.val) / max) * plotH) : 3;
           const x = padX + i * (barWidth + gap) + gap / 2;
           const y = padY + plotH - barH;
           const color = colors[i % colors.length];
@@ -257,35 +282,38 @@ function BarChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: str
           const showLabel = bars.length <= 14 || i % Math.ceil(bars.length / 14) === 0 || i === bars.length - 1;
           return (
             <g key={i} onMouseEnter={() => setHoverIdx(i)} style={{ cursor: 'pointer' }}>
-              {/* Bar */}
+              {/* Neon glow behind bar */}
+              <rect
+                x={x + 2} y={animated ? y + 4 : padY + plotH}
+                width={barWidth - 4} height={animated ? Math.max(2, barH - 4) : 0}
+                rx={barWidth / 2} fill={color} opacity={isHovered ? 0.5 : 0.2}
+                filter={`url(#glow${uid})`}
+                style={{ transition: `y 0.6s ease ${i * 0.03}s, height 0.6s ease ${i * 0.03}s, opacity 0.2s ease` }}
+              />
+              {/* Bar with gradient */}
               <rect
                 x={x} y={animated ? y : padY + plotH}
-                width={barWidth} height={animated ? Math.max(2, barH) : 0}
-                rx={4} ry={4}
-                fill={color}
-                opacity={isHovered ? 1 : 0.85}
-                style={{ transition: `y 0.6s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s, height 0.6s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s, opacity 0.15s ease` }}
+                width={barWidth} height={animated ? Math.max(3, barH) : 0}
+                rx={barWidth > 28 ? 8 : 6}
+                fill={`url(#bg${uid}${i})`}
+                style={{ transition: `y 0.7s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s, height 0.7s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s` }}
               />
-              {/* Glow on hover */}
-              {isHovered && (
-                <rect x={x - 1} y={y - 1} width={barWidth + 2} height={Math.max(2, barH) + 2} rx={5} fill="none" stroke={color} strokeWidth="1.5" opacity={0.5} />
-              )}
               {/* Hover tooltip */}
               {isHovered && (
                 <g>
-                  <rect x={x + barWidth / 2 - 55} y={y - 30} width={110} height={22} rx={6}
-                    fill="var(--bg-surface)" stroke="var(--border)" strokeWidth="0.5" />
-                  <text x={x + barWidth / 2} y={y - 15} textAnchor="middle" fill="var(--fg-1)" fontSize="10.5" fontFamily="var(--font-mono)" fontWeight="600">
+                  <rect x={x + barWidth / 2 - 58} y={y - 34} width={116} height={26} rx={8}
+                    fill="rgba(20,20,28,.92)" stroke="rgba(255,255,255,.12)" strokeWidth="1" />
+                  <text x={x + barWidth / 2} y={y - 17} textAnchor="middle" fill="#fff" fontSize="11" fontFamily="var(--font-mono)" fontWeight="600">
                     {b.raw}
                   </text>
                 </g>
               )}
-              {/* X-axis label — rotated */}
+              {/* X label */}
               {showLabel && (
                 <text
-                  x={x + barWidth / 2} y={padY + plotH + 14}
-                  textAnchor="end" fill="var(--muted-dim)" fontSize="9" fontFamily="var(--font-body)"
-                  transform={`rotate(-45, ${x + barWidth / 2}, ${padY + plotH + 14})`}
+                  x={x + barWidth / 2} y={padY + plotH + 16}
+                  textAnchor="end" fill="rgba(255,255,255,.3)" fontSize="9" fontFamily="var(--font-body)"
+                  transform={`rotate(-45, ${x + barWidth / 2}, ${padY + plotH + 16})`}
                 >
                   {b.label.length > 16 ? b.label.slice(0, 15) + '…' : b.label}
                 </text>
@@ -299,50 +327,53 @@ function BarChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: str
   );
 }
 
-// ── Horizontal Bar Chart com animação ──
+// ── Horizontal Bar HyperChart — gradient + glow ──
 function HorizontalChart({ bars, max, colors }: { bars: Bar[]; max: number; colors: string[] }) {
   const [animated, setAnimated] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
 
   const maxLabelLen = Math.max(...bars.map(b => b.label.length));
   const labelWidth = Math.min(220, Math.max(100, maxLabelLen * 7 + 20));
 
   return (
-    <div style={css('display:flex; flex-direction:column; gap:6px')}>
+    <div style={css('display:flex; flex-direction:column; gap:5px')}>
       {bars.map((b, i) => {
         const pct = max > 0 ? Math.max(2, Math.round((Math.abs(b.val) / max) * 100)) : 2;
-        const isSmall = pct < 25;
+        const isSmall = pct < 22;
         const barColor = colors[i % colors.length];
+        const glowC = getGlow(barColor);
+        const isHovered = hoverIdx === i;
 
         return (
           <div key={i} style={{
             display: 'flex', alignItems: 'center', gap: 10,
-            padding: '3px 0',
-            transition: 'background .15s ease',
-            borderRadius: 6,
+            padding: '4px 6px',
+            borderRadius: 8,
             opacity: animated ? 1 : 0,
-            transform: animated ? 'translateX(0)' : 'translateX(-10px)',
+            transform: animated ? 'translateX(0)' : 'translateX(-12px)',
+            background: isHovered ? 'rgba(255,255,255,.04)' : 'transparent',
+            transition: 'opacity 0.4s ease, transform 0.4s ease, background 0.15s ease',
             transitionDelay: `${i * 0.03}s`,
-            transitionProperty: 'opacity, transform, background',
-            transitionDuration: '0.4s',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.03)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          onMouseEnter={() => setHoverIdx(i)}
+          onMouseLeave={() => setHoverIdx(null)}
           >
             <span style={{
-              fontSize: 12, color: 'var(--fg-2)',
+              fontSize: 11.5, color: isHovered ? '#fff' : 'rgba(255,255,255,.55)',
               width: labelWidth, minWidth: labelWidth, maxWidth: labelWidth,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               textAlign: 'right', flexShrink: 0,
               fontFamily: 'var(--font-body)', fontWeight: 500,
+              transition: 'color .15s ease',
             }} title={b.label}>
               {b.label}
             </span>
 
             <div style={{
-              flex: 1, height: 28,
-              background: 'var(--bg-surface)',
-              borderRadius: 8, overflow: 'visible',
+              flex: 1, height: 30,
+              background: 'rgba(255,255,255,.03)',
+              borderRadius: 10, overflow: 'visible',
               position: 'relative',
               display: 'flex', alignItems: 'center',
             }}>
@@ -351,21 +382,23 @@ function HorizontalChart({ bars, max, colors }: { bars: Bar[]; max: number; colo
                 style={{
                   height: '100%',
                   width: animated ? `${pct}%` : '0%',
-                  borderRadius: 8,
-                  background: `linear-gradient(90deg, ${barColor}, ${barColor}dd)`,
-                  transition: `width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.04}s`,
+                  borderRadius: 10,
+                  background: `linear-gradient(90deg, ${barColor}, ${glowC})`,
+                  transition: `width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.03}s`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
-                  paddingRight: isSmall ? 0 : 10,
-                  boxShadow: `0 2px 8px ${barColor}30`,
+                  paddingRight: isSmall ? 0 : 12,
+                  boxShadow: isHovered
+                    ? `0 2px 16px ${barColor}55, 0 0 30px ${barColor}22`
+                    : `0 2px 8px ${barColor}20`,
                 }}
               >
                 {!isSmall && (
                   <span style={{
                     fontFamily: 'var(--font-mono)',
                     fontSize: 11, color: '#fff', fontWeight: 600,
-                    textShadow: '0 1px 2px rgba(0,0,0,.3)',
+                    textShadow: '0 1px 3px rgba(0,0,0,.5)',
                     whiteSpace: 'nowrap',
                   }}>{b.raw}</span>
                 )}
@@ -374,7 +407,7 @@ function HorizontalChart({ bars, max, colors }: { bars: Bar[]; max: number; colo
               {isSmall && (
                 <span style={{
                   fontFamily: 'var(--font-mono)',
-                  fontSize: 11, color: 'var(--muted-light)', fontWeight: 500,
+                  fontSize: 11, color: 'rgba(255,255,255,.5)', fontWeight: 500,
                   marginLeft: 8, whiteSpace: 'nowrap',
                 }}>{b.raw}</span>
               )}
@@ -386,15 +419,16 @@ function HorizontalChart({ bars, max, colors }: { bars: Bar[]; max: number; colo
   );
 }
 
-// ── Donut Chart premium com hover highlight ──
+// ── Donut HyperChart — neon glow + glassmorphism center ──
 function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors: string[] }) {
   const [animated, setAnimated] = useState(false);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
+  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
 
   const formatTotal = (v: number) => {
-    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+    if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)}k`;
     return v.toFixed(0);
   };
 
@@ -407,23 +441,22 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
       return { ...b, pct, start, color: colors[i % colors.length] };
     });
     if (segs.length > 0 && cumulative > 0 && cumulative < 100.5) {
-      const last = segs[segs.length - 1];
-      last.pct += (100 - cumulative);
+      segs[segs.length - 1].pct += (100 - cumulative);
     }
     return segs;
   }, [bars, total, colors]);
 
-  const size = 220;
+  const size = 240;
   const cx = size / 2, cy = size / 2;
-  const outerR = 90, innerR = 55; // Donut
+  const outerR = 100, innerR = 62;
 
   function donutArc(startPct: number, endPct: number, hover: boolean) {
     const sP = Math.max(0, Math.min(100, startPct));
     const eP = Math.max(0, Math.min(100, endPct));
-    const r = hover ? outerR + 4 : outerR;
-    const ir = hover ? innerR - 2 : innerR;
+    const r = hover ? outerR + 5 : outerR;
+    const ir = hover ? innerR - 3 : innerR;
     if (eP - sP >= 99.99) {
-      return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} A ${r} ${r} 0 0 1 ${cx} ${cy - r} Z M ${cx} ${cy - ir} A ${ir} ${ir} 0 1 0 ${cx - 0.01} ${cy - ir} A ${ir} ${ir} 0 0 0 ${cx} ${cy - ir} Z`;
+      return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z M ${cx} ${cy - ir} A ${ir} ${ir} 0 1 0 ${cx - 0.01} ${cy - ir} Z`;
     }
     const s1 = ((sP / 100) * 360 - 90) * Math.PI / 180;
     const e1 = ((eP / 100) * 360 - 90) * Math.PI / 180;
@@ -439,7 +472,7 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
 
   return (
     <div style={{
-      ...css('display:flex; align-items:center; gap:28px; flex-wrap:wrap; justify-content:center') as any,
+      ...css('display:flex; align-items:center; gap:32px; flex-wrap:wrap; justify-content:center') as any,
       opacity: animated ? 1 : 0,
       transform: animated ? 'scale(1)' : 'scale(0.85)',
       transition: 'opacity 0.5s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -447,8 +480,13 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
         onMouseLeave={() => setHoverIdx(null)}
       >
+        <defs>
+          <filter id={`dg${uid}`}><feGaussianBlur stdDeviation="6" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        </defs>
+        {/* Outer glow ring */}
+        <circle cx={cx} cy={cy} r={outerR + 2} fill="none" stroke="rgba(255,77,106,.08)" strokeWidth="6" />
         {/* Background ring */}
-        <circle cx={cx} cy={cy} r={(outerR + innerR) / 2} fill="none" stroke="var(--bg-surface)" strokeWidth={outerR - innerR} />
+        <circle cx={cx} cy={cy} r={(outerR + innerR) / 2} fill="none" stroke="rgba(255,255,255,.04)" strokeWidth={outerR - innerR} />
         {/* Segments */}
         {segments.map((seg, i) => (
           <path
@@ -456,46 +494,48 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
             d={donutArc(seg.start, seg.start + seg.pct, hoverIdx === i)}
             fill={seg.color}
             fillRule="evenodd"
-            stroke="var(--bg-card)"
+            stroke="rgba(0,0,0,.3)"
             strokeWidth="1.5"
             onMouseEnter={() => setHoverIdx(i)}
             style={{
-              opacity: animated ? (hoverIdx !== null && hoverIdx !== i ? 0.5 : 1) : 0,
-              transition: `opacity 0.25s ease ${i * 0.05}s, d 0.2s ease`,
+              opacity: animated ? (hoverIdx !== null && hoverIdx !== i ? 0.4 : 1) : 0,
+              transition: `opacity 0.25s ease ${i * 0.04}s`,
               cursor: 'pointer',
-              filter: hoverIdx === i ? `drop-shadow(0 2px 8px ${seg.color}66)` : 'none',
+              filter: hoverIdx === i ? `url(#dg${uid})` : 'none',
             }}
           >
             <title>{`${seg.label}: ${seg.raw} (${seg.pct.toFixed(1)}%)`}</title>
           </path>
         ))}
-        {/* Center label */}
-        <text x={cx} y={cy - 6} textAnchor="middle" fill="var(--fg-1)" fontSize="16" fontFamily="var(--font-mono)" fontWeight="700">
+        {/* Glassmorphism center */}
+        <circle cx={cx} cy={cy} r={innerR - 4} fill="rgba(18,18,24,.85)" stroke="rgba(255,255,255,.08)" strokeWidth="1" />
+        <text x={cx} y={cy - 8} textAnchor="middle" fill="#fff" fontSize="18" fontFamily="var(--font-mono)" fontWeight="700">
           {hoverSeg ? `${hoverSeg.pct.toFixed(1)}%` : formatTotal(total)}
         </text>
-        <text x={cx} y={cy + 12} textAnchor="middle" fill="var(--muted)" fontSize="9" fontFamily="var(--font-body)">
+        <text x={cx} y={cy + 10} textAnchor="middle" fill="rgba(255,255,255,.45)" fontSize="9.5" fontFamily="var(--font-body)">
           {hoverSeg ? (hoverSeg.label.length > 18 ? hoverSeg.label.slice(0, 17) + '…' : hoverSeg.label) : 'Total'}
         </text>
       </svg>
       {/* Legend */}
-      <div style={css('display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto; padding-right:4px')}>
+      <div style={css('display:flex; flex-direction:column; gap:3px; max-height:240px; overflow-y:auto; padding-right:6px')}>
         {segments.map((seg, i) => (
           <div key={i}
             onMouseEnter={() => setHoverIdx(i)}
             onMouseLeave={() => setHoverIdx(null)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '3px 6px',
-              borderRadius: 6, cursor: 'pointer',
-              background: hoverIdx === i ? 'rgba(255,255,255,.05)' : 'transparent',
+              display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px',
+              borderRadius: 8, cursor: 'pointer',
+              background: hoverIdx === i ? 'rgba(255,255,255,.06)' : 'transparent',
               transition: 'background 0.15s ease',
             }}
           >
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: seg.color, flexShrink: 0,
-              boxShadow: hoverIdx === i ? `0 0 6px ${seg.color}88` : 'none' }} />
-            <span style={css('font-size:11px; color:var(--muted-light); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap')}
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: seg.color, flexShrink: 0,
+              boxShadow: `0 0 ${hoverIdx === i ? 8 : 3}px ${seg.color}${hoverIdx === i ? 'cc' : '55'}`,
+              transition: 'box-shadow .2s ease' }} />
+            <span style={{ fontSize: 11, color: hoverIdx === i ? '#fff' : 'rgba(255,255,255,.55)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, transition: 'color .15s ease' }}
               title={seg.label}
             >{seg.label}</span>
-            <span style={css('font-family:var(--font-mono); font-size:10px; color:var(--muted); white-space:nowrap; margin-left:auto')}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,.35)', whiteSpace: 'nowrap' as const, marginLeft: 'auto' }}>
               {seg.pct.toFixed(1)}%
             </span>
           </div>
@@ -505,21 +545,21 @@ function PieChart({ bars, total, colors }: { bars: Bar[]; total: number; colors:
   );
 }
 
-// ── Line Chart com animação ──
+// ── Line Chart HyperChart — neon stroke glow + gradient area ──
 function LineChart({ bars, max, min, colors }: { bars: Bar[]; max: number; min: number; colors: string[] }) {
   const [animated, setAnimated] = useState(false);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 80); return () => clearTimeout(t); }, []);
+  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
 
-  const lineColor = colors[0] || '#C41E1E';
-  // Dynamic width: wider for more points so labels don't overlap
-  const pointSpacing = Math.max(50, Math.min(80, 600 / bars.length));
-  const w = Math.max(500, bars.length * pointSpacing + 100);
-  const h = 220, padX = 60, padY = 30, padBottom = 60;
+  const lineColor = colors[0] || '#FF4D6A';
+  const glowColor = getGlow(lineColor);
+  const pointSpacing = Math.max(55, Math.min(85, 650 / bars.length));
+  const w = Math.max(500, bars.length * pointSpacing + 130);
+  const h = 260, padX = 62, padY = 32, padBottom = 64;
   const plotW = w - padX * 2, plotH = h - padY - padBottom;
   const range = Math.max(1, max - min);
 
-  // Smart Y-axis formatting
   const formatVal = (v: number) => {
     if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
     if (Math.abs(v) >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
@@ -533,79 +573,95 @@ function LineChart({ bars, max, min, colors }: { bars: Bar[]; max: number; min: 
   }));
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const areaPath = linePath + ` L ${points[points.length - 1].x} ${h - padBottom} L ${points[0].x} ${h - padBottom} Z`;
-  const pathLength = 1200;
+  const areaPath = linePath + ` L ${points[points.length - 1].x} ${padY + plotH} L ${points[0].x} ${padY + plotH} Z`;
+  const pathLength = 2000;
 
   return (
     <div style={css('overflow-x:auto')}>
       <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', maxWidth: w, height: 'auto' }}
         onMouseLeave={() => setHoverIdx(null)}
       >
-        {/* Y-axis grid lines + labels */}
+        <defs>
+          <linearGradient id={`ag${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={lineColor} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={lineColor} stopOpacity={0} />
+          </linearGradient>
+          <filter id={`lg${uid}`}>
+            <feGaussianBlur stdDeviation="3" result="b" />
+            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <filter id={`pg${uid}`}>
+            <feGaussianBlur stdDeviation="4" result="b" />
+            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+        {/* Grid */}
         {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
           const y = padY + plotH * (1 - pct);
           const val = min + range * pct;
           return (
             <g key={i}>
-              <line x1={padX} y1={y} x2={w - padX} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3" />
-              <text x={padX - 8} y={y + 4} textAnchor="end" fill="var(--muted)" fontSize="10" fontFamily="var(--font-mono)">
+              <line x1={padX} y1={y} x2={w - padX} y2={y} stroke="rgba(255,255,255,.05)" strokeWidth="1" />
+              <text x={padX - 10} y={y + 4} textAnchor="end" fill="rgba(255,255,255,.3)" fontSize="10" fontFamily="var(--font-mono)">
                 {formatVal(val)}
               </text>
             </g>
           );
         })}
-        {/* Area fill */}
-        <path d={areaPath} fill={`${lineColor}12`} style={{ opacity: animated ? 1 : 0, transition: 'opacity 0.8s ease 0.5s' }} />
-        {/* Line */}
+        {/* Area gradient fill */}
+        <path d={areaPath} fill={`url(#ag${uid})`} style={{ opacity: animated ? 1 : 0, transition: 'opacity 1s ease 0.5s' }} />
+        {/* Neon glow line (behind) */}
         <path
-          d={linePath}
-          fill="none"
-          stroke={lineColor}
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          strokeDasharray={pathLength}
-          strokeDashoffset={animated ? 0 : pathLength}
-          style={{ transition: `stroke-dashoffset 1.2s ease-out` }}
+          d={linePath} fill="none" stroke={glowColor} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round"
+          opacity={animated ? 0.3 : 0}
+          filter={`url(#lg${uid})`}
+          style={{ transition: 'opacity 1s ease 0.3s' }}
         />
-        {/* Data points + X labels */}
+        {/* Main line */}
+        <path
+          d={linePath} fill="none" stroke={lineColor} strokeWidth="2.5"
+          strokeLinejoin="round" strokeLinecap="round"
+          strokeDasharray={pathLength} strokeDashoffset={animated ? 0 : pathLength}
+          style={{ transition: `stroke-dashoffset 1.4s ease-out` }}
+        />
+        {/* Points + labels */}
         {points.map((p, i) => {
           const isHovered = hoverIdx === i;
-          // Show label for every Nth point to avoid crowding
           const showLabel = bars.length <= 12 || i % Math.ceil(bars.length / 12) === 0 || i === bars.length - 1;
           return (
             <g key={i}
-              style={{ opacity: animated ? 1 : 0, transition: `opacity 0.3s ease ${0.3 + i * 0.05}s` }}
+              style={{ opacity: animated ? 1 : 0, transition: `opacity 0.3s ease ${0.4 + i * 0.04}s` }}
               onMouseEnter={() => setHoverIdx(i)}
             >
-              {/* Hover vertical guide line */}
               {isHovered && (
-                <line x1={p.x} y1={padY} x2={p.x} y2={h - padBottom} stroke="var(--muted)" strokeWidth="0.5" strokeDasharray="4,4" />
+                <line x1={p.x} y1={padY} x2={p.x} y2={padY + plotH} stroke="rgba(255,255,255,.1)" strokeWidth="1" />
               )}
-              {/* Hover tooltip — value shown only on hover */}
               {isHovered && (
                 <g>
-                  <rect
-                    x={p.x - 50} y={p.y - 28} width={100} height={20} rx={6}
-                    fill="var(--bg-surface)" stroke="var(--border)" strokeWidth="0.5"
-                  />
-                  <text x={p.x} y={p.y - 14} textAnchor="middle" fill="var(--fg-1)" fontSize="10" fontFamily="var(--font-mono)" fontWeight="600">
+                  <rect x={p.x - 58} y={p.y - 36} width={116} height={26} rx={8}
+                    fill="rgba(20,20,28,.92)" stroke="rgba(255,255,255,.12)" strokeWidth="1" />
+                  <text x={p.x} y={p.y - 19} textAnchor="middle" fill="#fff" fontSize="11" fontFamily="var(--font-mono)" fontWeight="600">
                     {p.raw}
                   </text>
                 </g>
               )}
-              {/* Circle point */}
-              <circle cx={p.x} cy={p.y} r={isHovered ? 6 : 4} fill={lineColor} stroke="var(--bg-card)" strokeWidth="2" style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}>
+              {/* Glow dot */}
+              {isHovered && (
+                <circle cx={p.x} cy={p.y} r={10} fill={lineColor} opacity={0.25} filter={`url(#pg${uid})`} />
+              )}
+              <circle cx={p.x} cy={p.y} r={isHovered ? 6 : 3.5}
+                fill={isHovered ? '#fff' : lineColor} stroke={isHovered ? lineColor : 'rgba(0,0,0,.4)'} strokeWidth={isHovered ? 3 : 1.5}
+                style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+              >
                 <title>{`${p.label}: ${p.raw}`}</title>
               </circle>
-              {/* X-axis label — rotated 45deg for readability */}
               {showLabel && (
                 <text
-                  x={p.x} y={h - padBottom + 14}
-                  textAnchor="end" fill="var(--muted-dim)" fontSize="9.5" fontFamily="var(--font-body)"
-                  transform={`rotate(-45, ${p.x}, ${h - padBottom + 14})`}
+                  x={p.x} y={padY + plotH + 16}
+                  textAnchor="end" fill="rgba(255,255,255,.28)" fontSize="9" fontFamily="var(--font-body)"
+                  transform={`rotate(-45, ${p.x}, ${padY + plotH + 16})`}
                 >
-                  {p.label.length > 14 ? p.label.slice(0, 13) + '…' : p.label}
+                  {p.label.length > 16 ? p.label.slice(0, 15) + '…' : p.label}
                 </text>
               )}
             </g>
